@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { 
   Twitter, 
@@ -5,7 +6,13 @@ import {
   Music, 
   Headphones, 
   MessageCircle, 
-  Mail 
+  Mail,
+  FileText,
+  ShieldCheck,
+  Cookie,
+  FileCode,
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,13 +63,18 @@ const Footer = () => {
           <div className="col-span-1">
             <h3 className="text-sm font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              {['Dashboard', 'Tasks', 'Leaderboard', 'Referrals'].map((item) => (
+              {['Dashboard', 'Tasks', 'Leaderboard', 'Referrals', 'DSP Trust'].map((item) => (
                 <li key={item}>
                   <Link 
-                    to={`/${item.toLowerCase()}`} 
-                    className="text-muted-foreground hover:text-foreground text-sm transition-colors duration-200"
+                    to={`/${item.toLowerCase().replace(/\s+/g, '-')}`} 
+                    className="text-muted-foreground hover:text-foreground text-sm transition-colors duration-200 flex items-center"
                   >
-                    {item}
+                    {item === 'DSP Trust' ? (
+                      <>
+                        <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
+                        {item}
+                      </>
+                    ) : item}
                   </Link>
                 </li>
               ))}
@@ -73,13 +85,20 @@ const Footer = () => {
           <div className="col-span-1">
             <h3 className="text-sm font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
-              {['Terms of Service', 'Privacy Policy', 'Cookie Policy', 'Disclaimer'].map((item) => (
-                <li key={item}>
+              {[
+                { name: 'Terms of Service', icon: <FileText className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'Privacy Policy', icon: <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'Cookies Policy', icon: <Cookie className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'Disclaimer', icon: <Info className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'White Paper', icon: <FileCode className="w-3.5 h-3.5 mr-1.5" /> }
+              ].map((item) => (
+                <li key={item.name}>
                   <Link 
-                    to={`/${item.toLowerCase().replace(/\s+/g, '-')}`}
-                    className="text-muted-foreground hover:text-foreground text-sm transition-colors duration-200"
+                    to={`/${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="text-muted-foreground hover:text-foreground text-sm transition-colors duration-200 flex items-center"
                   >
-                    {item}
+                    {item.icon}
+                    {item.name}
                   </Link>
                 </li>
               ))}

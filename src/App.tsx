@@ -9,6 +9,12 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Referrals from "./pages/Referrals";
 import NotFound from "./pages/NotFound";
+import TermsOfService from "./pages/legal/TermsOfService";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import Disclaimer from "./pages/legal/Disclaimer";
+import CookiesPolicy from "./pages/legal/CookiesPolicy";
+import WhitePaper from "./pages/legal/WhitePaper";
+import DspTrust from "./pages/DspTrust";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +29,12 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tasks" element={<Tasks />} />
           <Route path="/referrals" element={<Referrals />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/disclaimer" element={<Disclaimer />} />
+          <Route path="/cookies-policy" element={<CookiesPolicy />} />
+          <Route path="/white-paper" element={<WhitePaper />} />
+          <Route path="/dsp-trust" element={<DspTrust />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
