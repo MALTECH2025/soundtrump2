@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -21,6 +21,8 @@ import {
   LayoutDashboard 
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from '@/lib/toast';
 
 interface NavbarProps {
   isAuthenticated?: boolean;
@@ -32,11 +34,19 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ 
-  isAuthenticated = false, 
-  userProfile = { name: 'User', initials: 'U' } 
+  userProfile
 }: NavbarProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+  
+  // Use authenticated user data if available, otherwise fall back to props
+  const userData = user || (userProfile && {
+    name: userProfile.name,
+    avatar: userProfile.avatar,
+    initials: userProfile.initials
+  });
   
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-4 h-4 mr-2" /> },
@@ -44,6 +54,12 @@ export const Navbar = ({
     { name: 'Leaderboard', path: '/leaderboard', icon: <Trophy className="w-4 h-4 mr-2" /> },
     { name: 'Referrals', path: '/referrals', icon: <Users className="w-4 h-4 mr-2" /> },
   ];
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Successfully logged out');
+    navigate('/');
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border">
@@ -79,15 +95,15 @@ export const Navbar = ({
 
         {/* Profile / Auth */}
         <div className="flex items-center">
-          {isAuthenticated ? (
+          {isAuthenticated && userData ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <motion.div whileHover={{ scale: 1.05 }}>
                   <Button variant="ghost" className="rounded-full p-0 h-10 w-10">
                     <Avatar>
-                      <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
+                      <AvatarImage src={userData.avatar} alt={userData.name} />
                       <AvatarFallback className="bg-sound-light text-white">
-                        {userProfile.initials}
+                        {userData.initials}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -95,7 +111,7 @@ export const Navbar = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 mt-1 p-2 animate-fade-in">
                 <div className="flex flex-col p-2 mb-2 border-b">
-                  <p className="font-medium">{userProfile.name}</p>
+                  <p className="font-medium">{userData.name}</p>
                   <p className="text-sm text-muted-foreground">ST Member</p>
                 </div>
                 <DropdownMenuItem className="cursor-pointer">
@@ -110,7 +126,7 @@ export const Navbar = ({
                   <Settings className="w-4 h-4 mr-2" />
                   <span>Settings</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer text-destructive">
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
                   <LogOut className="w-4 h-4 mr-2" />
                   <span>Logout</span>
                 </DropdownMenuItem>
@@ -121,7 +137,7 @@ export const Navbar = ({
               <Link to="/login">
                 <Button variant="outline" size="sm">Log in</Button>
               </Link>
-              <Link to="/signup">
+              <Link to="/login">
                 <Button variant="default" size="sm">Sign up</Button>
               </Link>
             </div>

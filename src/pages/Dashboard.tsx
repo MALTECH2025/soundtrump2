@@ -10,8 +10,8 @@ import EarningsWidget from '@/components/dashboard/EarningsWidget';
 import ReferralWidget from '@/components/dashboard/ReferralWidget';
 import { Bell, Music2, Award, TrendingUp } from 'lucide-react';
 import { toast } from '@/lib/toast';
+import { useAuth } from '@/context/AuthContext';
 
-// Mock data
 const mockTasks: TaskProps[] = [
   {
     id: '1',
@@ -51,11 +51,7 @@ const mockTasks: TaskProps[] = [
 
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState({
-    name: 'Alex Johnson',
-    avatar: '',
-    initials: 'AJ'
-  });
+  const { user } = useAuth();
   
   useEffect(() => {
     // Simulate loading data
@@ -64,12 +60,12 @@ const Dashboard = () => {
     }, 1000);
     
     // Show welcome toast
-    toast.success('Welcome back, Alex!', {
+    toast.success(`Welcome back, ${user?.name || 'User'}!`, {
       description: 'You have 4 active tasks to complete.',
     });
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [user]);
   
   // Animation variants
   const fadeInUp = {
@@ -80,12 +76,11 @@ const Dashboard = () => {
   return (
     <AnimatedTransition>
       <div className="min-h-screen flex flex-col">
-        <Navbar isAuthenticated={true} userProfile={userProfile} />
+        <Navbar />
         
         <main className="flex-grow pt-24 pb-12">
           <div className="container px-4 mx-auto">
             {isLoading ? (
-              // Loading skeleton
               <div className="animate-pulse">
                 <div className="h-8 bg-muted w-1/3 mb-6 rounded"></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -103,18 +98,16 @@ const Dashboard = () => {
               </div>
             ) : (
               <>
-                {/* Welcome message */}
                 <motion.div
                   variants={fadeInUp}
                   initial="hidden"
                   animate="visible"
                   className="mb-6"
                 >
-                  <h1 className="text-3xl font-bold">Welcome back, Alex</h1>
+                  <h1 className="text-3xl font-bold">Welcome back, {user?.name || 'User'}</h1>
                   <p className="text-muted-foreground">Here's an overview of your activity and earnings</p>
                 </motion.div>
                 
-                {/* Stats & widgets row */}
                 <motion.div 
                   variants={fadeInUp}
                   initial="hidden"
@@ -136,14 +129,12 @@ const Dashboard = () => {
                   </motion.div>
                 </motion.div>
                 
-                {/* Tasks & Referrals */}
                 <motion.div 
                   variants={fadeInUp}
                   initial="hidden"
                   animate="visible"
                   className="grid grid-cols-1 lg:grid-cols-4 gap-6"
                 >
-                  {/* Tasks Section */}
                   <div className="lg:col-span-3">
                     <Tabs defaultValue="all" className="w-full mb-8">
                       <div className="flex justify-between items-center mb-4">
@@ -184,7 +175,6 @@ const Dashboard = () => {
                       </TabsContent>
                     </Tabs>
                     
-                    {/* Recent Activity */}
                     <div className="mt-8">
                       <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
                       <div className="space-y-4">
@@ -218,7 +208,6 @@ const Dashboard = () => {
                     </div>
                   </div>
                   
-                  {/* Referral Widget */}
                   <div className="lg:col-span-1">
                     <ReferralWidget 
                       totalReferrals={42}
