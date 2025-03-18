@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +10,7 @@ import RankDisplay from '@/components/dashboard/RankDisplay';
 import EarningsWidget from '@/components/dashboard/EarningsWidget';
 import ReferralWidget from '@/components/dashboard/ReferralWidget';
 import { Bell, Music2, Award, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/context/AuthContext';
 
@@ -104,7 +106,17 @@ const Dashboard = () => {
                   animate="visible"
                   className="mb-6"
                 >
-                  <h1 className="text-3xl font-bold">Welcome back, {user?.name || 'User'}</h1>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold">Welcome back, {user?.name || 'User'}</h1>
+                    <div className="flex gap-1.5">
+                      {user?.role.tier === "Premium" && (
+                        <Badge className="bg-sound-light">Premium</Badge>
+                      )}
+                      {user?.role.status === "Influencer" && (
+                        <Badge className="bg-purple-500">Influencer</Badge>
+                      )}
+                    </div>
+                  </div>
                   <p className="text-muted-foreground">Here's an overview of your activity and earnings</p>
                 </motion.div>
                 
@@ -213,7 +225,7 @@ const Dashboard = () => {
                       totalReferrals={42}
                       influencerThreshold={500}
                       referralCode="SOUNDFAN2024"
-                      isInfluencer={false}
+                      isInfluencer={user?.role.status === "Influencer"}
                     />
                   </div>
                 </motion.div>

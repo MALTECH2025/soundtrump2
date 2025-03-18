@@ -8,6 +8,10 @@ interface User {
   email: string;
   avatar?: string;
   initials: string;
+  role: {
+    tier: "Free" | "Premium";
+    status: "Normal" | "Influencer";
+  };
 }
 
 // Define the auth context type
@@ -17,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  updateUserProfile: (data: Partial<User>) => void;
 }
 
 // Create the context with a default value
@@ -26,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   login: async () => {},
   logout: () => {},
+  updateUserProfile: () => {},
 });
 
 // Custom hook to use the auth context
@@ -67,6 +73,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       name: email.split("@")[0],
       email,
       initials: email.substring(0, 2).toUpperCase(),
+      role: {
+        tier: Math.random() > 0.5 ? "Premium" : "Free",
+        status: Math.random() > 0.8 ? "Influencer" : "Normal"
+      }
     };
     
     // Save user to localStorage
@@ -80,6 +90,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     localStorage.removeItem("user");
     setUser(null);
   };
+  
+  // Update user profile function
+  const updateUserProfile = (data: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...data };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+    }
+  };
 
   const value = {
     user,
@@ -87,6 +106,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isLoading,
     login,
     logout,
+    updateUserProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
