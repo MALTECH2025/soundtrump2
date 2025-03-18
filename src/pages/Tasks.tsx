@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -66,7 +65,7 @@ const allTasks: TaskProps[] = [
   {
     id: '7',
     title: 'Complete the Artist Discovery challenge',
-    description: 'Listen to 5 songs from artists you've never played before.',
+    description: 'Listen to 5 songs from artists you\'ve never played before.',
     reward: 30,
     category: 'spotify',
     expiresAt: new Date(Date.now() + 86400000 * 3), // 3 days from now
