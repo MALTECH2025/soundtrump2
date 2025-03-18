@@ -3,7 +3,7 @@ import { Users, UserPlus, Share, Award } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 

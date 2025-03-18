@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { 
   Twitter, 
@@ -10,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 
 const Footer = () => {
   const handleSubscribe = (e: React.FormEvent<HTMLFormElement>) => {

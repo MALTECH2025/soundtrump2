@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,7 +9,7 @@ import RankDisplay from '@/components/dashboard/RankDisplay';
 import EarningsWidget from '@/components/dashboard/EarningsWidget';
 import ReferralWidget from '@/components/dashboard/ReferralWidget';
 import { Bell, Music2, Award, TrendingUp } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 
 // Mock data
 const mockTasks: TaskProps[] = [

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -6,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from '@/components/ui/sonner';
+import { toast } from '@/lib/toast';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -44,7 +43,6 @@ const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) =>
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden rounded-lg">
         <div className="relative">
-          {/* Close button */}
           <Button 
             variant="ghost" 
             size="icon" 
@@ -54,7 +52,6 @@ const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) =>
             <X className="h-4 w-4" />
           </Button>
           
-          {/* Header with blur effect */}
           <div className="p-6 text-center relative bg-gradient-to-r from-sound-medium to-sound-dark">
             <h2 className="text-xl font-bold text-white mb-1">
               {activeTab === 'login' ? 'Welcome Back' : 'Join SoundTrump'}
@@ -66,7 +63,6 @@ const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) =>
             </p>
           </div>
           
-          {/* Auth Form */}
           <div className="p-6">
             <Tabs defaultValue={defaultTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid grid-cols-2 mb-6">
