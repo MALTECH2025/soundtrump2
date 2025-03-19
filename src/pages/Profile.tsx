@@ -20,7 +20,8 @@ import {
   ChevronRight, 
   Music2, 
   Clock, 
-  Star 
+  Star,
+  Gift
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from '@/lib/toast';
