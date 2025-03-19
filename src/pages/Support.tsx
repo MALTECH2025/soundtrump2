@@ -10,11 +10,13 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageCircle, LifeBuoy, FileQuestion, HelpCircle } from 'lucide-react';
+import { MessageCircle, LifeBuoy, FileQuestion, HelpCircle, Info, User, Coins, Link, Users, HeadphonesIcon } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import AnimatedTransition from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useNavigate } from 'react-router-dom';
 
 const supportFormSchema = z.object({
   name: z.string().min(2, {
@@ -33,31 +35,115 @@ const supportFormSchema = z.object({
 
 type SupportFormValues = z.infer<typeof supportFormSchema>;
 
-const faqItems = [
+// New improved FAQ content organized by categories
+const faqCategories = [
   {
-    question: "How do I earn rewards?",
-    answer: "You can earn rewards by completing tasks related to music streaming services, referring friends, and participating in promotions."
+    id: "general",
+    icon: <Info className="h-5 w-5 text-primary mr-2" />,
+    title: "General Questions",
+    items: [
+      {
+        question: "What is SoundTrump?",
+        answer: "SoundTrump is a music-based earning platform where users complete tasks related to music streaming and social media engagement to earn ST Coins. These coins can be redeemed for rewards, making it an innovative way for users to engage with music while earning incentives."
+      },
+      {
+        question: "How does SoundTrump work?",
+        answer: "SoundTrump operates through a task-based system, where users earn rewards by: streaming music on supported platforms (Spotify, YouTube, etc.), following artists on social media, liking, sharing, or commenting on music content, and referring friends to SoundTrump. These activities contribute to the growth of artists while allowing users to accumulate ST Coins, which can later be redeemed for digital or physical rewards."
+      }
+    ]
   },
   {
-    question: "When will I receive my rewards?",
-    answer: "Rewards are typically processed within 7 days after completing eligible activities and will appear in your rewards dashboard."
+    id: "account",
+    icon: <User className="h-5 w-5 text-primary mr-2" />,
+    title: "Account & Profile Management",
+    items: [
+      {
+        question: "How do I create an account?",
+        answer: "To sign up for SoundTrump: Visit soundtrump.com and click on Sign Up. Enter your email address and password or sign up with Google or Apple ID. Complete your profile setup and start earning rewards."
+      },
+      {
+        question: "How do I reset my password?",
+        answer: "If you forget your password: Go to the Login Page and click on Forgot Password. Enter your registered email address. Check your inbox for the password reset link and follow the instructions."
+      },
+      {
+        question: "How do I edit my profile information?",
+        answer: "You can update your username, profile picture, email, and password in the Account Settings section under the Profile page."
+      },
+      {
+        question: "How can I delete my account?",
+        answer: "If you want to permanently delete your SoundTrump account, submit a deletion request via the Support Page. Note that this action is irreversible, and you will lose all earned rewards."
+      }
+    ]
   },
   {
-    question: "How do I link my streaming accounts?",
-    answer: "Go to the Settings page, navigate to the Connections tab, and click the Connect button next to your preferred streaming service."
+    id: "tasks",
+    icon: <Coins className="h-5 w-5 text-primary mr-2" />,
+    title: "Tasks & Rewards",
+    items: [
+      {
+        question: "How do I complete tasks on SoundTrump?",
+        answer: "Users can complete tasks by visiting the Tasks section and following the instructions provided for each task type. Tasks may include: streaming a song on Spotify or YouTube, following an artist on Instagram or TikTok, liking or commenting on a music-related post. Each task will show the number of ST Coins rewarded upon completion."
+      },
+      {
+        question: "How long does task verification take?",
+        answer: "Automated tasks (such as linking an account) are verified instantly. Manual verification tasks (such as posting a screenshot of an action) may take up to 24 hours."
+      },
+      {
+        question: "How do I claim my rewards?",
+        answer: "Navigate to the Rewards page. Select the reward you want and confirm your ST Coin balance. Follow the on-screen instructions to redeem your reward."
+      }
+    ]
   },
   {
-    question: "Can I cash out my rewards?",
-    answer: "Yes, you can convert your rewards to various options including gift cards, cryptocurrency, or exclusive merchandise."
+    id: "connected",
+    icon: <Link className="h-5 w-5 text-primary mr-2" />,
+    title: "Connected Services",
+    items: [
+      {
+        question: "How do I connect my Spotify account to SoundTrump?",
+        answer: "Users can now link their Spotify account under the Account Settings > Connected Services section. This allows SoundTrump to track completed music streaming tasks for verification. Steps to connect your Spotify account: Go to Account Settings > Connected Services. Click on Connect Spotify. Authorize SoundTrump to access your Spotify listening activity. Once connected, completed streaming tasks will be automatically verified."
+      },
+      {
+        question: "What other streaming services can I connect?",
+        answer: "Currently, only Spotify is supported, but Apple Music and YouTube Music will be added in future updates."
+      }
+    ]
   },
   {
-    question: "What happens if I encounter technical issues?",
-    answer: "If you experience any technical difficulties, please contact our support team by submitting a ticket on this page."
+    id: "referrals",
+    icon: <Users className="h-5 w-5 text-primary mr-2" />,
+    title: "Referrals & Leaderboard",
+    items: [
+      {
+        question: "How does the referral system work?",
+        answer: "Users can invite their friends to SoundTrump and earn bonus ST Coins for every successful signup using their referral link. The more friends you invite, the more rewards you can earn."
+      },
+      {
+        question: "How does the leaderboard ranking work?",
+        answer: "The leaderboard ranks users based on: total ST Coins earned from tasks and referrals, active participation in SoundTrump events. Top-ranked users may receive special bonuses and extra rewards."
+      }
+    ]
+  },
+  {
+    id: "support",
+    icon: <HeadphonesIcon className="h-5 w-5 text-primary mr-2" />,
+    title: "Support & Contact",
+    items: [
+      {
+        question: "How can I contact SoundTrump support?",
+        answer: "If you need help, you can: Submit a support ticket via the Support Page. Email customer service at support@soundtrump.com."
+      },
+      {
+        question: "What should I do if my ST Coins are missing?",
+        answer: "If your task was completed but rewards are missing, follow these steps: Go to Account > Completed Tasks and check if the task was successfully verified. If the task is still pending, wait up to 24 hours for manual review. If the issue persists, contact SoundTrump Support with proof of task completion."
+      }
+    ]
   }
 ];
 
 const Support = () => {
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   
   const form = useForm<SupportFormValues>({
     resolver: zodResolver(supportFormSchema),
@@ -253,10 +339,71 @@ const Support = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      {faqItems.map((item, index) => (
-                        <div key={index} className="border-b pb-4 last:border-0">
-                          <h3 className="font-medium text-lg mb-2">{item.question}</h3>
-                          <p className="text-muted-foreground">{item.answer}</p>
+                      {faqCategories.map((category) => (
+                        <div key={category.id} className="mb-6">
+                          <div className="flex items-center mb-3">
+                            {category.icon}
+                            <h2 className="text-xl font-semibold">{category.title}</h2>
+                          </div>
+                          <Accordion type="single" collapsible className="w-full">
+                            {category.items.map((item, idx) => (
+                              <AccordionItem key={`${category.id}-${idx}`} value={`${category.id}-${idx}`}>
+                                <AccordionTrigger className="text-left font-medium hover:no-underline">
+                                  {item.question}
+                                </AccordionTrigger>
+                                <AccordionContent className="text-muted-foreground">
+                                  <div className="space-y-2">
+                                    {item.answer.split('. ').map((sentence, i) => (
+                                      <p key={i} className={`${i > 0 ? 'mt-2' : ''}`}>
+                                        {sentence.endsWith('.') ? sentence : `${sentence}.`}
+                                      </p>
+                                    ))}
+                                  </div>
+                                  
+                                  {/* Add relevant action buttons for some FAQ items */}
+                                  {category.id === "tasks" && item.question.includes("claim my rewards") && (
+                                    <Button 
+                                      variant="outline" 
+                                      className="mt-4"
+                                      onClick={() => navigate('/rewards')}
+                                    >
+                                      Go to Rewards
+                                    </Button>
+                                  )}
+                                  
+                                  {category.id === "account" && item.question.includes("edit my profile") && (
+                                    <Button 
+                                      variant="outline" 
+                                      className="mt-4"
+                                      onClick={() => navigate('/profile')}
+                                    >
+                                      Go to Profile
+                                    </Button>
+                                  )}
+                                  
+                                  {category.id === "connected" && item.question.includes("connect my Spotify") && (
+                                    <Button 
+                                      variant="outline" 
+                                      className="mt-4"
+                                      onClick={() => navigate('/settings')}
+                                    >
+                                      Connected Services
+                                    </Button>
+                                  )}
+                                  
+                                  {category.id === "referrals" && item.question.includes("referral system") && (
+                                    <Button 
+                                      variant="outline" 
+                                      className="mt-4"
+                                      onClick={() => navigate('/referrals')}
+                                    >
+                                      Go to Referrals
+                                    </Button>
+                                  )}
+                                </AccordionContent>
+                              </AccordionItem>
+                            ))}
+                          </Accordion>
                         </div>
                       ))}
                     </div>
