@@ -53,6 +53,7 @@ export const Navbar = ({
     { name: 'Tasks', path: '/tasks', icon: <Music2 className="w-4 h-4 mr-2" /> },
     { name: 'Leaderboard', path: '/leaderboard', icon: <Trophy className="w-4 h-4 mr-2" /> },
     { name: 'Referrals', path: '/referrals', icon: <Users className="w-4 h-4 mr-2" /> },
+    { name: 'Rewards', path: '/rewards', icon: <Gift className="w-4 h-4 mr-2" /> },
   ];
 
   const handleLogout = () => {
@@ -114,15 +115,15 @@ export const Navbar = ({
                   <p className="font-medium">{userData.name}</p>
                   <p className="text-sm text-muted-foreground">ST Member</p>
                 </div>
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/profile')}>
                   <User className="w-4 h-4 mr-2" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/rewards')}>
                   <Gift className="w-4 h-4 mr-2" />
                   <span>My Rewards</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/settings')}>
                   <Settings className="w-4 h-4 mr-2" />
                   <span>Settings</span>
                 </DropdownMenuItem>

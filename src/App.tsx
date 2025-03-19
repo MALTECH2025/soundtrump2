@@ -11,6 +11,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Referrals from "./pages/Referrals";
+import Rewards from "./pages/Rewards";
+import Profile from "./pages/Profile";
 import Leaderboard from "./pages/Leaderboard";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -46,6 +48,16 @@ const App = () => (
             <Route path="/referrals" element={
               <ProtectedRoute>
                 <Referrals />
+              </ProtectedRoute>
+            } />
+            <Route path="/rewards" element={
+              <ProtectedRoute>
+                <Rewards />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             } />
             <Route path="/leaderboard" element={
