@@ -10,7 +10,35 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Lock, UserRound, Shield, Bell, Smartphone, CreditCard } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { 
+  Lock, 
+  UserRound, 
+  Shield, 
+  Bell, 
+  Smartphone, 
+  CreditCard, 
+  Spotify, 
+  Music2, 
+  Mail, 
+  MessageSquare, 
+  Key, 
+  Trash,
+  AlertTriangle,
+  Link as LinkIcon
+} from 'lucide-react';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger 
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import AnimatedTransition from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -26,17 +54,82 @@ const profileFormSchema = z.object({
   }),
 });
 
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(8, {
+    message: "Password must be at least 8 characters.",
+  }),
+  newPassword: z.string().min(8, {
+    message: "New password must be at least 8 characters.",
+  }),
+  confirmPassword: z.string().min(8, {
+    message: "Please confirm your new password.",
+  }),
+}).refine(data => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
+type PasswordFormValues = z.infer<typeof passwordFormSchema>;
+
+// Service connection type
+interface ConnectedService {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  connected: boolean;
+  status: 'connected' | 'disconnected' | 'pending';
+}
 
 const Settings = () => {
   const { user, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordFormOpen, setPasswordFormOpen] = useState(false);
+  const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
+  const [notificationChannel, setNotificationChannel] = useState<string>("email");
+  
+  // Connected services state
+  const [services, setServices] = useState<ConnectedService[]>([
+    {
+      id: 'spotify',
+      name: 'Spotify',
+      icon: <Spotify className="h-4 w-4" />,
+      connected: false,
+      status: 'disconnected'
+    },
+    {
+      id: 'applemusic',
+      name: 'Apple Music',
+      icon: <Music2 className="h-4 w-4" />,
+      connected: false,
+      status: 'disconnected'
+    }
+  ]);
+  
+  // Notification preferences
+  const [notifications, setNotifications] = useState({
+    emailUpdates: true,
+    marketingEmails: false,
+    appNotifications: true,
+    newFollowers: true,
+    promotions: false
+  });
   
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       name: user?.name || "",
       email: user?.email || "",
+    },
+  });
+  
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     },
   });
   
@@ -53,6 +146,70 @@ const Settings = () => {
       setLoading(false);
     }, 1000);
   }
+  
+  function onPasswordSubmit(data: PasswordFormValues) {
+    setPasswordLoading(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      toast.success("Password updated successfully");
+      setPasswordLoading(false);
+      setPasswordFormOpen(false);
+      passwordForm.reset();
+    }, 1500);
+  }
+  
+  function handleDeleteAccount() {
+    // Simulate account deletion (in a real app this would delete the account)
+    toast.success("Account scheduled for deletion. You will receive a confirmation email.");
+    setDeleteAccountDialogOpen(false);
+  }
+  
+  const handleConnectService = (serviceId: string) => {
+    // Update services state
+    setServices(prevServices => 
+      prevServices.map(service => 
+        service.id === serviceId 
+          ? { ...service, status: 'pending' } 
+          : service
+      )
+    );
+    
+    // Simulate API connection process
+    setTimeout(() => {
+      setServices(prevServices => 
+        prevServices.map(service => 
+          service.id === serviceId 
+            ? { ...service, connected: true, status: 'connected' } 
+            : service
+        )
+      );
+      
+      toast.success(`Connected to ${serviceId === 'spotify' ? 'Spotify' : 'Apple Music'} successfully`);
+    }, 2000);
+  };
+  
+  const handleDisconnectService = (serviceId: string) => {
+    // Simulate disconnection
+    setServices(prevServices => 
+      prevServices.map(service => 
+        service.id === serviceId 
+          ? { ...service, connected: false, status: 'disconnected' } 
+          : service
+      )
+    );
+    
+    toast.success(`Disconnected from ${serviceId === 'spotify' ? 'Spotify' : 'Apple Music'}`);
+  };
+  
+  const handleToggleNotification = (key: string) => {
+    setNotifications(prev => ({
+      ...prev,
+      [key]: !prev[key as keyof typeof notifications]
+    }));
+    
+    toast.success("Notification preference updated");
+  };
   
   // Animation variants
   const fadeInUp = {
@@ -193,15 +350,174 @@ const Settings = () => {
               <TabsContent value="account">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Account Settings</CardTitle>
+                    <CardTitle>Account Security</CardTitle>
                     <CardDescription>
                       Manage your account security and privacy settings
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Account settings will be available in a future update.
-                    </p>
+                  <CardContent className="space-y-6">
+                    <div className="flex items-center justify-between py-3">
+                      <div className="flex items-center gap-4">
+                        <Key className="h-6 w-6 text-muted-foreground" />
+                        <div>
+                          <h3 className="font-medium">Password</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Last changed 3 months ago
+                          </p>
+                        </div>
+                      </div>
+                      <Dialog open={passwordFormOpen} onOpenChange={setPasswordFormOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="outline">Change password</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Change your password</DialogTitle>
+                            <DialogDescription>
+                              Make sure your new password is secure and you'll remember it.
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <Form {...passwordForm}>
+                            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                              <FormField
+                                control={passwordForm.control}
+                                name="currentPassword"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Current Password</FormLabel>
+                                    <FormControl>
+                                      <Input type="password" placeholder="Enter current password" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={passwordForm.control}
+                                name="newPassword"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>New Password</FormLabel>
+                                    <FormControl>
+                                      <Input type="password" placeholder="Enter new password" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <FormField
+                                control={passwordForm.control}
+                                name="confirmPassword"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Confirm New Password</FormLabel>
+                                    <FormControl>
+                                      <Input type="password" placeholder="Confirm new password" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              
+                              <DialogFooter className="mt-6">
+                                <Button 
+                                  variant="outline" 
+                                  type="button" 
+                                  onClick={() => setPasswordFormOpen(false)}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button type="submit" disabled={passwordLoading}>
+                                  {passwordLoading ? "Updating..." : "Update Password"}
+                                </Button>
+                              </DialogFooter>
+                            </form>
+                          </Form>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    
+                    <div className="flex items-center justify-between py-3 border-t">
+                      <div className="flex items-center gap-4">
+                        <Lock className="h-6 w-6 text-muted-foreground" />
+                        <div>
+                          <h3 className="font-medium">Two-factor authentication</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Add an extra layer of security to your account
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="outline" onClick={() => toast.success("This feature will be available soon")}>
+                        Set up
+                      </Button>
+                    </div>
+                    
+                    <div className="flex items-center justify-between py-3 border-t">
+                      <div className="flex items-center gap-4">
+                        <Shield className="h-6 w-6 text-muted-foreground" />
+                        <div>
+                          <h3 className="font-medium">Account Privacy</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Control how your profile is seen by others
+                          </p>
+                        </div>
+                      </div>
+                      <Switch 
+                        checked={true} 
+                        onCheckedChange={() => toast.success("Privacy settings updated")}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center justify-between py-3 border-t">
+                      <div className="flex items-center gap-4">
+                        <Trash className="h-6 w-6 text-destructive" />
+                        <div>
+                          <h3 className="font-medium">Delete Account</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Permanently delete your account and all data
+                          </p>
+                        </div>
+                      </div>
+                      <Dialog open={deleteAccountDialogOpen} onOpenChange={setDeleteAccountDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button variant="destructive">Delete Account</Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Delete your account</DialogTitle>
+                            <DialogDescription>
+                              This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+                            </DialogDescription>
+                          </DialogHeader>
+                          
+                          <Alert variant="destructive" className="mt-4">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>Warning</AlertTitle>
+                            <AlertDescription>
+                              You will lose all your rewards, badges, and history. Your referral links will no longer work.
+                            </AlertDescription>
+                          </Alert>
+                          
+                          <DialogFooter className="mt-6">
+                            <Button 
+                              variant="outline" 
+                              onClick={() => setDeleteAccountDialogOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              onClick={handleDeleteAccount}
+                            >
+                              Delete Account
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -211,14 +527,154 @@ const Settings = () => {
                   <CardHeader>
                     <CardTitle>Notification Preferences</CardTitle>
                     <CardDescription>
-                      Manage how we contact you
+                      Manage how and when we contact you
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Notification settings will be available in a future update.
-                    </p>
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">Notification Channels</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Select how you'd like to receive notifications
+                        </p>
+                        <ToggleGroup 
+                          type="single" 
+                          value={notificationChannel}
+                          onValueChange={(value) => {
+                            if (value) setNotificationChannel(value);
+                            toast.success(`Notifications will be sent via ${value}`);
+                          }}
+                          className="justify-start"
+                        >
+                          <ToggleGroupItem value="email" aria-label="Email notifications">
+                            <Mail className="mr-2 h-4 w-4" />
+                            Email
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="push" aria-label="Push notifications">
+                            <Bell className="mr-2 h-4 w-4" />
+                            Push
+                          </ToggleGroupItem>
+                          <ToggleGroupItem value="in-app" aria-label="In-app notifications">
+                            <MessageSquare className="mr-2 h-4 w-4" />
+                            In-app
+                          </ToggleGroupItem>
+                        </ToggleGroup>
+                      </div>
+                      
+                      <div className="border-t pt-6">
+                        <h3 className="text-lg font-medium mb-4">Email Notifications</h3>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <label 
+                                htmlFor="email-updates" 
+                                className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                Account Updates
+                              </label>
+                              <p className="text-sm text-muted-foreground">
+                                Receive emails about your account activity
+                              </p>
+                            </div>
+                            <Switch 
+                              id="email-updates"
+                              checked={notifications.emailUpdates}
+                              onCheckedChange={() => handleToggleNotification('emailUpdates')}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <label 
+                                htmlFor="marketing-emails" 
+                                className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                Marketing Emails
+                              </label>
+                              <p className="text-sm text-muted-foreground">
+                                Receive emails about new features and offers
+                              </p>
+                            </div>
+                            <Switch 
+                              id="marketing-emails"
+                              checked={notifications.marketingEmails}
+                              onCheckedChange={() => handleToggleNotification('marketingEmails')}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t pt-6">
+                        <h3 className="text-lg font-medium mb-4">App Notifications</h3>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <label 
+                                htmlFor="app-notifications" 
+                                className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                In-app Notifications
+                              </label>
+                              <p className="text-sm text-muted-foreground">
+                                Show notifications within the app
+                              </p>
+                            </div>
+                            <Switch 
+                              id="app-notifications"
+                              checked={notifications.appNotifications}
+                              onCheckedChange={() => handleToggleNotification('appNotifications')}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <label 
+                                htmlFor="new-followers" 
+                                className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                New Followers
+                              </label>
+                              <p className="text-sm text-muted-foreground">
+                                Get notified when someone follows you
+                              </p>
+                            </div>
+                            <Switch 
+                              id="new-followers"
+                              checked={notifications.newFollowers}
+                              onCheckedChange={() => handleToggleNotification('newFollowers')}
+                            />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <label 
+                                htmlFor="promotions" 
+                                className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                Promotions
+                              </label>
+                              <p className="text-sm text-muted-foreground">
+                                Get notified about promotions and rewards
+                              </p>
+                            </div>
+                            <Switch 
+                              id="promotions"
+                              checked={notifications.promotions}
+                              onCheckedChange={() => handleToggleNotification('promotions')}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
+                  <CardFooter>
+                    <Button 
+                      onClick={() => toast.success("All notification preferences saved")}
+                      className="w-full sm:w-auto"
+                    >
+                      Save preferences
+                    </Button>
+                  </CardFooter>
                 </Card>
               </TabsContent>
               
@@ -231,9 +687,67 @@ const Settings = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Service connections will be available in a future update.
-                    </p>
+                    <div className="space-y-6">
+                      {services.map((service) => (
+                        <div key={service.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+                              {service.icon}
+                            </div>
+                            <div>
+                              <h3 className="font-medium flex items-center">
+                                {service.name}
+                                {service.connected && (
+                                  <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200">
+                                    Connected
+                                  </Badge>
+                                )}
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {service.connected
+                                  ? `Connected since ${new Date().toLocaleDateString()}`
+                                  : service.status === 'pending' 
+                                    ? "Connection in progress..." 
+                                    : "Not connected"}
+                              </p>
+                            </div>
+                          </div>
+                          {service.connected ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDisconnectService(service.id)}
+                            >
+                              Disconnect
+                            </Button>
+                          ) : (
+                            <Button
+                              variant={service.status === 'pending' ? "outline" : "default"}
+                              size="sm"
+                              disabled={service.status === 'pending'}
+                              onClick={() => handleConnectService(service.id)}
+                              className={service.status === 'pending' ? 'opacity-50' : ''}
+                            >
+                              {service.status === 'pending' ? "Connecting..." : "Connect"}
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      
+                      <div className="mt-6">
+                        <h3 className="text-lg font-medium mb-4">Connect Another Service</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
+                            <LinkIcon className="mr-2 h-4 w-4" />
+                            YouTube Music
+                          </Button>
+                          <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
+                            <LinkIcon className="mr-2 h-4 w-4" />
+                            SoundCloud
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -247,9 +761,16 @@ const Settings = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                      Billing settings will be available in a future update.
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No billing information</h3>
+                      <p className="text-sm text-muted-foreground max-w-md mb-6">
+                        You're currently on the free plan. Upgrade to Premium to unlock additional features and rewards.
+                      </p>
+                      <Button onClick={() => toast.success("Premium subscription options coming soon!")}>
+                        Upgrade to Premium
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
