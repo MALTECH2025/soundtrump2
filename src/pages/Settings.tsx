@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -19,7 +18,7 @@ import {
   Bell, 
   Smartphone, 
   CreditCard, 
-  Spotify, 
+  Music, 
   Music2, 
   Mail, 
   MessageSquare, 
@@ -94,7 +93,7 @@ const Settings = () => {
     {
       id: 'spotify',
       name: 'Spotify',
-      icon: <Spotify className="h-4 w-4" />,
+      icon: <Music className="h-4 w-4" />,
       connected: false,
       status: 'disconnected'
     },
