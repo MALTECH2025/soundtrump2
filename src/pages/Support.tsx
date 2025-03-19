@@ -263,7 +263,10 @@ const Support = () => {
                   </CardContent>
                   <CardFooter>
                     <p className="text-sm text-muted-foreground">
-                      Didn't find what you're looking for? <Button variant="link" className="p-0 h-auto" onClick={() => document.querySelector('[data-state="inactive"][data-value="contact"]')?.click()}>Contact our support team</Button>
+                      Didn't find what you're looking for? <Button variant="link" className="p-0 h-auto" onClick={() => {
+                        const contactTab = document.querySelector('[data-state="inactive"][data-value="contact"]') as HTMLElement;
+                        if (contactTab) contactTab.click();
+                      }}>Contact our support team</Button>
                     </p>
                   </CardFooter>
                 </Card>
@@ -313,7 +316,10 @@ const Support = () => {
                       <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                         For faster assistance, please submit a support ticket with details about your issue.
                       </p>
-                      <Button onClick={() => document.querySelector('[data-state="inactive"][data-value="help"]')?.click()}>
+                      <Button onClick={() => {
+                        const helpTab = document.querySelector('[data-state="inactive"][data-value="help"]') as HTMLElement;
+                        if (helpTab) helpTab.click();
+                      }}>
                         Create Support Ticket
                       </Button>
                     </div>
