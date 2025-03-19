@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -106,13 +107,10 @@ const Settings = () => {
     }
   ]);
   
-  // Notification preferences
+  // Notification preferences - removed in-app notifications
   const [notifications, setNotifications] = useState({
     emailUpdates: true,
     marketingEmails: false,
-    appNotifications: true,
-    newFollowers: true,
-    promotions: false
   });
   
   const form = useForm<ProfileFormValues>({
@@ -553,10 +551,6 @@ const Settings = () => {
                             <Bell className="mr-2 h-4 w-4" />
                             Push
                           </ToggleGroupItem>
-                          <ToggleGroupItem value="in-app" aria-label="In-app notifications">
-                            <MessageSquare className="mr-2 h-4 w-4" />
-                            In-app
-                          </ToggleGroupItem>
                         </ToggleGroup>
                       </div>
                       
@@ -598,68 +592,6 @@ const Settings = () => {
                               id="marketing-emails"
                               checked={notifications.marketingEmails}
                               onCheckedChange={() => handleToggleNotification('marketingEmails')}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="border-t pt-6">
-                        <h3 className="text-lg font-medium mb-4">App Notifications</h3>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <label 
-                                htmlFor="app-notifications" 
-                                className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                In-app Notifications
-                              </label>
-                              <p className="text-sm text-muted-foreground">
-                                Show notifications within the app
-                              </p>
-                            </div>
-                            <Switch 
-                              id="app-notifications"
-                              checked={notifications.appNotifications}
-                              onCheckedChange={() => handleToggleNotification('appNotifications')}
-                            />
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <label 
-                                htmlFor="new-followers" 
-                                className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                New Followers
-                              </label>
-                              <p className="text-sm text-muted-foreground">
-                                Get notified when someone follows you
-                              </p>
-                            </div>
-                            <Switch 
-                              id="new-followers"
-                              checked={notifications.newFollowers}
-                              onCheckedChange={() => handleToggleNotification('newFollowers')}
-                            />
-                          </div>
-                          
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-0.5">
-                              <label 
-                                htmlFor="promotions" 
-                                className="text-sm font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                Promotions
-                              </label>
-                              <p className="text-sm text-muted-foreground">
-                                Get notified about promotions and rewards
-                              </p>
-                            </div>
-                            <Switch 
-                              id="promotions"
-                              checked={notifications.promotions}
-                              onCheckedChange={() => handleToggleNotification('promotions')}
                             />
                           </div>
                         </div>

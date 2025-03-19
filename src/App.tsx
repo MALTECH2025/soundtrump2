@@ -15,6 +15,8 @@ import Rewards from "./pages/Rewards";
 import Profile from "./pages/Profile";
 import Leaderboard from "./pages/Leaderboard";
 import Settings from "./pages/Settings";
+import Support from "./pages/Support";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import TermsOfService from "./pages/legal/TermsOfService";
 import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
@@ -70,6 +72,8 @@ const App = () => (
                 <Settings />
               </ProtectedRoute>
             } />
+            <Route path="/support" element={<Support />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/disclaimer" element={<Disclaimer />} />
