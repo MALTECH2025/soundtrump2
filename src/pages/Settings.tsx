@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import AnimatedTransition from '@/components/ui/AnimatedTransition';
+import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
@@ -123,7 +123,15 @@ const Settings = () => {
     },
   });
   
-  // Handle Spotify OAuth callback
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+  
   useEffect(() => {
     const query = new URLSearchParams(location.search);
     const code = query.get('code');
@@ -145,7 +153,6 @@ const Settings = () => {
           }
         })
         .finally(() => {
-          // Clear the URL parameters
           window.history.replaceState({}, document.title, window.location.pathname);
           setSpotifyConnecting(false);
         });
