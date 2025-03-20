@@ -1,20 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "@/lib/toast";
-
-// Define the user type (extended from Supabase user)
-interface UserProfile {
-  id: string;
-  username?: string;
-  full_name?: string;
-  avatar_url?: string;
-  initials: string;
-  points: number;
-  tier: "Free" | "Premium";
-  status: "Normal" | "Influencer";
-}
+import { UserProfile, ProfileDisplayData } from "@/types";
 
 // Define the auth context type
 interface AuthContextType {
@@ -187,6 +175,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
     
     try {
+      // Don't allow changing the full_name directly, as it doesn't exist in the type
       const { error } = await supabase
         .from("profiles")
         .update(data)

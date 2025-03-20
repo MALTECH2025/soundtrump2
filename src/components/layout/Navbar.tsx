@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -22,14 +23,11 @@ import {
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
+import { ProfileDisplayData } from '@/types';
 
 interface NavbarProps {
   isAuthenticated?: boolean;
-  userProfile?: {
-    name: string;
-    avatar?: string;
-    initials: string;
-  };
+  userProfile?: ProfileDisplayData;
 }
 
 export const Navbar = ({ 
@@ -40,10 +38,15 @@ export const Navbar = ({
   const navigate = useNavigate();
   const { user, profile, isAuthenticated, logout } = useAuth();
   
-  const userData = profile && {
+  const userData: ProfileDisplayData | undefined = profile && {
     name: profile.full_name || profile.username || 'User',
     avatar: profile.avatar_url,
-    initials: profile.initials || 'US'
+    initials: profile.initials || 'US',
+    role: {
+      tier: profile.tier,
+      status: profile.status
+    },
+    email: user?.email
   };
   
   const navLinks = [

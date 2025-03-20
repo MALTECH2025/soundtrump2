@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
@@ -72,7 +71,6 @@ const passwordFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
-// Service connection type
 interface ConnectedService {
   id: string;
   name: string;
@@ -89,7 +87,6 @@ const Settings = () => {
   const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
   const [notificationChannel, setNotificationChannel] = useState<string>("email");
   
-  // Connected services state
   const [services, setServices] = useState<ConnectedService[]>([
     {
       id: 'spotify',
@@ -107,7 +104,6 @@ const Settings = () => {
     }
   ]);
   
-  // Notification preferences - removed in-app notifications
   const [notifications, setNotifications] = useState({
     emailUpdates: true,
     marketingEmails: false,
@@ -133,10 +129,9 @@ const Settings = () => {
   function onSubmit(data: ProfileFormValues) {
     setLoading(true);
     
-    // Simulate API call
     setTimeout(() => {
       updateUserProfile({
-        name: data.name,
+        full_name: data.name,
       });
       
       toast.success("Profile updated successfully");
@@ -147,7 +142,6 @@ const Settings = () => {
   function onPasswordSubmit(data: PasswordFormValues) {
     setPasswordLoading(true);
     
-    // Simulate API call
     setTimeout(() => {
       toast.success("Password updated successfully");
       setPasswordLoading(false);
@@ -157,13 +151,11 @@ const Settings = () => {
   }
   
   function handleDeleteAccount() {
-    // Simulate account deletion (in a real app this would delete the account)
     toast.success("Account scheduled for deletion. You will receive a confirmation email.");
     setDeleteAccountDialogOpen(false);
   }
   
   const handleConnectService = (serviceId: string) => {
-    // Update services state
     setServices(prevServices => 
       prevServices.map(service => 
         service.id === serviceId 
@@ -172,7 +164,6 @@ const Settings = () => {
       )
     );
     
-    // Simulate API connection process
     setTimeout(() => {
       setServices(prevServices => 
         prevServices.map(service => 
@@ -187,7 +178,6 @@ const Settings = () => {
   };
   
   const handleDisconnectService = (serviceId: string) => {
-    // Simulate disconnection
     setServices(prevServices => 
       prevServices.map(service => 
         service.id === serviceId 
@@ -208,7 +198,6 @@ const Settings = () => {
     toast.success("Notification preference updated");
   };
   
-  // Animation variants
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
@@ -308,12 +297,12 @@ const Settings = () => {
                       <div>
                         <h3 className="text-sm font-medium mb-1">Membership Tier</h3>
                         <Badge 
-                          variant={user?.role.tier === "Premium" ? "default" : "outline"}
-                          className={user?.role.tier === "Premium" ? "bg-sound-light" : ""}
+                          variant={user?.role?.tier === "Premium" ? "default" : "outline"}
+                          className={user?.role?.tier === "Premium" ? "bg-sound-light" : ""}
                         >
-                          {user?.role.tier || "Free"}
+                          {user?.role?.tier || "Free"}
                         </Badge>
-                        {user?.role.tier !== "Premium" && (
+                        {user?.role?.tier !== "Premium" && (
                           <p className="text-xs text-muted-foreground mt-2">
                             Upgrade to Premium to unlock additional features and rewards
                           </p>
@@ -323,12 +312,12 @@ const Settings = () => {
                       <div>
                         <h3 className="text-sm font-medium mb-1">User Status</h3>
                         <Badge 
-                          variant={user?.role.status === "Influencer" ? "default" : "outline"}
-                          className={user?.role.status === "Influencer" ? "bg-purple-500" : ""}
+                          variant={user?.role?.status === "Influencer" ? "default" : "outline"}
+                          className={user?.role?.status === "Influencer" ? "bg-purple-500" : ""}
                         >
-                          {user?.role.status || "Normal"}
+                          {user?.role?.status || "Normal"}
                         </Badge>
-                        {user?.role.status !== "Influencer" && (
+                        {user?.role?.status !== "Influencer" && (
                           <p className="text-xs text-muted-foreground mt-2">
                             Reach 500 referrals to become an Influencer and earn 2x rewards
                           </p>
@@ -716,3 +705,4 @@ const Settings = () => {
 };
 
 export default Settings;
+
