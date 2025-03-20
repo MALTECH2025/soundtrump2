@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -6,6 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/lib/toast';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import EmailConfirmationNotice from './EmailConfirmationNotice';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,6 +20,13 @@ interface AuthModalProps {
 
 const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) => {
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
+  const { login, signup, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   const handleGoogleAuth = () => {
     console.log('Google auth initiated');
@@ -28,15 +40,61 @@ const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) =>
     // Implement Spotify connection logic here
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const email = formData.get('email') as string;
     
-    console.log(`${activeTab} submitted with email: ${email}`);
-    toast.success(`${activeTab === 'login' ? 'Login' : 'Registration'} successful!`);
-    onClose();
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      await login(email, password);
+      
+      // If successfully logged in, close modal and redirect
+      if (isAuthenticated) {
+        onClose();
+        navigate('/dashboard', { replace: true });
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      // Check for email not confirmed error
+      if (error.message === 'Email not confirmed') {
+        setEmailNotConfirmed(true);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!email || !password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      await signup(email, password, name || undefined);
+      
+      // Check if user was auto-confirmed
+      if (isAuthenticated) {
+        onClose();
+        navigate('/dashboard', { replace: true });
+      } else {
+        // Show email confirmation notice
+        setEmailNotConfirmed(true);
+        setActiveTab('login');
+      }
+    } catch (error: any) {
+      console.error('Signup error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -64,6 +122,10 @@ const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) =>
           </div>
           
           <div className="p-6">
+            {emailNotConfirmed && activeTab === 'login' && (
+              <EmailConfirmationNotice email={email} />
+            )}
+            
             <Tabs defaultValue={defaultTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid grid-cols-2 mb-6">
                 <TabsTrigger value="login">Login</TabsTrigger>
@@ -71,20 +133,37 @@ const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) =>
               </TabsList>
               
               <TabsContent value="login" className="space-y-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" name="email" type="email" placeholder="example@email.com" required />
+                    <Input 
+                      id="login-email" 
+                      name="email" 
+                      type="email" 
+                      placeholder="example@email.com" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
-                    <Input id="login-password" name="password" type="password" required />
+                    <Input 
+                      id="login-password" 
+                      name="password" 
+                      type="password" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required 
+                    />
                   </div>
                   <div className="text-right text-sm">
                     <a href="#" className="text-sound-light hover:underline">Forgot password?</a>
                   </div>
                   
-                  <Button type="submit" className="w-full">Login</Button>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Logging in...' : 'Login'}
+                  </Button>
                 </form>
                 
                 <div className="relative my-6">
@@ -126,24 +205,47 @@ const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) =>
               </TabsContent>
               
               <TabsContent value="register" className="space-y-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="register-name">Full Name</Label>
-                    <Input id="register-name" name="name" type="text" required />
+                    <Input 
+                      id="register-name" 
+                      name="name" 
+                      type="text" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-email">Email</Label>
-                    <Input id="register-email" name="email" type="email" placeholder="example@email.com" required />
+                    <Input 
+                      id="register-email" 
+                      name="email" 
+                      type="email" 
+                      placeholder="example@email.com" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Password</Label>
-                    <Input id="register-password" name="password" type="password" required />
+                    <Input 
+                      id="register-password" 
+                      name="password" 
+                      type="password" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required 
+                    />
                   </div>
                   <div className="text-xs text-muted-foreground">
                     By creating an account, you agree to our <a href="#" className="text-sound-light hover:underline">Terms of Service</a> and <a href="#" className="text-sound-light hover:underline">Privacy Policy</a>.
                   </div>
                   
-                  <Button type="submit" className="w-full">Create Account</Button>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? 'Creating Account...' : 'Create Account'}
+                  </Button>
                 </form>
                 
                 <div className="relative my-6">

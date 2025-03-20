@@ -114,7 +114,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         password,
       });
       
-      if (error) throw error;
+      if (error) {
+        // Special handling for email not confirmed error
+        if (error.message === "Email not confirmed") {
+          // Send new confirmation email
+          await supabase.auth.resend({
+            type: 'signup',
+            email: email,
+          });
+          toast.error("Email not confirmed. We've sent a new confirmation link to your email.");
+        } else {
+          toast.error(error.message || "Login failed. Please try again.");
+        }
+        throw error;
+      }
       
       // Fetch user profile after successful login
       if (data.user) {
@@ -125,7 +138,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
     } catch (error: any) {
       console.error("Login error:", error);
-      toast.error(error.message || "Login failed. Please try again.");
+      // Error handling is done earlier
       throw error;
     } finally {
       setIsLoading(false);
@@ -137,6 +150,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       setIsLoading(true);
       
+      // Setting auto confirmation to true for development
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -144,18 +158,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           data: {
             username: username || email.split("@")[0],
           },
+          emailRedirectTo: window.location.origin + "/dashboard",
         },
       });
       
       if (error) throw error;
       
       if (data.user) {
-        // Fetch newly created profile after signup
-        const profile = await fetchUserProfile(data.user.id);
-        setProfile(profile);
-        toast.success("Account created successfully!");
-      } else {
-        toast.success("Account created successfully! Please check your email for verification.");
+        if (data.session) {
+          // User is auto-confirmed, fetch profile and redirect
+          const profile = await fetchUserProfile(data.user.id);
+          setProfile(profile);
+          toast.success("Account created successfully! Redirecting to dashboard...");
+          
+          // Store user and session 
+          setUser(data.user);
+          setSession(data.session);
+        } else {
+          // User needs to confirm email
+          toast.success("Account created successfully! Please check your email for verification.");
+        }
       }
       
     } catch (error: any) {

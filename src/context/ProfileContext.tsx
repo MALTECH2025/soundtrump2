@@ -4,8 +4,19 @@ import { User } from '@supabase/supabase-js';
 import { useAuth } from './AuthContext';
 import { ProfileDisplayData } from '@/types';
 
-// Extended User type with frontend display properties
-interface ExtendedUser extends User {
+// Create a separate interface for user display properties
+interface UserDisplayData {
+  name: string;
+  avatar: string;
+  initials: string;
+  role: {
+    tier: 'Free' | 'Premium';
+    status: 'Normal' | 'Influencer';
+  };
+}
+
+// Create a combined type for use in the frontend
+interface EnhancedUser extends Omit<User, 'role'> {
   name: string;
   avatar: string;
   initials: string;
@@ -16,7 +27,7 @@ interface ExtendedUser extends User {
 }
 
 interface ProfileContextType {
-  user: ExtendedUser | null;
+  user: EnhancedUser | null;
 }
 
 // Create the context
@@ -34,20 +45,20 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
   // Get user and profile from AuthContext
   const { user, profile } = useAuth();
   
-  // Create an extended user object that has both User properties and display properties
-  const extendedUser = user && profile ? {
+  // Create an enhanced user object that has both User properties and display properties
+  const enhancedUser = user && profile ? {
     ...user,
     name: profile.full_name || profile.username || 'User',
-    avatar: profile.avatar_url,
+    avatar: profile.avatar_url || '',
     initials: profile.initials || 'US',
     role: {
       tier: profile.tier as 'Free' | 'Premium',
       status: profile.status as 'Normal' | 'Influencer'
     }
-  } as ExtendedUser : null;
+  } as EnhancedUser : null;
   
   return (
-    <ProfileContext.Provider value={{ user: extendedUser }}>
+    <ProfileContext.Provider value={{ user: enhancedUser }}>
       {children}
     </ProfileContext.Provider>
   );

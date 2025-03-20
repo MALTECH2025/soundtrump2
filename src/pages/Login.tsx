@@ -20,7 +20,7 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, signup, isAuthenticated } = useAuth();
+  const { login, signup, isAuthenticated, session } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -29,10 +29,10 @@ const Login = () => {
   
   // If user is already authenticated, redirect to dashboard
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && session) {
       navigate("/dashboard", { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, session, navigate]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,10 +45,8 @@ const Login = () => {
     try {
       setIsLoading(true);
       await login(loginEmail, loginPassword);
-      // The authentication state will be handled by the useEffect hook above
-      // No need to manually navigate here
+      navigate("/dashboard", { replace: true });
     } catch (error) {
-      // Error is handled in the auth context
       console.error("Login submission error:", error);
     } finally {
       setIsLoading(false);
@@ -76,10 +74,10 @@ const Login = () => {
     try {
       setIsLoading(true);
       await signup(signupEmail, signupPassword, username);
-      // The authentication state will be handled by the useEffect hook above
-      // which will redirect to dashboard if authentication is successful
+      if (isAuthenticated && session) {
+        navigate("/dashboard", { replace: true });
+      }
     } catch (error) {
-      // Error is handled in the auth context
       console.error("Signup submission error:", error);
     } finally {
       setIsLoading(false);

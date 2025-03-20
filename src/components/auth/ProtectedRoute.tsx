@@ -1,6 +1,6 @@
 
 import { ReactNode, useEffect } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 export interface ProtectedRouteProps {
@@ -8,8 +8,16 @@ export interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, session } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Effect to redirect to dashboard when authenticated
+  useEffect(() => {
+    if (isAuthenticated && session && location.pathname === "/login") {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, session, location, navigate]);
 
   // Show loading state while auth state is being determined
   if (isLoading) {
