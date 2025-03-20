@@ -713,23 +713,24 @@ const Settings = () => {
                 <Card>
                   <CardHeader>
                     <CardTitle>Billing and Payments</CardTitle>
-                  <CardDescription>
-                    Manage your billing information and view payment history
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No billing information</h3>
-                    <p className="text-sm text-muted-foreground max-w-md mb-6">
-                      You're currently on the free plan. Upgrade to Premium to unlock additional features and rewards.
-                    </p>
-                    <Button onClick={() => toast.success("Premium subscription options coming soon!")}>
-                      Upgrade to Premium
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                    <CardDescription>
+                      Manage your billing information and view payment history
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No billing information</h3>
+                      <p className="text-sm text-muted-foreground max-w-md mb-6">
+                        You're currently on the free plan. Upgrade to Premium to unlock additional features and rewards.
+                      </p>
+                      <Button onClick={() => toast.success("Premium subscription options coming soon!")}>
+                        Upgrade to Premium
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
           </div>
         </main>
