@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -11,13 +10,6 @@ import AnimatedTransition from "@/components/ui/AnimatedTransition";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Music2, AtSign, Lock, User } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Login = () => {
@@ -53,8 +45,8 @@ const Login = () => {
     try {
       setIsLoading(true);
       await login(loginEmail, loginPassword);
-      // Authentication state is handled by the auth context
-      navigate(from, { replace: true });
+      // The authentication state will be handled by the useEffect hook above
+      // No need to manually navigate here
     } catch (error) {
       // Error is handled in the auth context
       console.error("Login submission error:", error);
@@ -84,7 +76,8 @@ const Login = () => {
     try {
       setIsLoading(true);
       await signup(signupEmail, signupPassword, username);
-      // Redirect not needed here as signup may require email verification
+      // The authentication state will be handled by the useEffect hook above
+      // which will redirect to dashboard if authentication is successful
     } catch (error) {
       // Error is handled in the auth context
       console.error("Signup submission error:", error);

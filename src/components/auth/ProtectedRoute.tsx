@@ -1,10 +1,10 @@
 
 import { ReactNode, useEffect } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
-interface ProtectedRouteProps {
-  children: ReactNode;
+export interface ProtectedRouteProps {
+  children?: ReactNode;
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
@@ -25,8 +25,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
-  // If authenticated, render the protected component
-  return <>{children}</>;
+  // If authenticated, render the protected component or outlet
+  return children ? <>{children}</> : <Outlet />;
 };
 
 export default ProtectedRoute;

@@ -4,8 +4,16 @@ import { User } from '@supabase/supabase-js';
 import { useAuth } from './AuthContext';
 import { ProfileDisplayData } from '@/types';
 
-// Extended User type for frontend display
-type ExtendedUser = User & ProfileDisplayData;
+// Extended User type with frontend display properties
+interface ExtendedUser extends User {
+  name: string;
+  avatar: string;
+  initials: string;
+  role: {
+    tier: 'Free' | 'Premium';
+    status: 'Normal' | 'Influencer';
+  };
+}
 
 interface ProfileContextType {
   user: ExtendedUser | null;
@@ -33,10 +41,10 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
     avatar: profile.avatar_url,
     initials: profile.initials || 'US',
     role: {
-      tier: profile.tier,
-      status: profile.status
+      tier: profile.tier as 'Free' | 'Premium',
+      status: profile.status as 'Normal' | 'Influencer'
     }
-  } : null;
+  } as ExtendedUser : null;
   
   return (
     <ProfileContext.Provider value={{ user: extendedUser }}>

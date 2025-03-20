@@ -1,8 +1,10 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "@/lib/toast";
 import { UserProfile, ProfileDisplayData } from "@/types";
+import { useNavigate } from "react-router-dom";
 
 // Define the auth context type
 interface AuthContextType {
@@ -69,6 +71,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        console.log("Auth state changed:", event, currentSession?.user?.email);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
@@ -117,6 +120,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (data.user) {
         const profile = await fetchUserProfile(data.user.id);
         setProfile(profile);
+        toast.success("Logged in successfully!");
       }
       
     } catch (error: any) {
@@ -145,7 +149,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       if (error) throw error;
       
-      toast.success("Account created successfully! Please check your email for verification.");
+      if (data.user) {
+        // Fetch newly created profile after signup
+        const profile = await fetchUserProfile(data.user.id);
+        setProfile(profile);
+        toast.success("Account created successfully!");
+      } else {
+        toast.success("Account created successfully! Please check your email for verification.");
+      }
       
     } catch (error: any) {
       console.error("Signup error:", error);
@@ -175,7 +186,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
     
     try {
-      // Don't allow changing the full_name directly, as it doesn't exist in the type
       const { error } = await supabase
         .from("profiles")
         .update(data)
