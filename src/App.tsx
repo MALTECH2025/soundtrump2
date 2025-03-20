@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/context/AuthContext';
 import { ProfileProvider } from '@/context/ProfileContext';
-import HomePage from '@/pages/Home';
+import HomePage from '@/pages/Index';
 import DashboardPage from '@/pages/Dashboard';
 import LeaderboardPage from '@/pages/Leaderboard';
 import RewardsPage from '@/pages/Rewards';

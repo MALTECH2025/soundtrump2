@@ -39,7 +39,7 @@ export const ProfileProvider: React.FC<ProfileProviderProps> = ({ children }) =>
   } : null;
   
   return (
-    <ProfileContext.Provider value={{ user: extendedUser as ExtendedUser | null }}>
+    <ProfileContext.Provider value={{ user: extendedUser }}>
       {children}
     </ProfileContext.Provider>
   );

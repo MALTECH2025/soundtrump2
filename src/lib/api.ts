@@ -248,8 +248,8 @@ export const connectService = async (
         service_user_id: serviceUserId,
         access_token: accessToken,
         refresh_token: refreshToken,
-        expires_at: expiresAt,
-        updated_at: new Date()
+        expires_at: expiresAt ? expiresAt.toISOString() : null,
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -43,6 +43,17 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
+import { initiateSpotifyAuth, handleSpotifyCallback } from '@/integrations/spotify/spotifyApi';
+import { useLocation } from 'react-router-dom';
+import { useProfile } from '@/context/ProfileContext';
+
+interface ConnectedService {
+  id: string;
+  name: string;
+  icon: React.ReactNode;
+  connected: boolean;
+  status: 'connected' | 'disconnected' | 'pending';
+}
 
 const profileFormSchema = z.object({
   name: z.string().min(2, {
@@ -71,21 +82,16 @@ const passwordFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
-interface ConnectedService {
-  id: string;
-  name: string;
-  icon: React.ReactNode;
-  connected: boolean;
-  status: 'connected' | 'disconnected' | 'pending';
-}
-
 const Settings = () => {
-  const { user, updateUserProfile } = useAuth();
+  const location = useLocation();
+  const { user: extendedUser } = useProfile();
+  const { user, profile, updateUserProfile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordFormOpen, setPasswordFormOpen] = useState(false);
   const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
   const [notificationChannel, setNotificationChannel] = useState<string>("email");
+  const [spotifyConnecting, setSpotifyConnecting] = useState(false);
   
   const [services, setServices] = useState<ConnectedService[]>([
     {
@@ -112,19 +118,39 @@ const Settings = () => {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: user?.name || "",
-      email: user?.email || "",
+      name: extendedUser?.name || "",
+      email: extendedUser?.email || "",
     },
   });
   
-  const passwordForm = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordFormSchema),
-    defaultValues: {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
-  });
+  // Handle Spotify OAuth callback
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const code = query.get('code');
+    const state = query.get('state');
+    
+    if (code && state) {
+      setSpotifyConnecting(true);
+      
+      handleSpotifyCallback(code, state)
+        .then(result => {
+          if (result.success) {
+            setServices(prevServices => 
+              prevServices.map(service => 
+                service.id === 'spotify' 
+                  ? { ...service, connected: true, status: 'connected' } 
+                  : service
+              )
+            );
+          }
+        })
+        .finally(() => {
+          // Clear the URL parameters
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setSpotifyConnecting(false);
+        });
+    }
+  }, [location]);
   
   function onSubmit(data: ProfileFormValues) {
     setLoading(true);
@@ -156,25 +182,29 @@ const Settings = () => {
   }
   
   const handleConnectService = (serviceId: string) => {
-    setServices(prevServices => 
-      prevServices.map(service => 
-        service.id === serviceId 
-          ? { ...service, status: 'pending' } 
-          : service
-      )
-    );
-    
-    setTimeout(() => {
+    if (serviceId === 'spotify') {
+      initiateSpotifyAuth();
+    } else {
       setServices(prevServices => 
         prevServices.map(service => 
           service.id === serviceId 
-            ? { ...service, connected: true, status: 'connected' } 
+            ? { ...service, status: 'pending' } 
             : service
         )
       );
       
-      toast.success(`Connected to ${serviceId === 'spotify' ? 'Spotify' : 'Apple Music'} successfully`);
-    }, 2000);
+      setTimeout(() => {
+        setServices(prevServices => 
+          prevServices.map(service => 
+            service.id === serviceId 
+              ? { ...service, connected: true, status: 'connected' } 
+              : service
+          )
+        );
+        
+        toast.success(`Connected to ${serviceId === 'applemusic' ? 'Apple Music' : serviceId} successfully`);
+      }, 2000);
+    }
   };
   
   const handleDisconnectService = (serviceId: string) => {
@@ -626,73 +656,72 @@ const Settings = () => {
                               <p className="text-sm text-muted-foreground">
                                 {service.connected
                                   ? `Connected since ${new Date().toLocaleDateString()}`
-                                  : service.status === 'pending' 
-                                    ? "Connection in progress..." 
-                                    : "Not connected"}
-                              </p>
-                            </div>
+                                  : service.status === 'pending' || spotifyConnecting
+                                  ? "Connection in progress..." 
+                                  : "Not connected"}
+                            </p>
                           </div>
-                          {service.connected ? (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDisconnectService(service.id)}
-                            >
-                              Disconnect
-                            </Button>
-                          ) : (
-                            <Button
-                              variant={service.status === 'pending' ? "outline" : "default"}
-                              size="sm"
-                              disabled={service.status === 'pending'}
-                              onClick={() => handleConnectService(service.id)}
-                              className={service.status === 'pending' ? 'opacity-50' : ''}
-                            >
-                              {service.status === 'pending' ? "Connecting..." : "Connect"}
-                            </Button>
-                          )}
                         </div>
-                      ))}
-                      
-                      <div className="mt-6">
-                        <h3 className="text-lg font-medium mb-4">Connect Another Service</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
-                            <LinkIcon className="mr-2 h-4 w-4" />
-                            YouTube Music
+                        {service.connected ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDisconnectService(service.id)}
+                          >
+                            Disconnect
                           </Button>
-                          <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
-                            <LinkIcon className="mr-2 h-4 w-4" />
-                            SoundCloud
+                        ) : (
+                          <Button
+                            variant={service.status === 'pending' || spotifyConnecting ? "outline" : "default"}
+                            size="sm"
+                            disabled={service.status === 'pending' || spotifyConnecting}
+                            onClick={() => handleConnectService(service.id)}
+                            className={service.status === 'pending' || spotifyConnecting ? 'opacity-50' : ''}
+                          >
+                            {service.status === 'pending' || spotifyConnecting ? "Connecting..." : "Connect"}
                           </Button>
-                        </div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    <div className="mt-6">
+                      <h3 className="text-lg font-medium mb-4">Connect Another Service</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          YouTube Music
+                        </Button>
+                        <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
+                          <LinkIcon className="mr-2 h-4 w-4" />
+                          SoundCloud
+                        </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="billing">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Billing and Payments</CardTitle>
-                    <CardDescription>
-                      Manage your billing information and view payment history
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No billing information</h3>
-                      <p className="text-sm text-muted-foreground max-w-md mb-6">
-                        You're currently on the free plan. Upgrade to Premium to unlock additional features and rewards.
-                      </p>
-                      <Button onClick={() => toast.success("Premium subscription options coming soon!")}>
-                        Upgrade to Premium
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="billing">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Billing and Payments</CardTitle>
+                  <CardDescription>
+                    Manage your billing information and view payment history
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <CreditCard className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No billing information</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mb-6">
+                      You're currently on the free plan. Upgrade to Premium to unlock additional features and rewards.
+                    </p>
+                    <Button onClick={() => toast.success("Premium subscription options coming soon!")}>
+                      Upgrade to Premium
+                    </Button>
+                  </div>
+                </CardContent>
               </TabsContent>
             </Tabs>
           </div>
@@ -705,4 +734,3 @@ const Settings = () => {
 };
 
 export default Settings;
-
