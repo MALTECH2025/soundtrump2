@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,13 +10,25 @@ import { useAuth } from "@/context/AuthContext";
 import AnimatedTransition from "@/components/ui/AnimatedTransition";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { Music2 } from "lucide-react";
+import { Music2, AtSign, Lock, User } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Login = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, signup, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -24,29 +36,58 @@ const Login = () => {
   const from = (location.state as { from?: string })?.from || "/dashboard";
   
   // If user is already authenticated, redirect to dashboard
-  // This ensures that logged-in users who manually navigate to /login are redirected
   useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!loginEmail || !loginPassword) {
       toast.error("Please enter both email and password");
       return;
     }
     
     try {
       setIsLoading(true);
-      await login(email, password);
-      toast.success("Login successful");
+      await login(loginEmail, loginPassword);
+      // Authentication state is handled by the auth context
       navigate(from, { replace: true });
     } catch (error) {
-      toast.error("Login failed. Please try again.");
-      console.error("Login error:", error);
+      // Error is handled in the auth context
+      console.error("Login submission error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!signupEmail || !signupPassword || !confirmPassword) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    
+    if (signupPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+    
+    if (signupPassword.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      await signup(signupEmail, signupPassword, username);
+      // Redirect not needed here as signup may require email verification
+    } catch (error) {
+      // Error is handled in the auth context
+      console.error("Signup submission error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -73,61 +114,153 @@ const Login = () => {
                   </span>
                 </div>
                 <h2 className="text-xl font-bold text-white mb-1">
-                  Welcome Back
+                  Welcome to SoundTrump
                 </h2>
                 <p className="text-white/80 text-sm">
-                  Log in to access your rewards and tasks
+                  Sign in or create an account to start earning rewards
                 </p>
               </div>
               
-              <div className="p-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="example@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label htmlFor="password">Password</Label>
-                      <a href="#" className="text-xs text-sound-light hover:underline">
-                        Forgot password?
-                      </a>
-                    </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Logging in..." : "Log in"}
-                  </Button>
-                </form>
-                
-                <div className="mt-6 text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Don't have an account?{" "}
-                    <a href="/signup" className="text-sound-light hover:underline">
-                      Sign up
-                    </a>
-                  </p>
+              <Tabs defaultValue="login" className="w-full">
+                <div className="px-6 pt-6">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="login" className="w-1/2">Log In</TabsTrigger>
+                    <TabsTrigger value="signup" className="w-1/2">Sign Up</TabsTrigger>
+                  </TabsList>
                 </div>
-              </div>
+                
+                <TabsContent value="login" className="p-6 pt-4">
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="login-email">Email</Label>
+                      <div className="relative">
+                        <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          id="login-email"
+                          type="email"
+                          placeholder="example@email.com"
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <Label htmlFor="login-password">Password</Label>
+                        <Link to="/forgot-password" className="text-xs text-sound-light hover:underline">
+                          Forgot password?
+                        </Link>
+                      </div>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          id="login-password"
+                          type="password"
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Logging in..." : "Log in"}
+                    </Button>
+                  </form>
+                </TabsContent>
+                
+                <TabsContent value="signup" className="p-6 pt-4">
+                  <form onSubmit={handleSignup} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email">Email</Label>
+                      <div className="relative">
+                        <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          placeholder="example@email.com"
+                          value={signupEmail}
+                          onChange={(e) => setSignupEmail(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="username">Username (optional)</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          id="username"
+                          type="text"
+                          placeholder="yourname"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          id="signup-password"
+                          type="password"
+                          value={signupPassword}
+                          onChange={(e) => setSignupPassword(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password">Confirm Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          id="confirm-password"
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="pl-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Creating account..." : "Create account"}
+                    </Button>
+                    
+                    <p className="text-xs text-center text-muted-foreground">
+                      By creating an account, you agree to our{" "}
+                      <Link to="/terms-of-service" className="text-sound-light hover:underline">
+                        Terms of Service
+                      </Link>{" "}
+                      and{" "}
+                      <Link to="/privacy-policy" className="text-sound-light hover:underline">
+                        Privacy Policy
+                      </Link>
+                    </p>
+                  </form>
+                </TabsContent>
+              </Tabs>
             </motion.div>
           </div>
         </main>
