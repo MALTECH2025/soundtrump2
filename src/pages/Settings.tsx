@@ -666,53 +666,53 @@ const Settings = () => {
                                   : service.status === 'pending' || spotifyConnecting
                                   ? "Connection in progress..." 
                                   : "Not connected"}
-                            </p>
+                              </p>
+                            </div>
                           </div>
+                          {service.connected ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDisconnectService(service.id)}
+                            >
+                              Disconnect
+                            </Button>
+                          ) : (
+                            <Button
+                              variant={service.status === 'pending' || spotifyConnecting ? "outline" : "default"}
+                              size="sm"
+                              disabled={service.status === 'pending' || spotifyConnecting}
+                              onClick={() => handleConnectService(service.id)}
+                              className={service.status === 'pending' || spotifyConnecting ? 'opacity-50' : ''}
+                            >
+                              {service.status === 'pending' || spotifyConnecting ? "Connecting..." : "Connect"}
+                            </Button>
+                          )}
                         </div>
-                        {service.connected ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDisconnectService(service.id)}
-                          >
-                            Disconnect
+                      ))}
+                      
+                      <div className="mt-6">
+                        <h3 className="text-lg font-medium mb-4">Connect Another Service</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
+                            <LinkIcon className="mr-2 h-4 w-4" />
+                            YouTube Music
                           </Button>
-                        ) : (
-                          <Button
-                            variant={service.status === 'pending' || spotifyConnecting ? "outline" : "default"}
-                            size="sm"
-                            disabled={service.status === 'pending' || spotifyConnecting}
-                            onClick={() => handleConnectService(service.id)}
-                            className={service.status === 'pending' || spotifyConnecting ? 'opacity-50' : ''}
-                          >
-                            {service.status === 'pending' || spotifyConnecting ? "Connecting..." : "Connect"}
+                          <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
+                            <LinkIcon className="mr-2 h-4 w-4" />
+                            SoundCloud
                           </Button>
-                        )}
-                      </div>
-                    ))}
-                    
-                    <div className="mt-6">
-                      <h3 className="text-lg font-medium mb-4">Connect Another Service</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
-                          <LinkIcon className="mr-2 h-4 w-4" />
-                          YouTube Music
-                        </Button>
-                        <Button variant="outline" className="justify-start" onClick={() => toast.success("This feature will be available soon")}>
-                          <LinkIcon className="mr-2 h-4 w-4" />
-                          SoundCloud
-                        </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="billing">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Billing and Payments</CardTitle>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="billing">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Billing and Payments</CardTitle>
                   <CardDescription>
                     Manage your billing information and view payment history
                   </CardDescription>
@@ -729,10 +729,11 @@ const Settings = () => {
                     </Button>
                   </div>
                 </CardContent>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </main>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </main>
         
         <Footer />
       </div>
