@@ -2,6 +2,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 
+// Define RPC function response types
+interface RPCResponse {
+  success: boolean;
+  message: string;
+  [key: string]: any;
+}
+
 // Tasks API
 export const fetchTasks = async () => {
   try {
@@ -50,13 +57,15 @@ export const completeTask = async (taskId: string) => {
 
     if (error) throw error;
     
-    if (!data.success) {
-      toast.error(data.message || "Failed to complete task");
-      return { success: false, message: data.message };
+    const response = data as RPCResponse;
+    
+    if (!response.success) {
+      toast.error(response.message || "Failed to complete task");
+      return { success: false, message: response.message };
     }
     
-    toast.success(data.message || "Task completed successfully");
-    return data;
+    toast.success(response.message || "Task completed successfully");
+    return response;
   } catch (error: any) {
     console.error("Error completing task:", error);
     toast.error("Failed to complete task. Please try again.");
@@ -110,13 +119,15 @@ export const redeemReward = async (rewardId: string) => {
 
     if (error) throw error;
     
-    if (!data.success) {
-      toast.error(data.message || "Failed to redeem reward");
-      return { success: false, message: data.message };
+    const response = data as RPCResponse;
+    
+    if (!response.success) {
+      toast.error(response.message || "Failed to redeem reward");
+      return { success: false, message: response.message };
     }
     
-    toast.success(data.message || "Reward redeemed successfully");
-    return data;
+    toast.success(response.message || "Reward redeemed successfully");
+    return response;
   } catch (error: any) {
     console.error("Error redeeming reward:", error);
     toast.error("Failed to redeem reward. Please try again.");
@@ -169,13 +180,15 @@ export const applyReferralCode = async (referralCode: string) => {
 
     if (error) throw error;
     
-    if (!data.success) {
-      toast.error(data.message || "Failed to apply referral code");
-      return { success: false, message: data.message };
+    const response = data as RPCResponse;
+    
+    if (!response.success) {
+      toast.error(response.message || "Failed to apply referral code");
+      return { success: false, message: response.message };
     }
     
-    toast.success(data.message || "Referral code applied successfully");
-    return data;
+    toast.success(response.message || "Referral code applied successfully");
+    return response;
   } catch (error: any) {
     console.error("Error applying referral code:", error);
     toast.error("Failed to apply referral code. Please try again.");

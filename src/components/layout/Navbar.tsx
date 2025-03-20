@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -39,14 +38,13 @@ export const Navbar = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, profile, isAuthenticated, logout } = useAuth();
   
-  // Use authenticated user data if available, otherwise fall back to props
-  const userData = user || (userProfile && {
-    name: userProfile.name,
-    avatar: userProfile.avatar,
-    initials: userProfile.initials
-  });
+  const userData = profile && {
+    name: profile.full_name || profile.username || 'User',
+    avatar: profile.avatar_url,
+    initials: profile.initials || 'US'
+  };
   
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-4 h-4 mr-2" /> },
@@ -65,7 +63,6 @@ export const Navbar = ({
   return (
     <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border">
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Logo */}
         <Link to="/" className="flex items-center">
           <motion.div 
             whileHover={{ scale: 1.05 }}
@@ -78,7 +75,6 @@ export const Navbar = ({
           </motion.div>
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-1">
           {navLinks.map((link) => (
             <Link key={link.path} to={link.path}>
@@ -94,7 +90,6 @@ export const Navbar = ({
           ))}
         </nav>
 
-        {/* Profile / Auth */}
         <div className="flex items-center">
           {isAuthenticated && userData ? (
             <DropdownMenu>
@@ -144,7 +139,6 @@ export const Navbar = ({
             </div>
           )}
 
-          {/* Mobile Menu Button */}
           <div className="ml-2 md:hidden">
             <Button 
               variant="ghost" 
@@ -157,7 +151,6 @@ export const Navbar = ({
         </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
       {isMobileMenuOpen && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
