@@ -36,17 +36,17 @@ const EmailConfirmationNotice = ({ email }: EmailConfirmationNoticeProps) => {
   };
 
   return (
-    <Alert variant="warning" className="mb-4 border-yellow-400">
+    <Alert className="mb-4 border-yellow-400 bg-yellow-50 dark:bg-yellow-950/20">
       <AlertCircle className="h-4 w-4 text-yellow-500" />
-      <AlertTitle className="text-yellow-700">Email verification required</AlertTitle>
-      <AlertDescription className="text-yellow-600">
+      <AlertTitle className="text-yellow-700 dark:text-yellow-400">Email verification required</AlertTitle>
+      <AlertDescription className="text-yellow-600 dark:text-yellow-500">
         <p className="mb-2">
           Please check your email to verify your account. If you didn't receive an email or need a new one, click below:
         </p>
         <Button 
           variant="outline" 
           size="sm" 
-          className="mt-1 text-yellow-700 border-yellow-300"
+          className="mt-1 text-yellow-700 border-yellow-300 dark:text-yellow-400 dark:border-yellow-700"
           onClick={handleResendConfirmation}
           disabled={isSending}
         >

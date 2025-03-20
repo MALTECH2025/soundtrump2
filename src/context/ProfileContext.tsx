@@ -2,10 +2,12 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { User } from '@supabase/supabase-js';
 import { useAuth } from './AuthContext';
-import { ProfileDisplayData } from '@/types';
+import { ProfileDisplayData, UserProfile } from '@/types';
 
-// Create a separate interface for user display properties
-interface UserDisplayData {
+// Create a type for the enhanced user that will be used throughout the application
+export interface EnhancedUser {
+  id: string;
+  email: string | undefined;
   name: string;
   avatar: string;
   initials: string;
@@ -13,17 +15,8 @@ interface UserDisplayData {
     tier: 'Free' | 'Premium';
     status: 'Normal' | 'Influencer';
   };
-}
-
-// Create a combined type for use in the frontend
-interface EnhancedUser extends Omit<User, 'role'> {
-  name: string;
-  avatar: string;
-  initials: string;
-  role: {
-    tier: 'Free' | 'Premium';
-    status: 'Normal' | 'Influencer';
-  };
+  // Preserve any other User properties from Supabase
+  [key: string]: any;
 }
 
 interface ProfileContextType {

@@ -1,52 +1,79 @@
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/sonner';
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthProvider } from '@/context/AuthContext';
 import { ProfileProvider } from '@/context/ProfileContext';
-import HomePage from '@/pages/Index';
-import DashboardPage from '@/pages/Dashboard';
-import LeaderboardPage from '@/pages/Leaderboard';
-import RewardsPage from '@/pages/Rewards';
-import ProfilePage from '@/pages/Profile';
-import ReferralsPage from '@/pages/Referrals';
-import SettingsPage from '@/pages/Settings';
-import TasksPage from '@/pages/Tasks';
-import LoginPage from '@/pages/Login';
-import NotFoundPage from '@/pages/NotFound';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import { Toaster } from "@/components/ui/sonner";
 
-// Create a client
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import Index from '@/pages/Index';
+import Dashboard from '@/pages/Dashboard';
+import Tasks from '@/pages/Tasks';
+import Rewards from '@/pages/Rewards';
+import Referrals from '@/pages/Referrals';
+import Leaderboard from '@/pages/Leaderboard';
+import Profile from '@/pages/Profile';
+import Settings from '@/pages/Settings';
+import Login from '@/pages/Login';
+import Support from '@/pages/Support';
+import Contact from '@/pages/Contact';
+import DspTrust from '@/pages/DspTrust';
+import NotFound from '@/pages/NotFound';
+
+// Legal pages
+import TermsOfService from '@/pages/legal/TermsOfService';
+import PrivacyPolicy from '@/pages/legal/PrivacyPolicy';
+import CookiesPolicy from '@/pages/legal/CookiesPolicy';
+import Disclaimer from '@/pages/legal/Disclaimer';
+import WhitePaper from '@/pages/legal/WhitePaper';
+
+// Initialize QueryClient
 const queryClient = new QueryClient();
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ProfileProvider>
-          <Router>
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              
-              {/* Protected Routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/leaderboard" element={<LeaderboardPage />} />
-                <Route path="/rewards" element={<RewardsPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/referrals" element={<ReferralsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-                <Route path="/tasks" element={<TasksPage />} />
-              </Route>
-              
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </Router>
-          <Toaster />
-        </ProfileProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="light" storageKey="soundtrump-theme">
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <AuthProvider>
+            <ProfileProvider>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/support" element={<Support />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/dsp-trust" element={<DspTrust />} />
+                
+                {/* Legal Routes */}
+                <Route path="/legal/terms" element={<TermsOfService />} />
+                <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+                <Route path="/legal/cookies" element={<CookiesPolicy />} />
+                <Route path="/legal/disclaimer" element={<Disclaimer />} />
+                <Route path="/legal/whitepaper" element={<WhitePaper />} />
+                
+                {/* Protected Routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/tasks" element={<Tasks />} />
+                  <Route path="/rewards" element={<Rewards />} />
+                  <Route path="/referrals" element={<Referrals />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Route>
+                
+                {/* 404 Route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Toaster />
+            </ProfileProvider>
+          </AuthProvider>
+        </Router>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 

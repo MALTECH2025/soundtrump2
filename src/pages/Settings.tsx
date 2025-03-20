@@ -42,10 +42,10 @@ import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
+import { useProfile } from '@/context/ProfileContext';
 import { toast } from '@/lib/toast';
 import { initiateSpotifyAuth, handleSpotifyCallback } from '@/integrations/spotify/spotifyApi';
 import { useLocation } from 'react-router-dom';
-import { useProfile } from '@/context/ProfileContext';
 
 interface ConnectedService {
   id: string;
@@ -84,8 +84,8 @@ type PasswordFormValues = z.infer<typeof passwordFormSchema>;
 
 const Settings = () => {
   const location = useLocation();
-  const { user: extendedUser } = useProfile();
-  const { user, profile, updateUserProfile } = useAuth();
+  const { profile, updateUserProfile } = useAuth();
+  const { user } = useProfile();
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordFormOpen, setPasswordFormOpen] = useState(false);
@@ -118,8 +118,8 @@ const Settings = () => {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      name: extendedUser?.name || "",
-      email: extendedUser?.email || "",
+      name: user?.name || "",
+      email: user?.email || "",
     },
   });
   
@@ -730,10 +730,9 @@ const Settings = () => {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </main>
+            </Tabs>
+          </div>
+        </main>
         
         <Footer />
       </div>

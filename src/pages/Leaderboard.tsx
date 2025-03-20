@@ -1,94 +1,169 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Diamond, Search, Trophy, Medal, Award, User, Filter } from 'lucide-react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import AnimatedTransition from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { useAuth } from '@/context/AuthContext';
+import { Crown, Medal, Trophy, Users, ChevronRight, UserRound, Music, Zap } from 'lucide-react';
+import { useProfile } from '@/context/ProfileContext';
 
-interface Rank {
-  id: number;
-  name: string;
-  color: string;
-  shadow: string;
-  points: number;
-  description: string;
-}
-
-interface LeaderboardUser {
+interface LeaderboardEntry {
   id: string;
   name: string;
+  avatarUrl: string;
+  initials: string;
   points: number;
-  rank: number;
-  rankName: string;
-  isInfluencer: boolean;
-  isPremium: boolean;
+  tasksCompleted: number;
+  tier?: "Free" | "Premium";
+  status?: "Normal" | "Influencer";
 }
 
-const ranks: Rank[] = [
-  { id: 1, name: 'Crystal I', color: '#B9F2FF', shadow: '#77D1E6', points: 0, description: 'Beginning of the journey' },
-  { id: 2, name: 'Crystal II', color: '#A0E9FF', shadow: '#62C9E6', points: 1000, description: 'Active listener' },
-  { id: 3, name: 'Crystal III', color: '#87E0FF', shadow: '#4DB4E6', points: 2500, description: 'Rising star' },
-  { id: 4, name: 'Crystal IV', color: '#6DD7FF', shadow: '#389FE6', points: 5000, description: 'Sound enthusiast' },
-  { id: 5, name: 'Crystal V', color: '#54CEFF', shadow: '#248AE6', points: 10000, description: 'Music connoisseur' },
-  { id: 6, name: 'Crystal VI', color: '#3AC6FF', shadow: '#1075E6', points: 20000, description: 'Dedicated supporter' },
-  { id: 7, name: 'Crystal VII', color: '#21BDFF', shadow: '#0060E6', points: 35000, description: 'Music ambassador' },
-  { id: 8, name: 'Crystal VIII', color: '#08B4FF', shadow: '#004BE6', points: 50000, description: 'Streaming legend' },
-  { id: 9, name: 'Crystal IX', color: '#00ABFF', shadow: '#0036E6', points: 75000, description: 'Elite listener' },
-  { id: 10, name: 'Crystal X', color: '#00A2FF', shadow: '#0021E6', points: 100000, description: 'Sound immortal' },
+const leaderboardData: LeaderboardEntry[] = [
+  {
+    id: '1',
+    name: 'Ava Thompson',
+    avatarUrl: 'https://i.pravatar.cc/150?img=1',
+    initials: 'AT',
+    points: 4820,
+    tasksCompleted: 162,
+    tier: "Premium",
+    status: "Influencer"
+  },
+  {
+    id: '2',
+    name: 'Noah Mitchell',
+    avatarUrl: 'https://i.pravatar.cc/150?img=2',
+    initials: 'NM',
+    points: 4590,
+    tasksCompleted: 155,
+    tier: "Premium",
+    status: "Normal"
+  },
+  {
+    id: '3',
+    name: 'Isabella Rodriguez',
+    avatarUrl: 'https://i.pravatar.cc/150?img=3',
+    initials: 'IR',
+    points: 4350,
+    tasksCompleted: 148,
+    tier: "Premium",
+    status: "Influencer"
+  },
+  {
+    id: '4',
+    name: 'Jackson White',
+    avatarUrl: 'https://i.pravatar.cc/150?img=4',
+    initials: 'JW',
+    points: 4120,
+    tasksCompleted: 141,
+    tier: "Free",
+    status: "Normal"
+  },
+  {
+    id: '5',
+    name: 'Mia Harris',
+    avatarUrl: 'https://i.pravatar.cc/150?img=5',
+    initials: 'MH',
+    points: 3980,
+    tasksCompleted: 134,
+    tier: "Free",
+    status: "Normal"
+  },
+  {
+    id: '6',
+    name: 'Aiden Clark',
+    avatarUrl: 'https://i.pravatar.cc/150?img=6',
+    initials: 'AC',
+    points: 3750,
+    tasksCompleted: 127,
+    tier: "Free",
+    status: "Normal"
+  },
+  {
+    id: '7',
+    name: 'Sofia Lewis',
+    avatarUrl: 'https://i.pravatar.cc/150?img=7',
+    initials: 'SL',
+    points: 3510,
+    tasksCompleted: 120,
+    tier: "Free",
+    status: "Normal"
+  },
+  {
+    id: '8',
+    name: 'Ethan Baker',
+    avatarUrl: 'https://i.pravatar.cc/150?img=8',
+    initials: 'EB',
+    points: 3280,
+    tasksCompleted: 113,
+    tier: "Free",
+    status: "Normal"
+  },
+  {
+    id: '9',
+    name: 'Chloe Green',
+    avatarUrl: 'https://i.pravatar.cc/150?img=9',
+    initials: 'CG',
+    points: 3040,
+    tasksCompleted: 106,
+    tier: "Free",
+    status: "Normal"
+  },
+  {
+    id: '10',
+    name: 'Liam King',
+    avatarUrl: 'https://i.pravatar.cc/150?img=10',
+    initials: 'LK',
+    points: 2810,
+    tasksCompleted: 99,
+    tier: "Free",
+    status: "Normal"
+  }
 ];
 
-// Generate mock leaderboard data
-const generateMockUsers = (): LeaderboardUser[] => {
-  const users: LeaderboardUser[] = [];
-  
-  for (let i = 1; i <= 50; i++) {
-    const points = Math.floor(100000 / i) + Math.floor(Math.random() * 1000);
-    const rankId = ranks.findIndex(rank => points >= rank.points);
-    const rankIndex = rankId === -1 ? 0 : rankId;
-    
-    users.push({
-      id: `user-${i}`,
-      name: `User ${i}`,
-      points,
-      rank: rankIndex + 1,
-      rankName: ranks[rankIndex].name,
-      isInfluencer: Math.random() > 0.8,
-      isPremium: Math.random() > 0.6
-    });
-  }
-  
-  return users.sort((a, b) => b.points - a.points);
+const userRank = {
+  rank: 42,
+  points: 1250,
+  tasksCompleted: 58
 };
 
 const Leaderboard = () => {
-  const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('global');
-  const [users] = useState<LeaderboardUser[]>(generateMockUsers());
+  const [isLoading, setIsLoading] = useState(true);
+  const [filterPeriod, setFilterPeriod] = useState('weekly');
+  const { user } = useProfile();
   
-  // Find the current user in the leaderboard
-  const currentUserIndex = users.findIndex(u => u.name.toLowerCase() === (user?.name || '').toLowerCase());
-  const currentUserRank = currentUserIndex !== -1 ? currentUserIndex + 1 : null;
+  useEffect(() => {
+    // Simulate loading data
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Helper functions for icon color based on rank
+  const getRankIconColor = (rank: number) => {
+    switch(rank) {
+      case 1: return 'text-yellow-500';
+      case 2: return 'text-slate-400';
+      case 3: return 'text-amber-600';
+      default: return 'text-muted-foreground';
+    }
+  };
   
-  // Filter users based on search term
-  const filteredUsers = users.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getRankIcon = (rank: number) => {
+    switch(rank) {
+      case 1: return <Crown className={`h-5 w-5 ${getRankIconColor(rank)}`} />;
+      case 2: return <Medal className={`h-5 w-5 ${getRankIconColor(rank)}`} />;
+      case 3: return <Trophy className={`h-5 w-5 ${getRankIconColor(rank)}`} />;
+      default: return <span className="text-muted-foreground font-medium">{rank}</span>;
+    }
+  };
   
   // Animation variants
   const fadeInUp = {
@@ -96,21 +171,18 @@ const Leaderboard = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
   
-  const renderRankBadge = (rankId: number) => {
-    const rank = ranks[rankId - 1];
-    
-    return (
-      <div className="flex items-center">
-        <Diamond 
-          fill={rank.color} 
-          stroke={rank.shadow} 
-          strokeWidth={1} 
-          className="h-5 w-5 mr-1.5 drop-shadow" 
-        />
-        <span>{rank.name}</span>
-      </div>
-    );
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
   };
+  
+  // Find the current user in the leaderboard data
+  const currentUserEntry = leaderboardData.find(entry => entry.name === user?.name);
   
   return (
     <AnimatedTransition>
@@ -118,221 +190,430 @@ const Leaderboard = () => {
         <Navbar />
         
         <main className="flex-grow pt-24 pb-12">
-          <div className="container px-4 mx-auto">
+          <div className="container px-4 mx-auto max-w-7xl">
             <motion.div
               variants={fadeInUp}
               initial="hidden"
               animate="visible"
               className="mb-6"
             >
-              <h1 className="text-3xl font-bold">Leaderboard</h1>
-              <p className="text-muted-foreground">See how you rank against other music enthusiasts</p>
+              <h1 className="text-3xl font-bold mb-2">Leaderboard</h1>
+              <p className="text-muted-foreground">See where you rank among other music fans</p>
             </motion.div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              <div className="lg:col-span-3">
-                <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-                    <TabsList>
-                      <TabsTrigger value="global">Global</TabsTrigger>
-                      <TabsTrigger value="friends">Friends</TabsTrigger>
-                      <TabsTrigger value="country">Country</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                  
-                  <div className="w-full sm:w-auto flex items-center space-x-2">
-                    <div className="relative flex-grow">
-                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input 
-                        type="search" 
-                        placeholder="Search users..." 
-                        className="pl-8 w-full sm:w-[250px]"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                    <Button variant="outline" size="icon">
-                      <Filter className="h-4 w-4" />
-                    </Button>
-                  </div>
+            {isLoading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-muted w-1/3 mb-6 rounded"></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  <div className="h-64 bg-muted rounded-lg"></div>
+                  <div className="h-64 bg-muted rounded-lg"></div>
+                  <div className="h-64 bg-muted rounded-lg"></div>
                 </div>
-                
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle>Top SoundTrump Users</CardTitle>
-                    <CardDescription>
-                      Users are ranked based on total ST Coins earned
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[80px]">Rank</TableHead>
-                          <TableHead>User</TableHead>
-                          <TableHead>Rank Level</TableHead>
-                          <TableHead className="text-right">Points</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredUsers.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                              No users found matching your search.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          filteredUsers.slice(0, 20).map((leaderboardUser, index) => (
-                            <TableRow 
-                              key={leaderboardUser.id}
-                              className={leaderboardUser.name.toLowerCase() === (user?.name || '').toLowerCase() ? "bg-muted/40" : ""}
-                            >
-                              <TableCell>
-                                {index === 0 ? (
-                                  <Trophy className="h-5 w-5 text-amber-500" />
-                                ) : index === 1 ? (
-                                  <Medal className="h-5 w-5 text-gray-400" />
-                                ) : index === 2 ? (
-                                  <Medal className="h-5 w-5 text-amber-700" />
-                                ) : (
-                                  <span className="font-mono">{index + 1}</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center">
-                                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-2 text-xs">
-                                    <User className="h-4 w-4" />
-                                  </div>
-                                  <div>
-                                    <div className="font-medium flex items-center gap-1.5">
-                                      {leaderboardUser.name}
-                                      {leaderboardUser.name.toLowerCase() === (user?.name || '').toLowerCase() && (
-                                        <Badge variant="outline" className="text-xs ml-1">(You)</Badge>
-                                      )}
-                                    </div>
-                                    <div className="flex gap-1.5">
-                                      {leaderboardUser.isPremium && (
-                                        <Badge variant="outline" className="bg-sound-light/10 text-sound-light border-sound-light/20 text-[10px]">
-                                          Premium
-                                        </Badge>
-                                      )}
-                                      {leaderboardUser.isInfluencer && (
-                                        <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20 text-[10px]">
-                                          Influencer
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {renderRankBadge(leaderboardUser.rank)}
-                              </TableCell>
-                              <TableCell className="text-right font-mono">
-                                {leaderboardUser.points.toLocaleString()} ST
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                    
-                    {filteredUsers.length > 20 && (
-                      <div className="pt-4 text-center">
-                        <Button variant="outline">Load More</Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-                
-                {currentUserRank && currentUserRank > 20 && searchTerm === '' && (
-                  <div className="mt-6">
-                    <Card>
-                      <CardContent className="p-4">
-                        <div className="font-medium text-sm mb-2">Your Position</div>
-                        <Table>
-                          <TableBody>
-                            <TableRow className="bg-muted/40">
-                              <TableCell className="w-[80px]">
-                                <span className="font-mono">{currentUserRank}</span>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center">
-                                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-2 text-xs">
-                                    <User className="h-4 w-4" />
-                                  </div>
-                                  <div>
-                                    <div className="font-medium flex items-center">
-                                      {user?.name}
-                                      <Badge variant="outline" className="text-xs ml-1.5">(You)</Badge>
-                                    </div>
-                                    <div className="flex gap-1.5">
-                                      {user?.role.tier === "Premium" && (
-                                        <Badge variant="outline" className="bg-sound-light/10 text-sound-light border-sound-light/20 text-[10px]">
-                                          Premium
-                                        </Badge>
-                                      )}
-                                      {user?.role.status === "Influencer" && (
-                                        <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20 text-[10px]">
-                                          Influencer
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {currentUserIndex !== -1 && renderRankBadge(users[currentUserIndex].rank)}
-                              </TableCell>
-                              <TableCell className="text-right font-mono">
-                                {currentUserIndex !== -1 && users[currentUserIndex].points.toLocaleString()} ST
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
+                <div className="h-6 bg-muted w-1/4 mb-6 rounded"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="h-48 bg-muted rounded-lg"></div>
+                  <div className="h-48 bg-muted rounded-lg"></div>
+                  <div className="h-48 bg-muted rounded-lg"></div>
+                  <div className="h-48 bg-muted rounded-lg"></div>
+                </div>
               </div>
-              
-              <div className="lg:col-span-1">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Rank Levels</CardTitle>
-                    <CardDescription>
-                      SoundTrump has 10 rank levels based on your earned points
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {ranks.map((rank) => (
-                        <div 
-                          key={rank.id} 
-                          className="flex justify-between items-center p-3 rounded-md border border-border"
-                        >
-                          <div className="flex items-center">
-                            <Diamond 
-                              fill={rank.color} 
-                              stroke={rank.shadow} 
-                              strokeWidth={1} 
-                              className="h-5 w-5 mr-2 drop-shadow" 
-                            />
-                            <div>
-                              <div className="font-medium text-sm">{rank.name}</div>
-                              <div className="text-xs text-muted-foreground">{rank.description}</div>
+            ) : (
+              <>
+                <motion.div
+                  variants={fadeInUp}
+                  initial="hidden"
+                  animate="visible"
+                  className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+                >
+                  {/* Current User Rank */}
+                  <Card className="col-span-1">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">Your Ranking</CardTitle>
+                      <CardDescription>How you compare to others</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16 border-2 border-sound-light p-0.5">
+                          <AvatarImage src={user?.avatar} alt={user?.name} />
+                          <AvatarFallback className="text-lg bg-sound-light text-white">
+                            {user?.initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-xl">{user?.name}</h3>
+                            <div className="flex gap-1">
+                              {user?.role?.tier === "Premium" && (
+                                <Badge className="bg-sound-light">Premium</Badge>
+                              )}
+                              {user?.role?.status === "Influencer" && (
+                                <Badge className="bg-purple-500">Influencer</Badge>
+                              )}
                             </div>
                           </div>
-                          <div className="text-xs font-mono">
-                            {rank.points.toLocaleString()} ST
+                          
+                          <div className="text-2xl font-bold flex items-center mt-1">
+                            <span className="text-sound-light mr-1">#{userRank.rank}</span>
+                            <span className="text-sm text-muted-foreground font-normal">of {leaderboardData.length}</span>
+                          </div>
+                          
+                          <div className="text-sm text-muted-foreground mt-1">
+                            <span>{userRank.points} points · {userRank.tasksCompleted} tasks completed</span>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Leaderboard Stats */}
+                  <Card className="col-span-2">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">Top Stats</CardTitle>
+                      <CardDescription>Overall performance metrics</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-2 gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-md bg-yellow-500/20 text-yellow-500">
+                          <Crown className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xl">
+                            {leaderboardData[0].name}
+                          </h4>
+                          <p className="text-muted-foreground text-sm">Top Performer</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-md bg-blue-500/20 text-blue-500">
+                          <Zap className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xl">
+                            {leaderboardData.reduce((a, b) => a.tasksCompleted > b.tasksCompleted ? a : b).name}
+                          </h4>
+                          <p className="text-muted-foreground text-sm">Most Active</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-md bg-green-500/20 text-green-500">
+                          <Music className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xl">
+                            {leaderboardData.reduce((a, b) => a.points > b.points ? a : b).name}
+                          </h4>
+                          <p className="text-muted-foreground text-sm">Music Lover</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-md bg-purple-500/20 text-purple-500">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-xl">
+                            {leaderboardData.length}
+                          </h4>
+                          <p className="text-muted-foreground text-sm">Total Members</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+                
+                {/* Tabs for different leaderboards */}
+                <Tabs defaultValue="points" className="w-full">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="points">Points</TabsTrigger>
+                    <TabsTrigger value="tasks">Tasks Completed</TabsTrigger>
+                    <TabsTrigger value="referrals">Referrals</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="points" className="m-0">
+                    {/* Top 3 users */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      {[1, 2, 3].map(rank => {
+                        const user = leaderboardData[rank - 1];
+                        return (
+                          <Card key={rank} className="bg-muted/50">
+                            <CardHeader className="text-center">
+                              <div className="flex justify-center">
+                                {getRankIcon(rank)}
+                              </div>
+                              <CardTitle className="text-xl font-bold mt-2">{user.name}</CardTitle>
+                              <CardDescription className="text-sm text-muted-foreground">
+                                {user.points} points
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="text-center">
+                              <Avatar className="h-14 w-14 mx-auto">
+                                <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                <AvatarFallback className="bg-sound-light text-white">
+                                  {user.initials}
+                                </AvatarFallback>
+                              </Avatar>
+                              <p className="text-sm text-muted-foreground mt-2">
+                                {user.tasksCompleted} tasks completed
+                              </p>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+                    
+                    <Card className="mt-6">
+                      <CardHeader className="pb-0">
+                        <div className="flex justify-between items-center">
+                          <CardTitle>Points Leaderboard</CardTitle>
+                          <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Select period" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="alltime">All Time</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <motion.div
+                          variants={staggerContainer}
+                          initial="hidden"
+                          animate="visible"
+                          className="mt-4 space-y-2"
+                        >
+                          {leaderboardData.map((user, index) => (
+                            <motion.div
+                              key={index}
+                              variants={fadeInUp}
+                              className={`flex items-center p-3 rounded-lg ${currentUserEntry?.id === user.id ? 'bg-muted/50 border border-sound-light/20' : 'hover:bg-muted/30'}`}
+                            >
+                              <div className="w-8 flex justify-center">
+                                {getRankIcon(index + 1)}
+                              </div>
+                              
+                              <div className="flex items-center flex-1 ml-2">
+                                <Avatar className="h-10 w-10 mr-3">
+                                  <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                  <AvatarFallback className="bg-sound-light text-white">
+                                    {user.initials}
+                                  </AvatarFallback>
+                                </Avatar>
+                                
+                                <div>
+                                  <div className="flex items-center">
+                                    <h3 className="font-medium text-sm">
+                                      {user.name}
+                                      {currentUserEntry?.id === user.id && (
+                                        <span className="text-xs ml-2 text-muted-foreground">(You)</span>
+                                      )}
+                                    </h3>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {user.tasksCompleted} tasks completed
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                {user.tier === "Premium" && (
+                                  <Badge className="bg-sound-light">Premium</Badge>
+                                )}
+                                {user.status === "Influencer" && (
+                                  <Badge className="bg-purple-500">Influencer</Badge>
+                                )}
+                                
+                                <div className="text-right">
+                                  <div className="font-bold">{user.points}</div>
+                                  <div className="text-xs text-muted-foreground">points</div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                        
+                        <Button variant="ghost" className="w-full mt-4">
+                          <span>View Full Leaderboard</span>
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="tasks" className="m-0">
+                    <Card className="mt-6">
+                      <CardHeader className="pb-0">
+                        <div className="flex justify-between items-center">
+                          <CardTitle>Tasks Completed Leaderboard</CardTitle>
+                          <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Select period" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="alltime">All Time</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <motion.div
+                          variants={staggerContainer}
+                          initial="hidden"
+                          animate="visible"
+                          className="mt-4 space-y-2"
+                        >
+                          {leaderboardData.sort((a, b) => b.tasksCompleted - a.tasksCompleted).map((user, index) => (
+                            <motion.div
+                              key={index}
+                              variants={fadeInUp}
+                              className={`flex items-center p-3 rounded-lg ${currentUserEntry?.id === user.id ? 'bg-muted/50 border border-sound-light/20' : 'hover:bg-muted/30'}`}
+                            >
+                              <div className="w-8 flex justify-center">
+                                {getRankIcon(index + 1)}
+                              </div>
+                              
+                              <div className="flex items-center flex-1 ml-2">
+                                <Avatar className="h-10 w-10 mr-3">
+                                  <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                  <AvatarFallback className="bg-sound-light text-white">
+                                    {user.initials}
+                                  </AvatarFallback>
+                                </Avatar>
+                                
+                                <div>
+                                  <div className="flex items-center">
+                                    <h3 className="font-medium text-sm">
+                                      {user.name}
+                                      {currentUserEntry?.id === user.id && (
+                                        <span className="text-xs ml-2 text-muted-foreground">(You)</span>
+                                      )}
+                                    </h3>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {user.points} points
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                {user.tier === "Premium" && (
+                                  <Badge className="bg-sound-light">Premium</Badge>
+                                )}
+                                {user.status === "Influencer" && (
+                                  <Badge className="bg-purple-500">Influencer</Badge>
+                                )}
+                                
+                                <div className="text-right">
+                                  <div className="font-bold">{user.tasksCompleted}</div>
+                                  <div className="text-xs text-muted-foreground">tasks</div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                        
+                        <Button variant="ghost" className="w-full mt-4">
+                          <span>View Full Leaderboard</span>
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="referrals" className="m-0">
+                    <Card className="mt-6">
+                      <CardHeader className="pb-0">
+                        <div className="flex justify-between items-center">
+                          <CardTitle>Referrals Leaderboard</CardTitle>
+                          <Select value={filterPeriod} onValueChange={setFilterPeriod}>
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Select period" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                              <SelectItem value="alltime">All Time</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <motion.div
+                          variants={staggerContainer}
+                          initial="hidden"
+                          animate="visible"
+                          className="mt-4 space-y-2"
+                        >
+                          {leaderboardData.sort((a, b) => 0.5 - Math.random()).map((user, index) => (
+                            <motion.div
+                              key={index}
+                              variants={fadeInUp}
+                              className={`flex items-center p-3 rounded-lg ${currentUserEntry?.id === user.id ? 'bg-muted/50 border border-sound-light/20' : 'hover:bg-muted/30'}`}
+                            >
+                              <div className="w-8 flex justify-center">
+                                {getRankIcon(index + 1)}
+                              </div>
+                              
+                              <div className="flex items-center flex-1 ml-2">
+                                <Avatar className="h-10 w-10 mr-3">
+                                  <AvatarImage src={user.avatarUrl} alt={user.name} />
+                                  <AvatarFallback className="bg-sound-light text-white">
+                                    {user.initials}
+                                  </AvatarFallback>
+                                </Avatar>
+                                
+                                <div>
+                                  <div className="flex items-center">
+                                    <h3 className="font-medium text-sm">
+                                      {user.name}
+                                      {currentUserEntry?.id === user.id && (
+                                        <span className="text-xs ml-2 text-muted-foreground">(You)</span>
+                                      )}
+                                    </h3>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {user.points} points
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                {user.tier === "Premium" && (
+                                  <Badge className="bg-sound-light">Premium</Badge>
+                                )}
+                                {user.status === "Influencer" && (
+                                  <Badge className="bg-purple-500">Influencer</Badge>
+                                )}
+                                
+                                <div className="text-right">
+                                  <div className="font-bold">{Math.floor(Math.random() * 50)}</div>
+                                  <div className="text-xs text-muted-foreground">referrals</div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                        </motion.div>
+                        
+                        <Button variant="ghost" className="w-full mt-4">
+                          <span>View Full Leaderboard</span>
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </>
+            )}
           </div>
         </main>
         

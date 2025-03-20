@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import AnimatedTransition from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
+import { useProfile } from '@/context/ProfileContext';
 import { 
   User, 
   Award, 
@@ -26,7 +26,6 @@ import {
 import { Link } from 'react-router-dom';
 import { toast } from '@/lib/toast';
 
-// Mock activity data
 const recentActivity = [
   { id: 1, type: 'task', description: 'Completed daily music task', date: '2023-11-10T13:42:00', reward: 10 },
   { id: 2, type: 'referral', description: 'New referral: Emma Johnson', date: '2023-11-08T16:20:00', reward: 10 },
@@ -37,9 +36,9 @@ const recentActivity = [
 
 const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const { user } = useProfile();
   
-  // Mock stats
   const stats = {
     totalPoints: 430,
     tasksCompleted: 24,
@@ -51,7 +50,6 @@ const Profile = () => {
   };
   
   useEffect(() => {
-    // Simulate loading data
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1000);
@@ -59,7 +57,6 @@ const Profile = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  // Animation variants
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
@@ -107,7 +104,6 @@ const Profile = () => {
         <main className="flex-grow pt-24 pb-12">
           <div className="container px-4 mx-auto max-w-5xl">
             {isLoading ? (
-              // Loading skeleton
               <div className="animate-pulse">
                 <div className="flex flex-col md:flex-row gap-6 mb-8">
                   <div className="md:w-1/3 h-64 bg-muted rounded-lg"></div>
@@ -119,7 +115,6 @@ const Profile = () => {
             ) : (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  {/* Profile card */}
                   <motion.div 
                     variants={fadeInUp}
                     initial="hidden"
@@ -143,10 +138,10 @@ const Profile = () => {
                       <CardContent className="pb-6">
                         <div className="flex flex-col items-center gap-2 mb-4">
                           <div className="flex gap-2">
-                            <Badge className="bg-sound-light">{user.role.tier}</Badge>
-                            <Badge variant={user.role.status === "Influencer" ? "default" : "outline"} 
-                                  className={user.role.status === "Influencer" ? "bg-purple-500" : ""}>
-                              {user.role.status}
+                            <Badge className="bg-sound-light">{user.role?.tier}</Badge>
+                            <Badge variant={user.role?.status === "Influencer" ? "default" : "outline"} 
+                                  className={user.role?.status === "Influencer" ? "bg-purple-500" : ""}>
+                              {user.role?.status}
                             </Badge>
                           </div>
                           <div className="text-sm text-muted-foreground flex items-center">
@@ -196,7 +191,6 @@ const Profile = () => {
                     </Card>
                   </motion.div>
                   
-                  {/* Activity card */}
                   <motion.div 
                     variants={fadeInUp}
                     initial="hidden"
@@ -219,7 +213,6 @@ const Profile = () => {
                                   {activity.type === 'referral' && <User className="h-5 w-5 text-purple-500" />}
                                   {activity.type === 'reward' && <Award className="h-5 w-5 text-amber-500" />}
                                 </div>
-                                {/* Activity timeline connector */}
                                 {activity.id !== recentActivity[recentActivity.length - 1].id && (
                                   <div className="absolute left-1/2 top-10 bottom-0 w-0.5 -ml-px bg-border h-full"></div>
                                 )}
@@ -257,7 +250,6 @@ const Profile = () => {
                   </motion.div>
                 </div>
                 
-                {/* Stats and achievements tabs */}
                 <motion.div
                   variants={fadeInUp}
                   initial="hidden"

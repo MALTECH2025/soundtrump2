@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
+import { useProfile } from '@/context/ProfileContext';
 import { toast } from '@/lib/toast';
 import { ProfileDisplayData } from '@/types';
 
@@ -36,18 +37,8 @@ export const Navbar = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, profile, isAuthenticated, logout } = useAuth();
-  
-  const userData: ProfileDisplayData | undefined = profile && {
-    name: profile.full_name || profile.username || 'User',
-    avatar: profile.avatar_url,
-    initials: profile.initials || 'US',
-    role: {
-      tier: profile.tier,
-      status: profile.status
-    },
-    email: user?.email
-  };
+  const { isAuthenticated, logout } = useAuth();
+  const { user } = useProfile();
   
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-4 h-4 mr-2" /> },
@@ -94,15 +85,15 @@ export const Navbar = ({
         </nav>
 
         <div className="flex items-center">
-          {isAuthenticated && userData ? (
+          {isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <motion.div whileHover={{ scale: 1.05 }}>
                   <Button variant="ghost" className="rounded-full p-0 h-10 w-10">
                     <Avatar>
-                      <AvatarImage src={userData.avatar} alt={userData.name} />
+                      <AvatarImage src={user.avatar} alt={user.name} />
                       <AvatarFallback className="bg-sound-light text-white">
-                        {userData.initials}
+                        {user.initials}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -110,7 +101,7 @@ export const Navbar = ({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 mt-1 p-2 animate-fade-in">
                 <div className="flex flex-col p-2 mb-2 border-b">
-                  <p className="font-medium">{userData.name}</p>
+                  <p className="font-medium">{user.name}</p>
                   <p className="text-sm text-muted-foreground">ST Member</p>
                 </div>
                 <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/profile')}>
@@ -154,6 +145,7 @@ export const Navbar = ({
         </div>
       </div>
 
+      {/* Mobile menu */}
       {isMobileMenuOpen && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}

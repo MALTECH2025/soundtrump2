@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +12,7 @@ import { Bell, Music2, Award, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/context/AuthContext';
+import { useProfile } from '@/context/ProfileContext';
 
 const mockTasks: TaskProps[] = [
   {
@@ -53,7 +53,8 @@ const mockTasks: TaskProps[] = [
 
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const { user } = useProfile();
   
   useEffect(() => {
     // Simulate loading data
@@ -62,9 +63,11 @@ const Dashboard = () => {
     }, 1000);
     
     // Show welcome toast
-    toast.success(`Welcome back, ${user?.name || 'User'}!`, {
-      description: 'You have 4 active tasks to complete.',
-    });
+    if (user) {
+      toast.success(`Welcome back, ${user.name || 'User'}!`, {
+        description: 'You have 4 active tasks to complete.',
+      });
+    }
     
     return () => clearTimeout(timer);
   }, [user]);
@@ -109,10 +112,10 @@ const Dashboard = () => {
                   <div className="flex items-center gap-3">
                     <h1 className="text-3xl font-bold">Welcome back, {user?.name || 'User'}</h1>
                     <div className="flex gap-1.5">
-                      {user?.role.tier === "Premium" && (
+                      {user?.role?.tier === "Premium" && (
                         <Badge className="bg-sound-light">Premium</Badge>
                       )}
-                      {user?.role.status === "Influencer" && (
+                      {user?.role?.status === "Influencer" && (
                         <Badge className="bg-purple-500">Influencer</Badge>
                       )}
                     </div>
@@ -225,7 +228,7 @@ const Dashboard = () => {
                       totalReferrals={42}
                       influencerThreshold={500}
                       referralCode="SOUNDFAN2024"
-                      isInfluencer={user?.role.status === "Influencer"}
+                      isInfluencer={user?.role?.status === "Influencer"}
                     />
                   </div>
                 </motion.div>
