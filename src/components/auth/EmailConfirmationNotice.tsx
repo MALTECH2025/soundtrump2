@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import React from 'react';
+import { RefreshCw, Mail } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Mail } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/lib/toast';
 
 interface EmailConfirmationNoticeProps {
@@ -11,48 +11,54 @@ interface EmailConfirmationNoticeProps {
 }
 
 const EmailConfirmationNotice = ({ email }: EmailConfirmationNoticeProps) => {
-  const [isSending, setIsSending] = useState(false);
-
-  const handleResendConfirmation = async () => {
-    if (!email) return;
+  const [isResending, setIsResending] = React.useState(false);
+  
+  const handleResendEmail = async () => {
+    if (!email) {
+      toast.error('Email address is required');
+      return;
+    }
     
     try {
-      setIsSending(true);
+      setIsResending(true);
       
       const { error } = await supabase.auth.resend({
         type: 'signup',
-        email,
+        email: email,
       });
       
       if (error) throw error;
       
-      toast.success('Confirmation email resent! Please check your inbox');
+      toast.success('Confirmation email resent successfully');
     } catch (error: any) {
       console.error('Error resending confirmation email:', error);
       toast.error(error.message || 'Failed to resend confirmation email');
     } finally {
-      setIsSending(false);
+      setIsResending(false);
     }
   };
-
+  
   return (
-    <Alert className="mb-4 border-yellow-400 bg-yellow-50 dark:bg-yellow-950/20">
-      <AlertCircle className="h-4 w-4 text-yellow-500" />
-      <AlertTitle className="text-yellow-700 dark:text-yellow-400">Email verification required</AlertTitle>
-      <AlertDescription className="text-yellow-600 dark:text-yellow-500">
+    <Alert variant="default" className="mb-6 bg-amber-50 border-amber-200">
+      <Mail className="h-4 w-4 text-amber-700" />
+      <AlertTitle className="text-amber-800">Email verification required</AlertTitle>
+      <AlertDescription className="text-amber-700">
         <p className="mb-2">
-          Please check your email to verify your account. If you didn't receive an email or need a new one, click below:
+          A verification email has been sent to <strong>{email}</strong>. 
+          Please check your inbox and click the link to verify your email address.
         </p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="mt-1 text-yellow-700 border-yellow-300 dark:text-yellow-400 dark:border-yellow-700"
-          onClick={handleResendConfirmation}
-          disabled={isSending}
-        >
-          <Mail className="mr-2 h-4 w-4" />
-          {isSending ? 'Sending...' : 'Resend confirmation email'}
-        </Button>
+        <div className="flex items-center justify-start mt-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-amber-300 text-amber-800 hover:border-amber-400 hover:bg-amber-100"
+            onClick={handleResendEmail}
+            disabled={isResending}
+          >
+            <RefreshCw className={`h-3 w-3 mr-1 ${isResending ? 'animate-spin' : ''}`} />
+            {isResending ? 'Sending...' : 'Resend Email'}
+          </Button>
+        </div>
       </AlertDescription>
     </Alert>
   );

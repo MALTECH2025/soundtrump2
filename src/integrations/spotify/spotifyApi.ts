@@ -5,7 +5,8 @@ import { connectService } from "@/lib/api";
 
 // Spotify API configuration
 const SPOTIFY_CLIENT_ID = '9590f00f4f6b4fc080b08c85dc699e9f';
-const SPOTIFY_REDIRECT_URI = window.location.origin + '/settings';
+// Use window.location.origin for dynamic redirect instead of hardcoded value
+const SPOTIFY_REDIRECT_URI = `${window.location.origin}/settings`;
 const SPOTIFY_SCOPES = [
   'user-read-private',
   'user-read-email',
@@ -135,7 +136,38 @@ export const getSpotifyTopTracks = async (timeRange = 'medium_term') => {
       throw new Error('Spotify not connected');
     }
     
-    // Check if the token is expired and needs refreshing (implementation omitted for brevity)
+    // Check if the token is expired and needs refreshing
+    const now = new Date();
+    const expiresAt = new Date(serviceData.expires_at);
+    
+    if (now >= expiresAt) {
+      // Token is expired, refresh it
+      try {
+        const response = await fetch(`${window.location.origin}/api/spotify-refresh-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            refreshToken: serviceData.refresh_token,
+            userId: user.id
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          // If token refresh failed and service was disconnected
+          if (errorData.disconnected) {
+            toast.error('Your Spotify connection has expired. Please reconnect.');
+            return [];
+          }
+          throw new Error(errorData.error || 'Failed to refresh token');
+        }
+      } catch (refreshError) {
+        console.error('Error refreshing token:', refreshError);
+        throw new Error('Failed to refresh access token');
+      }
+    }
     
     // Fetch top tracks
     const response = await fetch(`https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=20`, {
@@ -176,6 +208,39 @@ export const getSpotifyRecentlyPlayed = async (limit = 20) => {
     
     if (error || !serviceData) {
       throw new Error('Spotify not connected');
+    }
+    
+    // Check if the token is expired and needs refreshing
+    const now = new Date();
+    const expiresAt = new Date(serviceData.expires_at);
+    
+    if (now >= expiresAt) {
+      // Token is expired, refresh it using the edge function
+      try {
+        const response = await fetch(`${window.location.origin}/api/spotify-refresh-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            refreshToken: serviceData.refresh_token,
+            userId: user.id
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          // If token refresh failed and service was disconnected
+          if (errorData.disconnected) {
+            toast.error('Your Spotify connection has expired. Please reconnect.');
+            return [];
+          }
+          throw new Error(errorData.error || 'Failed to refresh token');
+        }
+      } catch (refreshError) {
+        console.error('Error refreshing token:', refreshError);
+        throw new Error('Failed to refresh access token');
+      }
     }
     
     // Fetch recently played tracks
