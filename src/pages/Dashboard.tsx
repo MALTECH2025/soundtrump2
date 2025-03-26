@@ -1,7 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import AnimatedTransition from '@/components/ui/AnimatedTransition';
+import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import TaskCard, { TaskProps } from '@/components/dashboard/TaskCard';

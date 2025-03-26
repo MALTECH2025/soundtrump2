@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Mail, MessageSquare, Share2, Users } from 'lucide-react';
 import { toast } from '@/lib/toast';
-import AnimatedTransition from '@/components/ui/AnimatedTransition';
+import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 

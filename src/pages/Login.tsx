@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/context/AuthContext";
-import AnimatedTransition from "@/components/ui/AnimatedTransition";
+import { AnimatedTransition } from "@/components/ui/AnimatedTransition";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { Music2, AtSign, Lock, User } from "lucide-react";

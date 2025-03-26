@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { Music2, ArrowRight, CheckCircle, Zap, Users, Trophy, Clock } from 'lucide-react';
-import AnimatedTransition from '@/components/ui/AnimatedTransition';
+import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import AuthModal from '@/components/auth/AuthModal';

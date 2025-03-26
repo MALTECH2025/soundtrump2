@@ -3,7 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import AnimatedTransition from '@/components/ui/AnimatedTransition';
+import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import { FileText } from 'lucide-react';
 
 interface LegalPageLayoutProps {
