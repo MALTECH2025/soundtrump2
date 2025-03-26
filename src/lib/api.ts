@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 
@@ -293,5 +292,187 @@ export const getUserConnectedServices = async (userId: string) => {
   } catch (error: any) {
     console.error("Error fetching connected services:", error);
     return [];
+  }
+};
+
+// Admin API functions
+export const updateUserRole = async (userId: string, role: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ role })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    toast.success(`User role updated to ${role}`);
+    return data;
+  } catch (error: any) {
+    console.error("Error updating user role:", error);
+    toast.error("Failed to update user role. Please try again.");
+    return null;
+  }
+};
+
+export const createTask = async (taskData: Partial<any>) => {
+  try {
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert(taskData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    toast.success("Task created successfully");
+    return data;
+  } catch (error: any) {
+    console.error("Error creating task:", error);
+    toast.error("Failed to create task. Please try again.");
+    return null;
+  }
+};
+
+export const updateTask = async (taskId: string, taskData: Partial<any>) => {
+  try {
+    const { data, error } = await supabase
+      .from("tasks")
+      .update(taskData)
+      .eq("id", taskId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    toast.success("Task updated successfully");
+    return data;
+  } catch (error: any) {
+    console.error("Error updating task:", error);
+    toast.error("Failed to update task. Please try again.");
+    return null;
+  }
+};
+
+export const deleteTask = async (taskId: string) => {
+  try {
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", taskId);
+
+    if (error) throw error;
+    
+    toast.success("Task deleted successfully");
+    return true;
+  } catch (error: any) {
+    console.error("Error deleting task:", error);
+    toast.error("Failed to delete task. Please try again.");
+    return false;
+  }
+};
+
+export const createReward = async (rewardData: Partial<any>) => {
+  try {
+    const { data, error } = await supabase
+      .from("rewards")
+      .insert(rewardData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    toast.success("Reward created successfully");
+    return data;
+  } catch (error: any) {
+    console.error("Error creating reward:", error);
+    toast.error("Failed to create reward. Please try again.");
+    return null;
+  }
+};
+
+export const updateReward = async (rewardId: string, rewardData: Partial<any>) => {
+  try {
+    const { data, error } = await supabase
+      .from("rewards")
+      .update(rewardData)
+      .eq("id", rewardId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    toast.success("Reward updated successfully");
+    return data;
+  } catch (error: any) {
+    console.error("Error updating reward:", error);
+    toast.error("Failed to update reward. Please try again.");
+    return null;
+  }
+};
+
+export const deleteReward = async (rewardId: string) => {
+  try {
+    const { error } = await supabase
+      .from("rewards")
+      .delete()
+      .eq("id", rewardId);
+
+    if (error) throw error;
+    
+    toast.success("Reward deleted successfully");
+    return true;
+  } catch (error: any) {
+    console.error("Error deleting reward:", error);
+    toast.error("Failed to delete reward. Please try again.");
+    return false;
+  }
+};
+
+// Additional admin functions for statistics and system settings
+export const getSystemStats = async () => {
+  try {
+    // This is a placeholder for a real implementation
+    // You would typically call an RPC function to get aggregated statistics
+    const stats = {
+      totalUsers: 0,
+      totalTasks: 0,
+      totalRewards: 0,
+      totalPoints: 0
+    };
+
+    // Get total users
+    const { count: userCount } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true });
+    
+    stats.totalUsers = userCount || 0;
+
+    // Get total tasks
+    const { count: taskCount } = await supabase
+      .from("tasks")
+      .select("*", { count: "exact", head: true });
+    
+    stats.totalTasks = taskCount || 0;
+
+    // Get total rewards
+    const { count: rewardCount } = await supabase
+      .from("rewards")
+      .select("*", { count: "exact", head: true });
+    
+    stats.totalRewards = rewardCount || 0;
+
+    // Get total points
+    const { data: pointsData } = await supabase
+      .from("profiles")
+      .select("points");
+    
+    stats.totalPoints = pointsData?.reduce((sum, user) => sum + user.points, 0) || 0;
+
+    return stats;
+  } catch (error: any) {
+    console.error("Error fetching system stats:", error);
+    return null;
   }
 };

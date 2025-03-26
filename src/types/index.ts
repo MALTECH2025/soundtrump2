@@ -10,6 +10,7 @@ export interface UserProfile {
   points: number;
   tier: "Free" | "Premium";
   status: "Normal" | "Influencer";
+  role?: "user" | "admin";
   created_at?: string;
   updated_at?: string;
 }

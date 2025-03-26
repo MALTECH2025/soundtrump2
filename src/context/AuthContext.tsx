@@ -1,9 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { toast } from "@/lib/toast";
 import { UserProfile, ProfileDisplayData } from "@/types";
-import { useNavigate } from "react-router-dom";
 
 // Define the auth context type
 interface AuthContextType {
@@ -11,6 +11,7 @@ interface AuthContextType {
   profile: UserProfile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, username?: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   isAuthenticated: false,
   isLoading: true,
+  isAdmin: false,
   login: async () => {},
   signup: async () => {},
   logout: async () => {},
@@ -43,6 +45,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
   // Fetch user profile data
@@ -58,6 +61,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.error("Error fetching user profile:", error);
         return null;
       }
+
+      // Check if user has admin role
+      const isUserAdmin = data?.role === "admin";
+      setIsAdmin(isUserAdmin);
 
       return data as UserProfile;
     } catch (error) {
@@ -84,6 +91,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         } else {
           setUser(null);
           setProfile(null);
+          setIsAdmin(false);
           setIsLoading(false);
         }
       }
@@ -255,6 +263,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     profile,
     isAuthenticated: !!user && !!session,
     isLoading,
+    isAdmin,
     login,
     signup,
     logout,

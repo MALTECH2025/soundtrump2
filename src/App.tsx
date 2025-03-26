@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { toast } from "@/lib/toast";
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import AdminRoute from '@/components/auth/AdminRoute';
 import Index from '@/pages/Index';
 import Dashboard from '@/pages/Dashboard';
 import Tasks from '@/pages/Tasks';
@@ -22,6 +23,11 @@ import Support from '@/pages/Support';
 import Contact from '@/pages/Contact';
 import DspTrust from '@/pages/DspTrust';
 import NotFound from '@/pages/NotFound';
+
+// Admin pages
+import AdminDashboard from '@/pages/admin/Dashboard';
+import AdminUsers from '@/pages/admin/Users';
+import AdminTasks from '@/pages/admin/Tasks';
 
 // Legal pages
 import TermsOfService from '@/pages/legal/TermsOfService';
@@ -91,6 +97,14 @@ function App() {
                   <Route path="/leaderboard" element={<Leaderboard />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
+                </Route>
+                
+                {/* Admin Routes */}
+                <Route element={<AdminRoute />}>
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/tasks" element={<AdminTasks />} />
+                  {/* Add more admin routes as needed */}
                 </Route>
                 
                 {/* 404 Route */}
