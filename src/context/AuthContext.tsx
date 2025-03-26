@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -44,6 +43,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Fetch user profile data
   const fetchUserProfile = async (userId: string) => {
@@ -68,39 +68,62 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Set up auth state listener and check for existing session
   useEffect(() => {
+    console.log("Setting up auth state listener");
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log("Auth state changed:", event, currentSession?.user?.email);
         setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-
+        
         if (currentSession?.user) {
+          setUser(currentSession.user);
           const profile = await fetchUserProfile(currentSession.user.id);
           setProfile(profile);
+          setIsLoading(false);
         } else {
+          setUser(null);
           setProfile(null);
+          setIsLoading(false);
         }
-
-        setIsLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-
-      if (currentSession?.user) {
-        const profile = await fetchUserProfile(currentSession.user.id);
-        setProfile(profile);
+    const checkSession = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        console.log("Initial session check:", currentSession?.user?.email || "No session");
+        
+        setSession(currentSession);
+        
+        if (currentSession?.user) {
+          setUser(currentSession.user);
+          const profile = await fetchUserProfile(currentSession.user.id);
+          setProfile(profile);
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+      } finally {
+        setIsLoading(false);
+        setAuthChecked(true);
       }
+    };
 
-      setIsLoading(false);
-    });
+    checkSession();
+
+    // Force auth check to complete after a timeout
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        console.log("Auth check timeout reached");
+        setIsLoading(false);
+        setAuthChecked(true);
+      }
+    }, 5000);
 
     return () => {
       subscription.unsubscribe();
+      clearTimeout(timer);
     };
   }, []);
 
@@ -230,7 +253,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const value = {
     user,
     profile,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!session,
     isLoading,
     login,
     signup,

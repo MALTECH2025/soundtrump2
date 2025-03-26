@@ -1,11 +1,12 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthProvider } from '@/context/AuthContext';
 import { ProfileProvider } from '@/context/ProfileContext';
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "@/lib/toast";
 
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import Index from '@/pages/Index';
@@ -30,9 +31,36 @@ import Disclaimer from '@/pages/legal/Disclaimer';
 import WhitePaper from '@/pages/legal/WhitePaper';
 
 // Initialize QueryClient
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
+  const [appReady, setAppReady] = useState(false);
+
+  // Ensure app is fully initialized before rendering
+  useEffect(() => {
+    // Give a small delay to ensure all providers are initialized
+    const timer = setTimeout(() => {
+      setAppReady(true);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!appReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-sound-medium border-t-sound-light rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   return (
     <ThemeProvider defaultTheme="light" storageKey="soundtrump-theme">
       <QueryClientProvider client={queryClient}>
