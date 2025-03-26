@@ -7,7 +7,10 @@ import {
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuGroup,
+  DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
 import { 
   AlignJustify, 
@@ -18,7 +21,8 @@ import {
   Trophy, 
   Users, 
   Gift, 
-  LayoutDashboard 
+  LayoutDashboard,
+  Shield
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -37,7 +41,7 @@ export const Navbar = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, isAdmin } = useAuth();
   const { user } = useProfile();
   
   const navLinks = [
@@ -82,6 +86,20 @@ export const Navbar = ({
               </Button>
             </Link>
           ))}
+          
+          {/* Admin button, only visible to admin users */}
+          {isAdmin && (
+            <Link to="/admin">
+              <Button 
+                variant={location.pathname.startsWith('/admin') ? "default" : "ghost"} 
+                size="sm"
+                className="transition-all duration-300"
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Admin
+              </Button>
+            </Link>
+          )}
         </nav>
 
         <div className="flex items-center">
@@ -116,6 +134,30 @@ export const Navbar = ({
                   <Settings className="w-4 h-4 mr-2" />
                   <span>Settings</span>
                 </DropdownMenuItem>
+                
+                {/* Admin section, only visible to admin users */}
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Admin</DropdownMenuLabel>
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/admin')}>
+                        <LayoutDashboard className="w-4 h-4 mr-2" />
+                        <span>Dashboard</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/admin/users')}>
+                        <Users className="w-4 h-4 mr-2" />
+                        <span>Manage Users</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/admin/tasks')}>
+                        <Music2 className="w-4 h-4 mr-2" />
+                        <span>Manage Tasks</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </>
+                )}
+                
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
                   <LogOut className="w-4 h-4 mr-2" />
                   <span>Logout</span>
@@ -169,6 +211,51 @@ export const Navbar = ({
                 </Button>
               </Link>
             ))}
+            
+            {/* Admin links in mobile menu */}
+            {isAdmin && (
+              <>
+                <div className="pt-2 pb-1">
+                  <p className="px-2 text-xs font-medium text-muted-foreground">Admin Panel</p>
+                </div>
+                <Link 
+                  to="/admin"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Button 
+                    variant={location.pathname === "/admin" ? "default" : "ghost"} 
+                    className="w-full justify-start"
+                  >
+                    <LayoutDashboard className="w-4 h-4 mr-2" />
+                    Admin Dashboard
+                  </Button>
+                </Link>
+                <Link 
+                  to="/admin/users"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Button 
+                    variant={location.pathname === "/admin/users" ? "default" : "ghost"} 
+                    className="w-full justify-start"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Manage Users
+                  </Button>
+                </Link>
+                <Link 
+                  to="/admin/tasks"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Button 
+                    variant={location.pathname === "/admin/tasks" ? "default" : "ghost"} 
+                    className="w-full justify-start"
+                  >
+                    <Music2 className="w-4 h-4 mr-2" />
+                    Manage Tasks
+                  </Button>
+                </Link>
+              </>
+            )}
           </nav>
         </motion.div>
       )}

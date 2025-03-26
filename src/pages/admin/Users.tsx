@@ -1,61 +1,125 @@
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { fetchLeaderboard } from "@/lib/api";
-import { 
-  CheckCircle2, 
-  CircleUser, 
-  Pencil, 
-  Shield, 
-  Star, 
-  UserPlus 
-} from "lucide-react";
-import { AnimatedTransition } from "@/components/ui/AnimatedTransition";
-import AdminLayout from "@/components/admin/AdminLayout";
-import { Button } from "@/components/ui/button";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { UserProfile } from "@/types";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { UserCheck, UserX, Shield, Users } from 'lucide-react';
+import AdminLayout from '@/components/admin/AdminLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { toast } from '@/lib/toast';
+import { fetchLeaderboard, updateUserRole } from '@/lib/api';
+import { UserProfile } from '@/types';
 
-const UsersAdmin = () => {
-  const [searchQuery, setSearchQuery] = useState("");
+const UserRow = ({ user, onRoleChange }: { user: UserProfile, onRoleChange: (userId: string, role: string) => void }) => {
+  return (
+    <TableRow>
+      <TableCell>
+        <div className="flex items-center space-x-3">
+          <Avatar>
+            <AvatarImage src={user.avatar_url || ''} alt={user.username || 'User'} />
+            <AvatarFallback>{user.initials}</AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium">{user.full_name || user.username || 'Anonymous'}</div>
+            <div className="text-sm text-muted-foreground">{user.id.substring(0, 8)}...</div>
+          </div>
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant={user.role === 'admin' ? 'default' : 'outline'}>
+          {user.role || 'user'}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <Badge variant={user.tier === 'Premium' ? 'default' : 'outline'}>
+          {user.tier}
+        </Badge>
+      </TableCell>
+      <TableCell>{user.points.toLocaleString()}</TableCell>
+      <TableCell className="text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm">
+              Actions
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onRoleChange(user.id, user.role === 'admin' ? 'user' : 'admin')}>
+              {user.role === 'admin' ? (
+                <>
+                  <UserX className="mr-2 h-4 w-4" />
+                  <span>Remove Admin</span>
+                </>
+              ) : (
+                <>
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Make Admin</span>
+                </>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <UserCheck className="mr-2 h-4 w-4" />
+              <span>View Profile</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+};
+
+const UsersManagement = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const queryClient = useQueryClient();
   
-  const { data: users, isLoading } = useQuery({
-    queryKey: ["admin-users"],
-    queryFn: () => fetchLeaderboard(100), // Get a larger list of users for admin
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: () => fetchLeaderboard(100), // Fetch up to 100 users
   });
   
-  const filteredUsers = users?.filter(user => 
-    user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const makeAdmin = async (userId: string) => {
-    // We'll implement this in the API file later
-    console.log("Make admin:", userId);
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, role }: { userId: string, role: string }) => 
+      updateUserRole(userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast.success('User role updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update user role');
+      console.error(error);
+    }
+  });
+  
+  const handleRoleChange = (userId: string, role: string) => {
+    updateRoleMutation.mutate({ userId, role });
   };
-
+  
+  const filteredUsers = users.filter((user: UserProfile) => {
+    const searchTerms = searchQuery.toLowerCase();
+    return (
+      (user.username?.toLowerCase().includes(searchTerms) || false) ||
+      (user.full_name?.toLowerCase().includes(searchTerms) || false) ||
+      user.id.toLowerCase().includes(searchTerms)
+    );
+  });
+  
   return (
-    <AdminLayout>
-      <AnimatedTransition>
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold tracking-tight">Users Management</h2>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Add User
-            </Button>
+    <AdminLayout title="Users Management" description="Manage user accounts and permissions">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <div>
+            <CardTitle className="text-2xl font-bold">Users</CardTitle>
+            <CardDescription>Manage user accounts and permissions</CardDescription>
           </div>
-          
-          <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
             <Input
               placeholder="Search users..."
               value={searchQuery}
@@ -69,92 +133,39 @@ const UsersAdmin = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>User</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Points</TableHead>
-                  <TableHead>Tier</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Tier</TableHead>
+                  <TableHead>Points</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
-                      Loading users...
+                    <TableCell colSpan={5}>
+                      <div className="flex justify-center py-4">
+                        <div className="w-6 h-6 border-2 border-sound-medium border-t-sound-light rounded-full animate-spin"></div>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : filteredUsers?.length === 0 ? (
+                ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
-                      No users found.
+                    <TableCell colSpan={5}>
+                      <p className="text-center py-4 text-muted-foreground">No users found</p>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers?.map((user: UserProfile) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {user.avatar_url ? (
-                            <img 
-                              src={user.avatar_url} 
-                              alt={user.username || "User"} 
-                              className="h-8 w-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                              <CircleUser className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium">{user.username || "Anonymous"}</div>
-                            <div className="text-sm text-muted-foreground">{user.full_name}</div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.status === "Influencer" ? "default" : "outline"}>
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{user.points}</TableCell>
-                      <TableCell>
-                        <Badge variant={user.tier === "Premium" ? "default" : "outline"}>
-                          {user.tier}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.role === "admin" ? (
-                          <Badge className="bg-red-500">Admin</Badge>
-                        ) : (
-                          <Badge variant="outline">User</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          {user.role !== "admin" && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => makeAdmin(user.id)}
-                            >
-                              <Shield className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                  filteredUsers.map((user: UserProfile) => (
+                    <UserRow key={user.id} user={user} onRoleChange={handleRoleChange} />
                   ))
                 )}
               </TableBody>
             </Table>
           </div>
-        </div>
-      </AnimatedTransition>
+        </CardContent>
+      </Card>
     </AdminLayout>
   );
 };
 
-export default UsersAdmin;
+export default UsersManagement;

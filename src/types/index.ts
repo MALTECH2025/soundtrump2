@@ -1,4 +1,3 @@
-
 import { User } from '@supabase/supabase-js';
 
 export interface UserProfile {
@@ -10,7 +9,7 @@ export interface UserProfile {
   points: number;
   tier: "Free" | "Premium";
   status: "Normal" | "Influencer";
-  role?: "user" | "admin";
+  role: "user" | "admin";
   created_at?: string;
   updated_at?: string;
 }

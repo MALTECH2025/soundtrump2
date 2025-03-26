@@ -1,128 +1,156 @@
 
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Users, ListChecks, Gift, Coins } from 'lucide-react';
+import AdminLayout from '@/components/admin/AdminLayout';
+import AdminStats from '@/components/admin/AdminStats';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getSystemStats } from '@/lib/api';
 import { 
-  Users, Database, Award, CheckCircle, 
-  BarChart, Settings 
-} from "lucide-react";
-import { toast } from "@/lib/toast";
-import { fetchLeaderboard } from "@/lib/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AnimatedTransition } from "@/components/ui/AnimatedTransition";
-import AdminLayout from "@/components/admin/AdminLayout";
-import AdminStats from "@/components/admin/AdminStats";
+  LineChart, 
+  Line, 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState('overview');
   
-  const { data: leaderboardData, isLoading: isLeaderboardLoading } = useQuery({
-    queryKey: ["leaderboard"],
-    queryFn: () => fetchLeaderboard(10),
+  const { data: stats, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['admin', 'stats'],
+    queryFn: getSystemStats,
+    refetchInterval: 60000 // Refresh every minute
   });
-
-  const totalUsers = leaderboardData?.length || 0;
-  const totalPoints = leaderboardData?.reduce((sum, user) => sum + user.points, 0) || 0;
-  const premiumUsers = leaderboardData?.filter(user => user.tier === "Premium").length || 0;
-  const influencers = leaderboardData?.filter(user => user.status === "Influencer").length || 0;
-
+  
+  const statsItems = [
+    {
+      title: 'Total Users',
+      value: stats?.totalUsers || 0,
+      icon: Users
+    },
+    {
+      title: 'Active Tasks',
+      value: stats?.totalTasks || 0,
+      icon: ListChecks
+    },
+    {
+      title: 'Available Rewards',
+      value: stats?.totalRewards || 0,
+      icon: Gift
+    },
+    {
+      title: 'Total Points',
+      value: stats?.totalPoints?.toLocaleString() || 0,
+      description: 'Points across all users',
+      icon: Coins
+    }
+  ];
+  
+  // Mock data for charts
+  const userActivityData = [
+    { name: 'Mon', tasks: 12, rewards: 4 },
+    { name: 'Tue', tasks: 19, rewards: 6 },
+    { name: 'Wed', tasks: 15, rewards: 5 },
+    { name: 'Thu', tasks: 22, rewards: 7 },
+    { name: 'Fri', tasks: 30, rewards: 12 },
+    { name: 'Sat', tasks: 18, rewards: 8 },
+    { name: 'Sun', tasks: 10, rewards: 3 }
+  ];
+  
+  const userGrowthData = [
+    { month: 'Jan', users: 30 },
+    { month: 'Feb', users: 58 },
+    { month: 'Mar', users: 85 },
+    { month: 'Apr', users: 120 },
+    { month: 'May', users: 150 },
+    { month: 'Jun', users: 210 }
+  ];
+  
   return (
-    <AdminLayout>
-      <AnimatedTransition>
-        <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-          </div>
+    <AdminLayout title="Dashboard" description="Admin system dashboard with key metrics">
+      <div className="space-y-6">
+        <AdminStats stats={statsItems} isLoading={isLoadingStats} />
+        
+        <Tabs defaultValue="overview" className="space-y-4" onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="activity">User Activity</TabsTrigger>
+            <TabsTrigger value="growth">User Growth</TabsTrigger>
+          </TabsList>
           
-          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="overview" className="space-y-4">
-              <AdminStats 
-                stats={[
-                  { title: "Total Users", value: totalUsers, icon: Users },
-                  { title: "Total Points", value: totalPoints, icon: Award },
-                  { title: "Premium Users", value: premiumUsers, icon: CheckCircle },
-                  { title: "Influencers", value: influencers, icon: BarChart }
-                ]}
-                isLoading={isLeaderboardLoading}
-              />
-              
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
-                    <Database className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">
-                      View the latest user activity
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Task Completions</CardTitle>
-                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">
-                      View task completion statistics
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">System Settings</CardTitle>
-                    <Settings className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">
-                      Configure system settings
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="analytics" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Analytics</CardTitle>
-                  <CardDescription>
-                    View user growth and engagement metrics
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <div className="h-[200px] flex items-center justify-center">
-                    <p className="text-muted-foreground">Analytics charts will appear here</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="settings" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Admin Settings</CardTitle>
-                  <CardDescription>
-                    Manage your admin preferences
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-muted-foreground">Settings controls will appear here</p>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </AnimatedTransition>
+          <TabsContent value="overview" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Platform Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  Welcome to the admin dashboard. Here you can monitor the platform's 
+                  performance and manage users, tasks, and rewards.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="activity" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Activity (Last 7 Days)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={userActivityData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="tasks" name="Tasks Completed" fill="#4f46e5" />
+                      <Bar dataKey="rewards" name="Rewards Redeemed" fill="#06b6d4" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="growth" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Growth</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={userGrowthData}
+                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="users" name="Total Users" stroke="#4f46e5" activeDot={{ r: 8 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </AdminLayout>
   );
 };

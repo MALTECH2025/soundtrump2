@@ -1,5 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
+import { Task, UserProfile } from "@/types";
 
 // Define RPC function response types
 interface RPCResponse {
@@ -216,7 +218,7 @@ export const fetchLeaderboard = async (limit = 10) => {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, username, full_name, avatar_url, initials, points, tier, status")
+      .select("id, username, full_name, avatar_url, initials, points, tier, status, role")
       .order("points", { ascending: false })
       .limit(limit);
 
@@ -296,7 +298,7 @@ export const getUserConnectedServices = async (userId: string) => {
 };
 
 // Admin API functions
-export const updateUserRole = async (userId: string, role: string) => {
+export const updateUserRole = async (userId: string, role: "user" | "admin") => {
   try {
     const { data, error } = await supabase
       .from("profiles")
@@ -316,7 +318,17 @@ export const updateUserRole = async (userId: string, role: string) => {
   }
 };
 
-export const createTask = async (taskData: Partial<any>) => {
+export const createTask = async (taskData: {
+  title: string;
+  description: string;
+  points: number;
+  difficulty: "Easy" | "Medium" | "Hard";
+  verification_type: "Automatic" | "Manual";
+  category_id?: string;
+  estimated_time?: string;
+  instructions?: string;
+  active?: boolean;
+}) => {
   try {
     const { data, error } = await supabase
       .from("tasks")
@@ -335,7 +347,7 @@ export const createTask = async (taskData: Partial<any>) => {
   }
 };
 
-export const updateTask = async (taskId: string, taskData: Partial<any>) => {
+export const updateTask = async (taskId: string, taskData: Partial<Task>) => {
   try {
     const { data, error } = await supabase
       .from("tasks")
@@ -373,7 +385,14 @@ export const deleteTask = async (taskId: string) => {
   }
 };
 
-export const createReward = async (rewardData: Partial<any>) => {
+export const createReward = async (rewardData: {
+  name: string;
+  description: string;
+  points_cost: number;
+  image_url?: string;
+  quantity?: number;
+  active?: boolean;
+}) => {
   try {
     const { data, error } = await supabase
       .from("rewards")

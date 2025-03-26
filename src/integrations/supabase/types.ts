@@ -61,6 +61,7 @@ export type Database = {
           id: string
           initials: string | null
           points: number
+          role: string | null
           status: string
           tier: string
           updated_at: string
@@ -73,6 +74,7 @@ export type Database = {
           id: string
           initials?: string | null
           points?: number
+          role?: string | null
           status?: string
           tier?: string
           updated_at?: string
@@ -85,6 +87,7 @@ export type Database = {
           id?: string
           initials?: string | null
           points?: number
+          role?: string | null
           status?: string
           tier?: string
           updated_at?: string
