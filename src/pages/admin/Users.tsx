@@ -14,7 +14,7 @@ import { toast } from '@/lib/toast';
 import { fetchLeaderboard, updateUserRole } from '@/lib/api';
 import { UserProfile } from '@/types';
 
-const UserRow = ({ user, onRoleChange }: { user: UserProfile, onRoleChange: (userId: string, role: string) => void }) => {
+const UserRow = ({ user, onRoleChange }: { user: UserProfile, onRoleChange: (userId: string, role: "user" | "admin") => void }) => {
   return (
     <TableRow>
       <TableCell>
@@ -83,7 +83,7 @@ const UsersManagement = () => {
   });
   
   const updateRoleMutation = useMutation({
-    mutationFn: ({ userId, role }: { userId: string, role: string }) => 
+    mutationFn: ({ userId, role }: { userId: string, role: "user" | "admin" }) => 
       updateUserRole(userId, role),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
@@ -95,11 +95,11 @@ const UsersManagement = () => {
     }
   });
   
-  const handleRoleChange = (userId: string, role: string) => {
+  const handleRoleChange = (userId: string, role: "user" | "admin") => {
     updateRoleMutation.mutate({ userId, role });
   };
   
-  const filteredUsers = users.filter((user: UserProfile) => {
+  const filteredUsers = (users as UserProfile[]).filter((user: UserProfile) => {
     const searchTerms = searchQuery.toLowerCase();
     return (
       (user.username?.toLowerCase().includes(searchTerms) || false) ||

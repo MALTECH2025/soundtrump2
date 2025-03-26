@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode, FC } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
@@ -125,18 +126,20 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         } else {
           toast.error(error.message || "Login failed. Please try again.");
         }
-        throw error;
+        return { success: false, error: error.message };
       }
       
       if (data.user) {
         const profile = await fetchUserProfile(data.user.id);
         setProfile(profile);
         toast.success("Logged in successfully!");
+        return { success: true };
       }
       
+      return { success: false, error: "Login failed" };
     } catch (error: any) {
       console.error("Login error:", error);
-      throw error;
+      return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
     }
@@ -146,19 +149,13 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
       });
       
       if (error) {
         toast.error(error.message || "Login failed. Please try again.");
         throw error;
-      }
-      
-      if (data.user) {
-        const profile = await fetchUserProfile(data.user.id);
-        setProfile(profile);
-        toast.success("Logged in successfully!");
       }
       
     } catch (error: any) {
@@ -193,7 +190,9 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         },
       });
       
-      if (error) throw error;
+      if (error) {
+        return { success: false, error: error.message };
+      }
       
       if (data.user) {
         if (data.session) {
@@ -203,15 +202,18 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
           
           setUser(data.user);
           setSession(data.session);
+          return { success: true };
         } else {
           toast.success("Account created successfully! Please check your email for verification.");
+          return { success: true };
         }
       }
       
+      return { success: false, error: "Registration failed" };
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "Signup failed. Please try again.");
-      throw error;
+      return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
     }
@@ -221,19 +223,20 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
       
       if (error) {
         toast.error(error.message || "Password reset failed. Please try again.");
-        throw error;
+        return { success: false, error: error.message };
       }
       
       toast.success("Password reset email sent successfully!");
+      return { success: true };
       
     } catch (error: any) {
       console.error("Reset password error:", error);
       toast.error(error.message || "Password reset failed. Please try again.");
-      throw error;
+      return { success: false, error: error.message };
     } finally {
       setIsLoading(false);
     }

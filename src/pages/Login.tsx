@@ -1,188 +1,187 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { toast } from "@/lib/toast";
-import { useAuth } from "@/context/AuthContext";
-import { AnimatedTransition } from "@/components/ui/AnimatedTransition";
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import { Music2, AtSign, Lock, User } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Music2, ArrowRight, Mail, Lock, User, UserPlus, LogIn } from 'lucide-react';
+import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from '@/lib/toast';
 
 const Login = () => {
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const { login, signup, isAuthenticated, session } = useAuth();
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, register, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   
-  // Get the return URL from location state or default to dashboard
-  const from = (location.state as { from?: string })?.from || "/dashboard";
-  
-  // If user is already authenticated, redirect to dashboard
   useEffect(() => {
-    if (isAuthenticated && session) {
-      navigate("/dashboard", { replace: true });
+    // Redirect to dashboard if already authenticated
+    if (isAuthenticated && !isLoading) {
+      navigate('/dashboard');
     }
-  }, [isAuthenticated, session, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!loginEmail || !loginPassword) {
-      toast.error("Please enter both email and password");
+    if (!email || !password) {
+      toast.error('Please fill in all fields');
       return;
     }
     
+    setIsSubmitting(true);
+    
     try {
-      setIsLoading(true);
-      await login(loginEmail, loginPassword);
-      navigate("/dashboard", { replace: true });
+      const result = await login(email, password);
+      if (result.success) {
+        toast.success('Logged in successfully!');
+        navigate('/dashboard');
+      }
     } catch (error) {
-      console.error("Login submission error:", error);
+      console.error('Login error:', error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
   
-  const handleSignup = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!signupEmail || !signupPassword || !confirmPassword) {
-      toast.error("Please fill in all required fields");
+    if (!email || !password) {
+      toast.error('Please fill in all required fields');
       return;
     }
     
-    if (signupPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-    
-    if (signupPassword.length < 6) {
-      toast.error("Password must be at least 6 characters long");
-      return;
-    }
+    setIsSubmitting(true);
     
     try {
-      setIsLoading(true);
-      await signup(signupEmail, signupPassword, username);
-      if (isAuthenticated && session) {
-        navigate("/dashboard", { replace: true });
+      const result = await register(email, password, { username });
+      if (result.success) {
+        toast.success('Account created! Please check your email to verify your account.');
+        setActiveTab('login');
+        setUsername('');
+        setPassword('');
       }
     } catch (error) {
-      console.error("Signup submission error:", error);
+      console.error('Register error:', error);
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
+  
+  const handleLoginWithGoogle = async () => {
+    // This functionality would be added later
+    toast.info('Google login will be available soon!');
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-sound-medium border-t-sound-light rounded-full animate-spin"></div>
+      </div>
+    );
+  }
   
   return (
     <AnimatedTransition>
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        
-        <main className="flex-grow pt-24 pb-12 flex items-center justify-center">
-          <div className="w-full max-w-md px-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="bg-card border border-border rounded-lg shadow-sm overflow-hidden"
-            >
-              <div className="p-6 text-center relative bg-gradient-to-r from-sound-medium to-sound-dark">
-                <div className="inline-flex items-center mb-4">
-                  <Music2 className="w-8 h-8 text-white mr-2" />
-                  <span className="text-xl font-display font-bold text-white">
-                    SoundTrump
-                  </span>
-                </div>
-                <h2 className="text-xl font-bold text-white mb-1">
-                  Welcome to SoundTrump
-                </h2>
-                <p className="text-white/80 text-sm">
-                  Sign in or create an account to start earning rewards
-                </p>
+      <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-muted/50">
+        <div className="flex-1 flex flex-col justify-center items-center px-4 py-12">
+          <Link to="/" className="flex items-center mb-8">
+            <Music2 className="w-10 h-10 text-sound-light mr-2" />
+            <span className="text-2xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-sound-light to-sound-accent">
+              SoundTrump
+            </span>
+          </Link>
+          
+          <Card className="w-full max-w-md shadow-lg">
+            <CardHeader className="space-y-1 text-center">
+              <CardTitle className="text-2xl font-bold">
+                {activeTab === 'login' ? 'Welcome back' : 'Create an account'}
+              </CardTitle>
+              <CardDescription>
+                {activeTab === 'login' 
+                  ? 'Enter your credentials to sign in to your account' 
+                  : 'Fill in the form below to create your account'}
+              </CardDescription>
+            </CardHeader>
+            
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'register')}>
+              <div className="px-6">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="login">Login</TabsTrigger>
+                  <TabsTrigger value="register">Register</TabsTrigger>
+                </TabsList>
               </div>
               
-              <Tabs defaultValue="login" className="w-full">
-                <div className="px-6 pt-6">
-                  <TabsList className="w-full">
-                    <TabsTrigger value="login" className="w-1/2">Log In</TabsTrigger>
-                    <TabsTrigger value="signup" className="w-1/2">Sign Up</TabsTrigger>
-                  </TabsList>
-                </div>
-                
-                <TabsContent value="login" className="p-6 pt-4">
+              <CardContent className="p-6">
+                <TabsContent value="login" className="mt-0">
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-email">Email</Label>
+                      <Label htmlFor="email">Email</Label>
                       <div className="relative">
-                        <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          id="login-email"
-                          type="email"
-                          placeholder="example@email.com"
-                          value={loginEmail}
-                          onChange={(e) => setLoginEmail(e.target.value)}
+                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                          id="email" 
+                          type="email" 
+                          placeholder="your@email.com" 
                           className="pl-10"
-                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)} 
                         />
                       </div>
                     </div>
                     
                     <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <Label htmlFor="login-password">Password</Label>
-                        <Link to="/forgot-password" className="text-xs text-sound-light hover:underline">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="password">Password</Label>
+                        <Button variant="link" className="px-0 h-auto text-xs">
                           Forgot password?
-                        </Link>
+                        </Button>
                       </div>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          id="login-password"
-                          type="password"
-                          value={loginPassword}
-                          onChange={(e) => setLoginPassword(e.target.value)}
+                        <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                          id="password" 
+                          type="password" 
+                          placeholder="••••••••" 
                           className="pl-10"
-                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)} 
                         />
                       </div>
                     </div>
                     
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Logging in..." : "Log in"}
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      ) : (
+                        <LogIn className="w-4 h-4 mr-2" />
+                      )}
+                      Sign In
                     </Button>
                   </form>
                 </TabsContent>
                 
-                <TabsContent value="signup" className="p-6 pt-4">
-                  <form onSubmit={handleSignup} className="space-y-4">
+                <TabsContent value="register" className="mt-0">
+                  <form onSubmit={handleRegister} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
+                      <Label htmlFor="register-email">Email</Label>
                       <div className="relative">
-                        <AtSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="example@email.com"
-                          value={signupEmail}
-                          onChange={(e) => setSignupEmail(e.target.value)}
+                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                          id="register-email" 
+                          type="email" 
+                          placeholder="your@email.com" 
                           className="pl-10"
-                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)} 
                         />
                       </div>
                     </div>
@@ -190,74 +189,84 @@ const Login = () => {
                     <div className="space-y-2">
                       <Label htmlFor="username">Username (optional)</Label>
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          id="username"
-                          type="text"
-                          placeholder="yourname"
+                        <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                          id="username" 
+                          type="text" 
+                          placeholder="soundfan123" 
+                          className="pl-10"
                           value={username}
-                          onChange={(e) => setUsername(e.target.value)}
-                          className="pl-10"
+                          onChange={(e) => setUsername(e.target.value)} 
                         />
                       </div>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
+                      <Label htmlFor="register-password">Password</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          id="signup-password"
-                          type="password"
-                          value={signupPassword}
-                          onChange={(e) => setSignupPassword(e.target.value)}
+                        <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                          id="register-password" 
+                          type="password" 
+                          placeholder="••••••••" 
                           className="pl-10"
-                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)} 
                         />
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Confirm Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          id="confirm-password"
-                          type="password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="pl-10"
-                          required
-                        />
-                      </div>
-                    </div>
-                    
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Creating account..." : "Create account"}
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      ) : (
+                        <UserPlus className="w-4 h-4 mr-2" />
+                      )}
+                      Create Account
                     </Button>
-                    
-                    <p className="text-xs text-center text-muted-foreground">
-                      By creating an account, you agree to our{" "}
-                      <Link to="/terms-of-service" className="text-sound-light hover:underline">
-                        Terms of Service
-                      </Link>{" "}
-                      and{" "}
-                      <Link to="/privacy-policy" className="text-sound-light hover:underline">
-                        Privacy Policy
-                      </Link>
-                    </p>
                   </form>
                 </TabsContent>
-              </Tabs>
-            </motion.div>
-          </div>
-        </main>
-        
-        <Footer />
+                
+                <div className="mt-4 relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={handleLoginWithGoogle}
+                    type="button"
+                  >
+                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                      <path
+                        fill="currentColor"
+                        d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
+                      />
+                    </svg>
+                    Google
+                  </Button>
+                </div>
+              </CardContent>
+            </Tabs>
+            
+            <CardFooter className="flex justify-center p-6 pt-0">
+              <Button variant="link" asChild>
+                <Link to="/" className="flex items-center text-sm">
+                  Back to home
+                  <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     </AnimatedTransition>
   );

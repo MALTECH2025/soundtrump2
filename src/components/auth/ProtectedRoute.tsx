@@ -1,46 +1,28 @@
 
-import { ReactNode, useEffect, useState } from "react";
-import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { ReactNode, useEffect } from "react";
+import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/lib/toast";
 
 export interface ProtectedRouteProps {
   children?: ReactNode;
+  requireAdmin?: boolean;
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, session, user } = useAuth();
-  const location = useLocation();
+const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
+  const { isAuthenticated, isLoading, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
-  // Effect to redirect to dashboard when authenticated
   useEffect(() => {
-    if (isAuthenticated && session && location.pathname === "/login") {
-      navigate("/dashboard", { replace: true });
+    // If user is trying to access admin page but is not an admin
+    if (requireAdmin && isAuthenticated && !isLoading && !isAdmin) {
+      toast.error("You don't have permission to access this page");
+      navigate("/dashboard");
     }
-  }, [isAuthenticated, session, location, navigate]);
+  }, [isAuthenticated, isLoading, isAdmin, requireAdmin, navigate]);
 
-  // Set a timer to prevent infinite loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // If still loading after 3 seconds, assume there's an issue and proceed
-      if (isLoading) {
-        console.log("Auth check timeout - proceeding with available state");
-        setHasCheckedAuth(true);
-      }
-    }, 3000);
-
-    // If loading completes normally, clear the timer
-    if (!isLoading) {
-      clearTimeout(timer);
-      setHasCheckedAuth(true);
-    }
-
-    return () => clearTimeout(timer);
-  }, [isLoading]);
-
-  // Show loading state while auth state is being determined
-  if (isLoading && !hasCheckedAuth) {
+  // Show loading while checking auth status
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-sound-medium border-t-sound-light rounded-full animate-spin"></div>
@@ -48,15 +30,17 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // Log authentication state for debugging
-  console.log("Auth state:", { isAuthenticated, isLoading, hasSession: !!session, hasUser: !!user });
-
-  // If not authenticated, redirect to login with return path
-  if (!isAuthenticated && !isLoading) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
-  // If authenticated, render the protected component or outlet
+  // If trying to access admin page but not admin
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // If authenticated and meets role requirements, render the protected component
   return children ? <>{children}</> : <Outlet />;
 };
 
