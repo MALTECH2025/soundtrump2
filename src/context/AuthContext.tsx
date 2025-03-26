@@ -1,287 +1,145 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode, FC } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Session, User } from "@supabase/supabase-js";
-import { toast } from "@/lib/toast";
-import { UserProfile, ProfileDisplayData } from "@/types";
-import { useNavigate } from "react-router-dom";
+import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
+import { Session, User, useSupabaseClient } from '@supabase/supabase-js';
+import { Database } from '@/integrations/supabase/types';
+import { UserProfile } from '@/types';
+import { toast } from '@/lib/toast';
 
 interface AuthContextType {
-  user: User | null;
-  profile: UserProfile | null;
-  session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string) => Promise<{ 
-    success: boolean; 
-    error?: string | null;
-  }>;
-  loginWithGoogle: () => Promise<void>;
-  logout: () => Promise<void>;
-  register: (email: string, password: string, userData?: Partial<UserProfile>) => Promise<{
-    success: boolean;
-    error?: string | null;
-  }>;
-  resetPassword: (email: string) => Promise<{
-    success: boolean;
-    error?: string | null;
-  }>;
+  user: User | null;
+  profile: UserProfile | null;
+  signOut: () => Promise<void>;
+  updateUserProfile: (profile: Partial<UserProfile>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
-  user: null,
-  profile: null,
-  session: null,
   isAuthenticated: false,
   isLoading: true,
   isAdmin: false,
-  login: async () => ({ success: false }),
-  loginWithGoogle: async () => {},
-  logout: async () => {},
-  register: async () => ({ success: false }),
-  resetPassword: async () => ({ success: false }),
+  user: null,
+  profile: null,
+  signOut: async () => {},
+  updateUserProfile: async () => {}
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<Session | null>(null);
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const navigate = useNavigate();
-
+  const supabase = useSupabaseClient<Database>();
+  
   useEffect(() => {
-    const getProfile = async (userId: string) => {
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .single();
+    const getSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-        if (error) {
-          throw error;
-        }
-
-        if (data) {
-          setProfile(data as UserProfile);
-          setIsAdmin(data.role === 'admin');
-        }
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
+      setUser(session?.user ?? null);
+      setIsAuthenticated(!!session?.user);
+      
+      if (session?.user) {
+        await fetchProfile(session.user.id);
       }
+      setIsLoading(false);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+    getSession();
 
-        if (session?.user) {
-          await getProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setIsAdmin(false);
-        }
-
-        setIsLoading(false);
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
-
+      setIsAuthenticated(!!session?.user);
+      
       if (session?.user) {
-        getProfile(session.user.id);
+        await fetchProfile(session.user.id);
       } else {
-        setIsLoading(false);
+        setProfile(null);
       }
     });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
-
-  const login = async (email: string, password: string) => {
+  
+  const fetchProfile = async (userId: string) => {
     try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
       
       if (error) {
-        if (error.message === "Email not confirmed") {
-          await supabase.auth.resend({
-            type: 'signup',
-            email: email,
-          });
-          toast.error("Email not confirmed. We've sent a new confirmation link to your email.");
-        } else {
-          toast.error(error.message || "Login failed. Please try again.");
-        }
-        return { success: false, error: error.message };
-      }
-      
-      if (data.user) {
-        const profile = await fetchUserProfile(data.user.id);
-        setProfile(profile);
-        toast.success("Logged in successfully!");
-        return { success: true };
-      }
-      
-      return { success: false, error: "Login failed" };
-    } catch (error: any) {
-      console.error("Login error:", error);
-      return { success: false, error: error.message };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loginWithGoogle = async () => {
-    try {
-      setIsLoading(true);
-      
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-      });
-      
-      if (error) {
-        toast.error(error.message || "Login failed. Please try again.");
         throw error;
       }
       
+      setProfile(data);
+      setIsAdmin(data?.role === 'admin');
     } catch (error: any) {
-      console.error("Login with Google error:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
+      console.error('Error fetching user profile:', error.message);
+      toast.error('Failed to load profile. Please try again.');
     }
   };
 
-  const logout = async () => {
+  const signOut = async () => {
     try {
       await supabase.auth.signOut();
+      setUser(null);
+      setProfile(null);
+      setIsAuthenticated(false);
+      setIsAdmin(false);
+      toast.success('Signed out successfully');
     } catch (error: any) {
-      console.error("Logout error:", error);
-      toast.error(error.message || "Logout failed. Please try again.");
+      console.error('Error signing out:', error.message);
+      toast.error('Failed to sign out. Please try again.');
     }
   };
-
-  const register = async (email: string, password: string, userData?: Partial<UserProfile>) => {
-    try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username: userData?.username || email.split("@")[0],
-          },
-          emailRedirectTo: window.location.origin + "/dashboard",
-        },
-      });
-      
-      if (error) {
-        return { success: false, error: error.message };
-      }
-      
-      if (data.user) {
-        if (data.session) {
-          const profile = await fetchUserProfile(data.user.id);
-          setProfile(profile);
-          toast.success("Account created successfully! Redirecting to dashboard...");
-          
-          setUser(data.user);
-          setSession(data.session);
-          return { success: true };
-        } else {
-          toast.success("Account created successfully! Please check your email for verification.");
-          return { success: true };
-        }
-      }
-      
-      return { success: false, error: "Registration failed" };
-    } catch (error: any) {
-      console.error("Signup error:", error);
-      toast.error(error.message || "Signup failed. Please try again.");
-      return { success: false, error: error.message };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const resetPassword = async (email: string) => {
-    try {
-      setIsLoading(true);
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      
-      if (error) {
-        toast.error(error.message || "Password reset failed. Please try again.");
-        return { success: false, error: error.message };
-      }
-      
-      toast.success("Password reset email sent successfully!");
-      return { success: true };
-      
-    } catch (error: any) {
-      console.error("Reset password error:", error);
-      toast.error(error.message || "Password reset failed. Please try again.");
-      return { success: false, error: error.message };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const fetchUserProfile = async (userId: string) => {
+  
+  const updateUserProfile = async (updates: Partial<UserProfile>) => {
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
+        .from('profiles')
+        .update(updates)
+        .eq('id', user?.id)
+        .select()
         .single();
-
+      
       if (error) {
-        console.error("Error fetching user profile:", error);
-        return null;
+        throw error;
       }
-
-      const isUserAdmin = data?.role === "admin";
-      setIsAdmin(isUserAdmin);
-
-      return data as UserProfile;
-    } catch (error) {
-      console.error("Error in fetchUserProfile:", error);
-      return null;
+      
+      setProfile(data);
+      toast.success('Profile updated successfully!');
+    } catch (error: any) {
+      console.error('Error updating profile:', error.message);
+      toast.error('Failed to update profile. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const value = {
-    user,
-    profile,
-    session,
-    isAuthenticated: !!user,
+  const contextValue: AuthContextType = {
+    isAuthenticated,
     isLoading,
     isAdmin,
-    login,
-    loginWithGoogle,
-    logout,
-    register,
-    resetPassword,
+    user,
+    profile,
+    signOut,
+    updateUserProfile,
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
+
+export default AuthProvider;

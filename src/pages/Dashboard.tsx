@@ -1,11 +1,12 @@
 
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import TaskCard, { TaskProps } from '@/components/dashboard/TaskCard';
+import TaskCard from '@/components/dashboard/TaskCard';
 import RankDisplay from '@/components/dashboard/RankDisplay';
 import EarningsWidget from '@/components/dashboard/EarningsWidget';
 import ReferralWidget from '@/components/dashboard/ReferralWidget';
@@ -14,48 +15,41 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-
-const mockTasks: TaskProps[] = [
-  {
-    id: '1',
-    title: 'Stream Viral Hits playlist for 30 minutes',
-    description: 'Connect your Spotify account and stream the Viral Hits playlist for at least 30 minutes.',
-    reward: 25,
-    category: 'spotify',
-    expiresAt: new Date(Date.now() + 86400000 * 2), // 2 days from now
-    progress: 0
-  },
-  {
-    id: '2',
-    title: 'Share SoundTrump on social media',
-    description: 'Create a post about SoundTrump on any social media platform and submit the link.',
-    reward: 15,
-    category: 'social',
-    expiresAt: new Date(Date.now() + 86400000 * 3) // 3 days from now
-  },
-  {
-    id: '3',
-    title: 'Refer 3 new users',
-    description: 'Get 3 friends to sign up using your referral code.',
-    reward: 50,
-    category: 'referral',
-    expiresAt: new Date(Date.now() + 86400000 * 7) // 7 days from now
-  },
-  {
-    id: '4',
-    title: 'Complete a 15-song listening streak',
-    description: 'Listen to 15 different songs in a row without skipping.',
-    reward: 20,
-    category: 'spotify',
-    expiresAt: new Date(Date.now() + 86400000), // 1 day from now
-    progress: 60
-  }
-];
+import { fetchTasks, fetchUserTasks, fetchUserReferrals, fetchReferralCode } from '@/lib/api';
+import { UserTask, Task } from '@/types';
 
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user: authUser } = useAuth();
   const { user } = useProfile();
+  
+  // Fetch active tasks using React Query
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: fetchTasks,
+    enabled: isAuthenticated,
+  });
+  
+  // Fetch user's tasks
+  const { data: userTasks = [] } = useQuery({
+    queryKey: ['userTasks', authUser?.id],
+    queryFn: () => fetchUserTasks(authUser?.id || ''),
+    enabled: isAuthenticated && !!authUser?.id,
+  });
+  
+  // Fetch user's referrals
+  const { data: referrals = [] } = useQuery({
+    queryKey: ['referrals', authUser?.id],
+    queryFn: () => fetchUserReferrals(authUser?.id || ''),
+    enabled: isAuthenticated && !!authUser?.id,
+  });
+  
+  // Fetch user's referral code
+  const { data: referralCode } = useQuery({
+    queryKey: ['referralCode', authUser?.id],
+    queryFn: () => fetchReferralCode(authUser?.id || ''),
+    enabled: isAuthenticated && !!authUser?.id,
+  });
   
   useEffect(() => {
     // Simulate loading data
@@ -66,12 +60,78 @@ const Dashboard = () => {
     // Show welcome toast
     if (user) {
       toast.success(`Welcome back, ${user.name || 'User'}!`, {
-        description: 'You have 4 active tasks to complete.',
+        description: `You have ${tasks.filter(t => t.active).length} active tasks to complete.`,
       });
     }
     
     return () => clearTimeout(timer);
-  }, [user]);
+  }, [user, tasks]);
+  
+  // Calculate active tasks for the user
+  const activeTasks = tasks.filter(task => task.active).map(task => {
+    // Check if user has already started this task
+    const userTask = userTasks.find(ut => ut.task_id === task.id);
+    const progress = userTask ? (userTask.status === 'Completed' ? 100 : 60) : 0;
+    
+    // Convert task to TaskProps format
+    return {
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      reward: task.points,
+      category: task.category?.name?.toLowerCase() === 'spotify' ? 'spotify' : 
+               task.category?.name?.toLowerCase() === 'social' ? 'social' : 
+               task.category?.name?.toLowerCase() === 'referral' ? 'referral' : 'other',
+      expiresAt: new Date(Date.now() + 86400000 * 2), // 2 days from now as placeholder
+      progress: progress,
+      completed: userTask?.status === 'Completed'
+    };
+  });
+  
+  // Calculate user stats
+  const completedTasks = userTasks.filter(ut => ut.status === 'Completed');
+  const totalEarnings = user?.role ? user.points : 0;
+  const pendingEarnings = 0; // This would be calculated from pending tasks
+  
+  // Calculate user rank based on points
+  const rankCalculation = () => {
+    const points = totalEarnings;
+    if (points < 100) return { rank: 1, name: 'Crystal I', nextName: 'Crystal II', progress: (points / 100) * 100, pointsToNext: 100 - points };
+    else if (points < 250) return { rank: 2, name: 'Crystal II', nextName: 'Crystal III', progress: ((points - 100) / 150) * 100, pointsToNext: 250 - points };
+    else if (points < 500) return { rank: 3, name: 'Crystal III', nextName: 'Crystal IV', progress: ((points - 250) / 250) * 100, pointsToNext: 500 - points };
+    else if (points < 1000) return { rank: 4, name: 'Crystal IV', nextName: 'Crystal V', progress: ((points - 500) / 500) * 100, pointsToNext: 1000 - points };
+    else return { rank: 5, name: 'Crystal V', nextName: 'Master', progress: 100, pointsToNext: 0 };
+  };
+  
+  const userRank = rankCalculation();
+  
+  // Recent activity based on completed tasks and other actions
+  const recentActivity = completedTasks.slice(0, 4).map(task => {
+    const taskDetails = tasks.find(t => t.id === task.task_id);
+    const category = taskDetails?.category?.name || 'Task';
+    const title = taskDetails?.title || 'Completed task';
+    const time = task.completed_at ? new Date(task.completed_at) : new Date();
+    const timeAgo = Math.floor((Date.now() - time.getTime()) / (1000 * 60 * 60));
+    
+    return {
+      icon: category.toLowerCase() === 'spotify' ? <Music2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />,
+      color: category.toLowerCase() === 'spotify' ? 'bg-[#1DB954]/10 text-[#1DB954]' : 'bg-amber-500/10 text-amber-500',
+      text: `Completed ${title}`,
+      time: timeAgo <= 1 ? 'Just now' : timeAgo < 24 ? `${timeAgo} hours ago` : `${Math.floor(timeAgo / 24)} days ago`,
+      amount: task.points_earned ? `+${task.points_earned} ST Coins` : null
+    };
+  });
+  
+  // Add some default items if not enough activity
+  while (recentActivity.length < 4) {
+    recentActivity.push(
+      ...[
+        { icon: <Bell className="w-4 h-4" />, color: 'bg-amber-500/10 text-amber-500', text: 'New task available: Weekend Challenge', time: '6 hours ago', amount: null },
+        { icon: <Award className="w-4 h-4" />, color: 'bg-purple-500/10 text-purple-500', text: `Ranked up to ${userRank.name}`, time: '2 days ago', amount: null },
+        { icon: <TrendingUp className="w-4 h-4" />, color: 'bg-green-500/10 text-green-500', text: 'Earned weekly bonus rewards', time: '3 days ago', amount: '+75 ST Coins' }
+      ].slice(0, 4 - recentActivity.length)
+    );
+  }
   
   // Animation variants
   const fadeInUp = {
@@ -132,15 +192,19 @@ const Dashboard = () => {
                   className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
                 >
                   <motion.div variants={fadeInUp} className="md:col-span-2">
-                    <EarningsWidget totalEarnings={3750} pendingEarnings={150} percentageIncrease={12} />
+                    <EarningsWidget 
+                      totalEarnings={totalEarnings}
+                      pendingEarnings={pendingEarnings} 
+                      percentageIncrease={12} // Placeholder
+                    />
                   </motion.div>
                   <motion.div variants={fadeInUp}>
                     <RankDisplay
-                      currentRank={3}
-                      rankName="Crystal III"
-                      progress={65}
-                      nextRankName="Crystal IV"
-                      pointsToNextRank={350}
+                      currentRank={userRank.rank}
+                      rankName={userRank.name}
+                      progress={userRank.progress}
+                      nextRankName={userRank.nextName}
+                      pointsToNextRank={userRank.pointsToNext}
                     />
                   </motion.div>
                 </motion.div>
@@ -164,29 +228,39 @@ const Dashboard = () => {
                       
                       <TabsContent value="all" className="m-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {mockTasks.map((task) => (
-                            <TaskCard key={task.id} task={task} />
-                          ))}
+                          {activeTasks.length > 0 ? (
+                            activeTasks.map((task) => (
+                              <TaskCard key={task.id} task={task} />
+                            ))
+                          ) : (
+                            <p>No active tasks available at the moment. Check back later!</p>
+                          )}
                         </div>
                       </TabsContent>
                       
                       <TabsContent value="spotify" className="m-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {mockTasks
+                          {activeTasks
                             .filter(task => task.category === 'spotify')
                             .map((task) => (
                               <TaskCard key={task.id} task={task} />
                             ))}
+                          {activeTasks.filter(task => task.category === 'spotify').length === 0 && (
+                            <p>No Spotify tasks available at the moment. Check back later!</p>
+                          )}
                         </div>
                       </TabsContent>
                       
                       <TabsContent value="social" className="m-0">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {mockTasks
+                          {activeTasks
                             .filter(task => task.category === 'social')
                             .map((task) => (
                               <TaskCard key={task.id} task={task} />
                             ))}
+                          {activeTasks.filter(task => task.category === 'social').length === 0 && (
+                            <p>No Social tasks available at the moment. Check back later!</p>
+                          )}
                         </div>
                       </TabsContent>
                     </Tabs>
@@ -194,12 +268,7 @@ const Dashboard = () => {
                     <div className="mt-8">
                       <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
                       <div className="space-y-4">
-                        {[
-                          { icon: <Music2 className="w-4 h-4" />, color: 'bg-[#1DB954]/10 text-[#1DB954]', text: 'Completed Spotify streaming task', time: '2 hours ago', amount: '+25 ST Coins' },
-                          { icon: <Bell className="w-4 h-4" />, color: 'bg-amber-500/10 text-amber-500', text: 'New task available: Weekend Challenge', time: '6 hours ago', amount: null },
-                          { icon: <Award className="w-4 h-4" />, color: 'bg-purple-500/10 text-purple-500', text: 'Ranked up to Crystal III', time: '2 days ago', amount: null },
-                          { icon: <TrendingUp className="w-4 h-4" />, color: 'bg-green-500/10 text-green-500', text: 'Earned weekly bonus rewards', time: '3 days ago', amount: '+75 ST Coins' }
-                        ].map((activity, index) => (
+                        {recentActivity.map((activity, index) => (
                           <div 
                             key={index} 
                             className="p-3 rounded-lg border border-border flex items-center justify-between"
@@ -226,9 +295,9 @@ const Dashboard = () => {
                   
                   <div className="lg:col-span-1">
                     <ReferralWidget 
-                      totalReferrals={42}
+                      totalReferrals={referrals.length}
                       influencerThreshold={500}
-                      referralCode="SOUNDFAN2024"
+                      referralCode={referralCode || 'SOUNDFAN2024'}
                       isInfluencer={user?.role?.status === "Influencer"}
                     />
                   </div>

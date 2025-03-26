@@ -1,286 +1,320 @@
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  ListChecks, 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  CheckCircle, 
-  XCircle, 
-  FileCog 
-} from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Edit, Trash2, Plus, Filter, AlertCircle, CheckCircle } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from '@/lib/toast';
-import { fetchTasks, createTask, updateTask, deleteTask } from '@/lib/api';
+import {
+  fetchTasks,
+  createTask,
+  updateTask,
+  deleteTask
+} from '@/lib/api';
 import { Task } from '@/types';
 
-const TasksManagement = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showActiveOnly, setShowActiveOnly] = useState(true);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+const AdminTasks = () => {
+  const [showDialog, setShowDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentTask, setCurrentTask] = useState<Partial<Task>>(null);
+  const [filter, setFilter] = useState('all');
   
-  const queryClient = useQueryClient();
-  
-  const { data: tasks = [], isLoading } = useQuery({
+  const { data: tasks = [], isLoading, refetch } = useQuery({
     queryKey: ['admin', 'tasks'],
     queryFn: fetchTasks
   });
   
-  const deleteTaskMutation = useMutation({
-    mutationFn: deleteTask,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'tasks'] });
-      toast.success('Task deleted successfully');
-      setIsDeleteDialogOpen(false);
-    },
-    onError: (error) => {
-      toast.error('Failed to delete task');
-      console.error(error);
-    }
+  const filteredTasks = tasks.filter((task: any) => {
+    if (filter === 'all') return true;
+    if (filter === 'active') return task.active;
+    if (filter === 'inactive') return !task.active;
+    return true;
   });
   
-  const updateTaskMutation = useMutation({
-    mutationFn: ({ taskId, data }: { taskId: string, data: Partial<Task> }) => 
-      updateTask(taskId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'tasks'] });
-      toast.success('Task updated successfully');
-      setIsEditDialogOpen(false);
-    },
-    onError: (error) => {
-      toast.error('Failed to update task');
-      console.error(error);
-    }
-  });
-  
-  const handleToggleActiveStatus = (task: Task) => {
-    updateTaskMutation.mutate({
-      taskId: task.id,
-      data: { active: !task.active }
+  const handleAddTask = () => {
+    setIsEditing(false);
+    setCurrentTask({
+      title: '',
+      description: '',
+      points: 10,
+      difficulty: 'Easy' as 'Easy' | 'Medium' | 'Hard',
+      verification_type: 'Automatic' as 'Automatic' | 'Manual',
+      active: true
     });
+    setShowDialog(true);
   };
   
-  const handleDeleteTask = () => {
-    if (selectedTask) {
-      deleteTaskMutation.mutate(selectedTask.id);
+  const handleEditTask = (task: Task) => {
+    setIsEditing(true);
+    setCurrentTask(task);
+    setShowDialog(true);
+  };
+  
+  const handleDeleteTask = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this task?')) {
+      try {
+        await deleteTask(id);
+        refetch();
+      } catch (error) {
+        console.error('Error deleting task:', error);
+        toast.error('Failed to delete task');
+      }
     }
   };
   
-  const filteredTasks = tasks.filter((task: Task) => {
-    if (showActiveOnly && !task.active) return false;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const searchTerms = searchQuery.toLowerCase();
-    return (
-      task.title.toLowerCase().includes(searchTerms) ||
-      task.description.toLowerCase().includes(searchTerms) ||
-      (task.category?.name.toLowerCase().includes(searchTerms) || false)
-    );
-  });
+    try {
+      if (isEditing) {
+        await updateTask(currentTask.id, currentTask);
+        toast.success('Task updated successfully');
+      } else {
+        await createTask(currentTask as any);
+        toast.success('Task created successfully');
+      }
+      
+      setShowDialog(false);
+      refetch();
+    } catch (error) {
+      console.error('Error saving task:', error);
+      toast.error('Failed to save task');
+    }
+  };
   
   return (
-    <AdminLayout title="Tasks Management" description="Manage tasks and challenges">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div>
-              <CardTitle className="text-2xl font-bold">Tasks</CardTitle>
-              <CardDescription>Manage tasks and challenges</CardDescription>
-            </div>
-            <div className="mt-4 md:mt-0 flex items-center space-x-2">
-              <Button onClick={() => console.log('Create new task')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Task
-              </Button>
-            </div>
+    <AdminLayout title="Task Management" description="Manage the tasks for your users to complete">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold">Tasks</h2>
+          <p className="text-muted-foreground">Manage all tasks in the system</p>
+        </div>
+        
+        <div className="flex gap-4">
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Tasks</SelectItem>
+              <SelectItem value="active">Active Tasks</SelectItem>
+              <SelectItem value="inactive">Inactive Tasks</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Button onClick={handleAddTask}>
+            <Plus className="mr-2 h-4 w-4" /> Add Task
+          </Button>
+        </div>
+      </div>
+      
+      <div className="rounded-md border">
+        {isLoading ? (
+          <div className="p-8 text-center">Loading tasks...</div>
+        ) : filteredTasks.length > 0 ? (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Points</TableHead>
+                <TableHead>Difficulty</TableHead>
+                <TableHead>Verification</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTasks.map((task: any) => (
+                <TableRow key={task.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{task.title}</div>
+                      <div className="text-sm text-muted-foreground">{task.description.substring(0, 50)}...</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{task.points}</TableCell>
+                  <TableCell>
+                    <Badge variant={
+                      task.difficulty === 'Easy' ? 'outline' : 
+                      task.difficulty === 'Medium' ? 'secondary' : 
+                      'destructive'
+                    }>
+                      {task.difficulty}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {task.verification_type}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={task.active ? 'outline' : 'destructive'}>
+                      {task.active ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEditTask(task as Task)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDeleteTask(task.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <div className="p-8 text-center">
+            <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
+            <h3 className="mt-2 text-lg font-semibold">No tasks found</h3>
+            <p className="text-muted-foreground">
+              {filter !== 'all' ? 'Try changing the filter or ' : ''}
+              create a new task to get started.
+            </p>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row justify-between mb-4 space-y-4 md:space-y-0">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search tasks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
+        )}
+      </div>
+      
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>{isEditing ? 'Edit Task' : 'Create New Task'}</DialogTitle>
+            <DialogDescription>
+              {isEditing 
+                ? 'Update the task details below.'
+                : 'Fill in the task details to create a new task for users to complete.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">Task Title</Label>
+                <Input
+                  id="title"
+                  value={currentTask?.title || ''}
+                  onChange={(e) => setCurrentTask({ ...currentTask, title: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={currentTask?.description || ''}
+                  onChange={(e) => setCurrentTask({ ...currentTask, description: e.target.value })}
+                  required
+                />
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="points">Points</Label>
+                  <Input
+                    id="points"
+                    type="number"
+                    min="1"
+                    value={currentTask?.points || 10}
+                    onChange={(e) => setCurrentTask({ ...currentTask, points: parseInt(e.target.value) })}
+                    required
+                  />
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="difficulty">Difficulty</Label>
+                  <Select
+                    value={currentTask?.difficulty || 'Easy'}
+                    onValueChange={(value) => setCurrentTask({ 
+                      ...currentTask, 
+                      difficulty: value as 'Easy' | 'Medium' | 'Hard' 
+                    })}
+                  >
+                    <SelectTrigger id="difficulty">
+                      <SelectValue placeholder="Select difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Easy">Easy</SelectItem>
+                      <SelectItem value="Medium">Medium</SelectItem>
+                      <SelectItem value="Hard">Hard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="verification">Verification</Label>
+                  <Select
+                    value={currentTask?.verification_type || 'Automatic'}
+                    onValueChange={(value) => setCurrentTask({ 
+                      ...currentTask, 
+                      verification_type: value as 'Automatic' | 'Manual' 
+                    })}
+                  >
+                    <SelectTrigger id="verification">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Automatic">Automatic</SelectItem>
+                      <SelectItem value="Manual">Manual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="active"
+                  checked={currentTask?.active ?? true}
+                  onChange={(e) => setCurrentTask({ ...currentTask, active: e.target.checked })}
+                  className="rounded border-gray-300 focus:ring-indigo-500 h-4 w-4 text-indigo-600"
+                />
+                <Label htmlFor="active" className="text-sm">Active (available to users)</Label>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant={showActiveOnly ? "default" : "outline"} 
-                size="sm"
-                onClick={() => setShowActiveOnly(true)}
-              >
-                Active
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
+                Cancel
               </Button>
-              <Button 
-                variant={!showActiveOnly ? "default" : "outline"} 
-                size="sm"
-                onClick={() => setShowActiveOnly(false)}
-              >
-                All
+              <Button type="submit">
+                {isEditing ? 'Update Task' : 'Create Task'}
               </Button>
-            </div>
-          </div>
-          
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Task</TableHead>
-                  <TableHead>Points</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Difficulty</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      <div className="flex justify-center py-4">
-                        <div className="w-6 h-6 border-2 border-sound-medium border-t-sound-light rounded-full animate-spin"></div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredTasks.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      <p className="text-center py-4 text-muted-foreground">No tasks found</p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredTasks.map((task: Task) => (
-                    <TableRow key={task.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{task.title}</div>
-                          <div className="text-sm text-muted-foreground truncate max-w-xs">
-                            {task.description}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{task.points}</TableCell>
-                      <TableCell>
-                        {task.category ? (
-                          <Badge variant="outline">{task.category.name}</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={
-                            task.difficulty === 'Easy' 
-                              ? 'outline' 
-                              : task.difficulty === 'Medium' 
-                                ? 'default' 
-                                : 'destructive'
-                          }
-                        >
-                          {task.difficulty}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={task.active ? 'success' : 'secondary'}>
-                          {task.active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-1">
-                          <Button 
-                            size="icon" 
-                            variant="ghost"
-                            onClick={() => handleToggleActiveStatus(task)}
-                          >
-                            {task.active ? (
-                              <XCircle className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                          <Button 
-                            size="icon" 
-                            variant="ghost"
-                            onClick={() => {
-                              setSelectedTask(task);
-                              setIsEditDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                          <Button 
-                            size="icon" 
-                            variant="ghost"
-                            onClick={() => {
-                              setSelectedTask(task);
-                              setIsDeleteDialogOpen(true);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Task</DialogTitle>
-          </DialogHeader>
-          <p>
-            Are you sure you want to delete the task "{selectedTask?.title}"? This action cannot be undone.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteTask}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit Task Dialog - Just a placeholder, would need a full form */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Task</DialogTitle>
-          </DialogHeader>
-          <p>
-            Task editor would go here with fields for title, description, points, etc.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button>Save Changes</Button>
-          </DialogFooter>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </AdminLayout>
   );
 };
 
-export default TasksManagement;
+export default AdminTasks;
