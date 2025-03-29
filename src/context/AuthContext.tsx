@@ -86,8 +86,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw error;
       }
       
-      setProfile(data);
-      setIsAdmin(data?.role === 'admin');
+      if (data) {
+        // Type cast the tier and status to ensure they match the UserProfile type
+        const typedProfile: UserProfile = {
+          ...data,
+          tier: (data.tier as "Free" | "Premium"),
+          status: (data.status as "Normal" | "Influencer"),
+          role: (data.role as "user" | "admin")
+        };
+        
+        setProfile(typedProfile);
+        setIsAdmin(typedProfile.role === 'admin');
+      }
     } catch (error: any) {
       console.error('Error fetching user profile:', error.message);
       toast.error('Failed to load profile. Please try again.');
@@ -122,8 +132,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw error;
       }
       
-      setProfile(data);
-      toast.success('Profile updated successfully!');
+      if (data) {
+        // Type cast the profile data to ensure it matches the UserProfile type
+        const typedProfile: UserProfile = {
+          ...data,
+          tier: (data.tier as "Free" | "Premium"),
+          status: (data.status as "Normal" | "Influencer"),
+          role: (data.role as "user" | "admin")
+        };
+        
+        setProfile(typedProfile);
+        toast.success('Profile updated successfully!');
+      }
     } catch (error: any) {
       console.error('Error updating profile:', error.message);
       toast.error('Failed to update profile. Please try again.');
