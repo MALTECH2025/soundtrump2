@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -187,7 +186,6 @@ export const Navbar = ({
         </div>
       </div>
 
-      {/* Mobile menu */}
       {isMobileMenuOpen && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
@@ -212,7 +210,6 @@ export const Navbar = ({
               </Link>
             ))}
             
-            {/* Admin links in mobile menu */}
             {isAdmin && (
               <>
                 <div className="pt-2 pb-1">

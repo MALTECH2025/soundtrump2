@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -18,33 +17,41 @@ import { useProfile } from '@/context/ProfileContext';
 import { fetchTasks, fetchUserTasks, fetchUserReferrals, fetchReferralCode } from '@/lib/api';
 import { UserTask, Task } from '@/types';
 
+const mapCategoryToTaskType = (categoryName: string | undefined): "spotify" | "social" | "referral" | "other" => {
+  if (!categoryName) return "other";
+  
+  const lowerCaseName = categoryName.toLowerCase();
+  
+  if (lowerCaseName === "spotify") return "spotify";
+  if (lowerCaseName === "social") return "social";
+  if (lowerCaseName === "referral") return "referral";
+  
+  return "other";
+};
+
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, user: authUser } = useAuth();
   const { user } = useProfile();
   
-  // Fetch active tasks using React Query
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks'],
     queryFn: fetchTasks,
     enabled: isAuthenticated,
   });
   
-  // Fetch user's tasks
   const { data: userTasks = [] } = useQuery({
     queryKey: ['userTasks', authUser?.id],
     queryFn: () => fetchUserTasks(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
   });
   
-  // Fetch user's referrals
   const { data: referrals = [] } = useQuery({
     queryKey: ['referrals', authUser?.id],
     queryFn: () => fetchUserReferrals(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
   });
   
-  // Fetch user's referral code
   const { data: referralCode } = useQuery({
     queryKey: ['referralCode', authUser?.id],
     queryFn: () => fetchReferralCode(authUser?.id || ''),
@@ -52,12 +59,10 @@ const Dashboard = () => {
   });
   
   useEffect(() => {
-    // Simulate loading data
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1000);
     
-    // Show welcome toast
     if (user) {
       toast.success(`Welcome back, ${user.name || 'User'}!`, {
         description: `You have ${tasks.filter(t => t.active).length} active tasks to complete.`,
@@ -67,33 +72,26 @@ const Dashboard = () => {
     return () => clearTimeout(timer);
   }, [user, tasks]);
   
-  // Calculate active tasks for the user
   const activeTasks = tasks.filter(task => task.active).map(task => {
-    // Check if user has already started this task
     const userTask = userTasks.find(ut => ut.task_id === task.id);
     const progress = userTask ? (userTask.status === 'Completed' ? 100 : 60) : 0;
     
-    // Convert task to TaskProps format
     return {
       id: task.id,
       title: task.title,
       description: task.description,
       reward: task.points,
-      category: task.category?.name?.toLowerCase() === 'spotify' ? 'spotify' : 
-               task.category?.name?.toLowerCase() === 'social' ? 'social' : 
-               task.category?.name?.toLowerCase() === 'referral' ? 'referral' : 'other',
-      expiresAt: new Date(Date.now() + 86400000 * 2), // 2 days from now as placeholder
+      category: mapCategoryToTaskType(task.category?.name),
+      expiresAt: new Date(Date.now() + 86400000 * 2),
       progress: progress,
       completed: userTask?.status === 'Completed'
     };
   });
   
-  // Calculate user stats
   const completedTasks = userTasks.filter(ut => ut.status === 'Completed');
   const totalEarnings = user?.role ? user.points : 0;
-  const pendingEarnings = 0; // This would be calculated from pending tasks
+  const pendingEarnings = 0;
   
-  // Calculate user rank based on points
   const rankCalculation = () => {
     const points = totalEarnings;
     if (points < 100) return { rank: 1, name: 'Crystal I', nextName: 'Crystal II', progress: (points / 100) * 100, pointsToNext: 100 - points };
@@ -105,7 +103,6 @@ const Dashboard = () => {
   
   const userRank = rankCalculation();
   
-  // Recent activity based on completed tasks and other actions
   const recentActivity = completedTasks.slice(0, 4).map(task => {
     const taskDetails = tasks.find(t => t.id === task.task_id);
     const category = taskDetails?.category?.name || 'Task';
@@ -122,7 +119,6 @@ const Dashboard = () => {
     };
   });
   
-  // Add some default items if not enough activity
   while (recentActivity.length < 4) {
     recentActivity.push(
       ...[
@@ -133,7 +129,6 @@ const Dashboard = () => {
     );
   }
   
-  // Animation variants
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
@@ -195,7 +190,7 @@ const Dashboard = () => {
                     <EarningsWidget 
                       totalEarnings={totalEarnings}
                       pendingEarnings={pendingEarnings} 
-                      percentageIncrease={12} // Placeholder
+                      percentageIncrease={12}
                     />
                   </motion.div>
                   <motion.div variants={fadeInUp}>

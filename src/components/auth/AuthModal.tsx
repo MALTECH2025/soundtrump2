@@ -18,7 +18,7 @@ interface AuthModalProps {
 
 const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(defaultTab);
-  const { login, register: signUp } = useAuth();
+  const { login, register, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   const loginForm = useForm({
@@ -53,7 +53,7 @@ const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) =>
   const handleRegister = async (data: { email: string; password: string; username: string }) => {
     setIsLoading(true);
     try {
-      const result = await signUp(data.email, data.password, { username: data.username });
+      const result = await register(data.email, data.password, { username: data.username });
       if (result.success) {
         toast.success('Account created! Please check your email to verify your account.');
         setActiveTab('login');

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,6 @@ const Login = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Redirect to dashboard if already authenticated
     if (isAuthenticated && !isLoading) {
       navigate('/dashboard');
     }
@@ -77,7 +75,6 @@ const Login = () => {
   };
   
   const handleLoginWithGoogle = async () => {
-    // This functionality would be added later
     toast.info('Google login will be available soon!');
   };
   

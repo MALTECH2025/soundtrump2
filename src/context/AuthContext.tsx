@@ -1,8 +1,10 @@
+
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import { Session, User, useSupabaseClient } from '@supabase/supabase-js';
+import { Session, User, createClient } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 import { UserProfile } from '@/types';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -12,6 +14,9 @@ interface AuthContextType {
   profile: UserProfile | null;
   signOut: () => Promise<void>;
   updateUserProfile: (profile: Partial<UserProfile>) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  register: (email: string, password: string, metadata?: { username?: string }) => Promise<{ success: boolean; message?: string }>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,7 +26,10 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
   signOut: async () => {},
-  updateUserProfile: async () => {}
+  updateUserProfile: async () => {},
+  login: async () => ({ success: false }),
+  register: async () => ({ success: false }),
+  logout: async () => {}
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -36,7 +44,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const supabase = useSupabaseClient<Database>();
   
   useEffect(() => {
     const getSession = async () => {
@@ -125,6 +132,58 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Add login method
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      
+      if (error) {
+        console.error('Login error:', error.message);
+        toast.error(error.message);
+        return { success: false, message: error.message };
+      }
+      
+      toast.success('Logged in successfully!');
+      return { success: true };
+    } catch (error: any) {
+      console.error('Login error:', error.message);
+      toast.error('An unexpected error occurred');
+      return { success: false, message: error.message };
+    }
+  };
+  
+  // Add register method
+  const register = async (email: string, password: string, metadata?: { username?: string }) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: metadata
+        }
+      });
+      
+      if (error) {
+        console.error('Registration error:', error.message);
+        toast.error(error.message);
+        return { success: false, message: error.message };
+      }
+      
+      toast.success('Registration successful! Check your email for verification.');
+      return { success: true };
+    } catch (error: any) {
+      console.error('Registration error:', error.message);
+      toast.error('An unexpected error occurred');
+      return { success: false, message: error.message };
+    }
+  };
+  
+  // Add logout as an alias for signOut
+  const logout = signOut;
+
   const contextValue: AuthContextType = {
     isAuthenticated,
     isLoading,
@@ -133,6 +192,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     profile,
     signOut,
     updateUserProfile,
+    login,
+    register,
+    logout
   };
 
   return (
