@@ -448,6 +448,70 @@ export const deleteReward = async (rewardId: string) => {
   }
 };
 
+// Admin functions to manage users
+export const updateUserStatus = async (userId: string, status: "Normal" | "Influencer") => {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ status })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    toast.success(`User status updated to ${status}`);
+    return data;
+  } catch (error: any) {
+    console.error("Error updating user status:", error);
+    toast.error("Failed to update user status. Please try again.");
+    return null;
+  }
+};
+
+export const updateUserTier = async (userId: string, tier: "Free" | "Premium") => {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({ tier })
+      .eq("id", userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    toast.success(`User tier updated to ${tier}`);
+    return data;
+  } catch (error: any) {
+    console.error("Error updating user tier:", error);
+    toast.error("Failed to update user tier. Please try again.");
+    return null;
+  }
+};
+
+// Enable real-time for tables (Run this on app initialization)
+export const enableRealtimeForTables = async () => {
+  try {
+    // Enable realtime for tasks table
+    await supabase.rpc('enable_realtime_for_table', { table_name: 'tasks' });
+    
+    // Enable realtime for user_tasks table
+    await supabase.rpc('enable_realtime_for_table', { table_name: 'user_tasks' });
+    
+    // Enable realtime for user_rewards table
+    await supabase.rpc('enable_realtime_for_table', { table_name: 'user_rewards' });
+    
+    // Enable realtime for referred_users table
+    await supabase.rpc('enable_realtime_for_table', { table_name: 'referred_users' });
+    
+    console.log('Realtime enabled for tables');
+    return true;
+  } catch (error: any) {
+    console.error('Error enabling realtime for tables:', error);
+    return false;
+  }
+};
+
 // Additional admin functions for statistics and system settings
 export const getSystemStats = async () => {
   try {

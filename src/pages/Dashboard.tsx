@@ -16,6 +16,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
 import { fetchTasks, fetchUserTasks, fetchUserReferrals, fetchReferralCode } from '@/lib/api';
 import { UserTask, Task } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
 const mapCategoryToTaskType = (categoryName: string | undefined): "spotify" | "social" | "referral" | "other" => {
   if (!categoryName) return "other";
@@ -34,43 +35,89 @@ const Dashboard = () => {
   const { isAuthenticated, user: authUser } = useAuth();
   const { user } = useProfile();
   
-  const { data: tasks = [] } = useQuery({
+  const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks'],
     queryFn: fetchTasks,
     enabled: isAuthenticated,
   });
   
-  const { data: userTasks = [] } = useQuery({
+  const { data: userTasks = [], isLoading: userTasksLoading, refetch: refetchUserTasks } = useQuery({
     queryKey: ['userTasks', authUser?.id],
     queryFn: () => fetchUserTasks(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
   });
   
-  const { data: referrals = [] } = useQuery({
+  const { data: referrals = [], refetch: refetchReferrals } = useQuery({
     queryKey: ['referrals', authUser?.id],
     queryFn: () => fetchUserReferrals(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
   });
   
-  const { data: referralCode } = useQuery({
+  const { data: referralCode, refetch: refetchReferralCode } = useQuery({
     queryKey: ['referralCode', authUser?.id],
     queryFn: () => fetchReferralCode(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
   });
+
+  useEffect(() => {
+    if (!isAuthenticated || !authUser?.id) return;
+
+    const tasksChannel = supabase
+      .channel('public:tasks')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'tasks' }, 
+        () => {
+          refetchTasks();
+        }
+      )
+      .subscribe();
+
+    const userTasksChannel = supabase
+      .channel('public:user_tasks')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'user_tasks', filter: `user_id=eq.${authUser.id}` }, 
+        () => {
+          refetchUserTasks();
+        }
+      )
+      .subscribe();
+
+    const referralsChannel = supabase
+      .channel('public:referred_users')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'referred_users', filter: `referrer_id=eq.${authUser.id}` }, 
+        () => {
+          refetchReferrals();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tasksChannel);
+      supabase.removeChannel(userTasksChannel);
+      supabase.removeChannel(referralsChannel);
+    };
+  }, [isAuthenticated, authUser?.id, refetchTasks, refetchUserTasks, refetchReferrals]);
   
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    
-    if (user) {
+    if (tasksLoading || userTasksLoading) {
+      setIsLoading(true);
+    } else {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [tasksLoading, userTasksLoading]);
+  
+  useEffect(() => {
+    if (user && !isLoading) {
       toast.success(`Welcome back, ${user.name || 'User'}!`, {
         description: `You have ${tasks.filter(t => t.active).length} active tasks to complete.`,
       });
     }
-    
-    return () => clearTimeout(timer);
-  }, [user, tasks]);
+  }, [user, tasks, isLoading]);
   
   const activeTasks = tasks.filter(task => task.active).map(task => {
     const userTask = userTasks.find(ut => ut.task_id === task.id);

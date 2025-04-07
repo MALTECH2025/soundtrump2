@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,36 +6,8 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ProfileProvider } from '@/context/ProfileContext';
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "@/lib/toast";
+import { enableRealtimeForTables } from '@/lib/api';
 
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import AdminRoute from '@/components/auth/AdminRoute';
-import Index from '@/pages/Index';
-import Dashboard from '@/pages/Dashboard';
-import Tasks from '@/pages/Tasks';
-import Rewards from '@/pages/Rewards';
-import Referrals from '@/pages/Referrals';
-import Leaderboard from '@/pages/Leaderboard';
-import Profile from '@/pages/Profile';
-import Settings from '@/pages/Settings';
-import Login from '@/pages/Login';
-import Support from '@/pages/Support';
-import Contact from '@/pages/Contact';
-import DspTrust from '@/pages/DspTrust';
-import NotFound from '@/pages/NotFound';
-
-// Admin pages
-import AdminDashboard from '@/pages/admin/Dashboard';
-import AdminUsers from '@/pages/admin/Users';
-import AdminTasks from '@/pages/admin/Tasks';
-
-// Legal pages
-import TermsOfService from '@/pages/legal/TermsOfService';
-import PrivacyPolicy from '@/pages/legal/PrivacyPolicy';
-import CookiesPolicy from '@/pages/legal/CookiesPolicy';
-import Disclaimer from '@/pages/legal/Disclaimer';
-import WhitePaper from '@/pages/legal/WhitePaper';
-
-// Initialize QueryClient
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -49,14 +20,20 @@ const queryClient = new QueryClient({
 function App() {
   const [appReady, setAppReady] = useState(false);
 
-  // Ensure app is fully initialized before rendering
   useEffect(() => {
-    // Give a small delay to ensure all providers are initialized
-    const timer = setTimeout(() => {
-      setAppReady(true);
-    }, 500);
+    const initializeApp = async () => {
+      try {
+        await enableRealtimeForTables();
+      } catch (error) {
+        console.error('Error during app initialization:', error);
+      }
 
-    return () => clearTimeout(timer);
+      setTimeout(() => {
+        setAppReady(true);
+      }, 500);
+    };
+
+    initializeApp();
   }, []);
 
   if (!appReady) {
@@ -74,21 +51,18 @@ function App() {
           <AuthProvider>
             <ProfileProvider>
               <Routes>
-                {/* Public Routes */}
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/support" element={<Support />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/dsp-trust" element={<DspTrust />} />
                 
-                {/* Legal Routes */}
                 <Route path="/legal/terms" element={<TermsOfService />} />
                 <Route path="/legal/privacy" element={<PrivacyPolicy />} />
                 <Route path="/legal/cookies" element={<CookiesPolicy />} />
                 <Route path="/legal/disclaimer" element={<Disclaimer />} />
                 <Route path="/legal/whitepaper" element={<WhitePaper />} />
                 
-                {/* Protected Routes */}
                 <Route element={<ProtectedRoute />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/tasks" element={<Tasks />} />
@@ -99,15 +73,12 @@ function App() {
                   <Route path="/settings" element={<Settings />} />
                 </Route>
                 
-                {/* Admin Routes */}
                 <Route element={<AdminRoute />}>
                   <Route path="/admin" element={<AdminDashboard />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/tasks" element={<AdminTasks />} />
-                  {/* Add more admin routes as needed */}
                 </Route>
                 
-                {/* 404 Route */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <Toaster />
