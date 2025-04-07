@@ -1,178 +1,132 @@
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Users, ListChecks, Gift, Coins } from 'lucide-react';
-import AdminLayout from '@/components/admin/AdminLayout';
-import AdminStats from '@/components/admin/AdminStats';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getSystemStats } from '@/lib/api';
-import { 
-  LineChart, 
-  Line, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
-} from 'recharts';
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import AdminLayout from "@/components/admin/AdminLayout";
+import AdminStats from "@/components/admin/AdminStats";
+import { getSystemStats } from "@/lib/api";
+import { toast } from "@/lib/toast";
+
+type SystemStats = {
+  totalUsers: number;
+  totalTasks: number;
+  totalRewards: number;
+  totalPoints: number;
+};
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [stats, setStats] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<SystemStats>({
+    totalUsers: 0,
+    totalTasks: 0,
+    totalRewards: 0,
+    totalPoints: 0
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        setIsLoading(true);
-        const stats = await getSystemStats();
-        setStats(stats);
+        const data = await getSystemStats();
+        setStats(data as SystemStats);
       } catch (error) {
-        console.error('Error fetching system stats:', error);
-        // Set default values if fetch fails
-        setStats({
-          totalUsers: 0,
-          totalTasks: 0, 
-          totalRewards: 0,
-          totalPoints: 0
-        });
+        console.error("Error fetching stats:", error);
+        toast.error("Failed to load system statistics");
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
 
     fetchStats();
   }, []);
 
-  const statsItems = [
-    {
-      title: 'Total Users',
-      value: stats?.totalUsers || 0,
-      icon: Users
-    },
-    {
-      title: 'Active Tasks',
-      value: stats?.totalTasks || 0,
-      icon: ListChecks
-    },
-    {
-      title: 'Available Rewards',
-      value: stats?.totalRewards || 0,
-      icon: Gift
-    },
-    {
-      title: 'Total Points',
-      value: stats?.totalPoints?.toLocaleString() || 0,
-      description: 'Points across all users',
-      icon: Coins
-    }
-  ];
-  
-  // Mock data for charts
-  const userActivityData = [
-    { name: 'Mon', tasks: 12, rewards: 4 },
-    { name: 'Tue', tasks: 19, rewards: 6 },
-    { name: 'Wed', tasks: 15, rewards: 5 },
-    { name: 'Thu', tasks: 22, rewards: 7 },
-    { name: 'Fri', tasks: 30, rewards: 12 },
-    { name: 'Sat', tasks: 18, rewards: 8 },
-    { name: 'Sun', tasks: 10, rewards: 3 }
-  ];
-  
-  const userGrowthData = [
-    { month: 'Jan', users: 30 },
-    { month: 'Feb', users: 58 },
-    { month: 'Mar', users: 85 },
-    { month: 'Apr', users: 120 },
-    { month: 'May', users: 150 },
-    { month: 'Jun', users: 210 }
-  ];
-  
   return (
-    <AdminLayout title="Dashboard" description="Admin system dashboard with key metrics">
-      <div className="space-y-6">
-        <AdminStats 
-          totalUsers={stats?.totalUsers || 0}
-          totalTasks={stats?.totalTasks || 0}
-          totalRewards={stats?.totalRewards || 0}
-          totalPoints={stats?.totalPoints || 0}
-        />
-        
-        <Tabs defaultValue="overview" className="space-y-4" onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="activity">User Activity</TabsTrigger>
-            <TabsTrigger value="growth">User Growth</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Platform Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  Welcome to the admin dashboard. Here you can monitor the platform's 
-                  performance and manage users, tasks, and rewards.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="activity" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Activity (Last 7 Days)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={userActivityData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="tasks" name="Tasks Completed" fill="#4f46e5" />
-                      <Bar dataKey="rewards" name="Rewards Redeemed" fill="#06b6d4" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="growth" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Growth</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={userGrowthData}
-                      margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="users" name="Total Users" stroke="#4f46e5" activeDot={{ r: 8 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+    <AdminLayout>
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="flex flex-col gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+            <p className="text-muted-foreground">
+              Overview of system statistics and performance.
+            </p>
+          </motion.div>
+
+          <AdminStats
+            totalUsers={stats.totalUsers}
+            totalTasks={stats.totalTasks}
+            totalRewards={stats.totalRewards}
+            totalPoints={stats.totalPoints}
+          />
+
+          <Tabs defaultValue="users" className="w-full">
+            <TabsList>
+              <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="rewards">Rewards</TabsTrigger>
+              <TabsTrigger value="points">Points</TabsTrigger>
+            </TabsList>
+            <TabsContent value="users">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Users</CardTitle>
+                  <CardDescription>Manage users</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>Total users: {stats.totalUsers}</p>
+                </CardContent>
+                <CardFooter>
+                  <Button>Manage users</Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            <TabsContent value="tasks">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tasks</CardTitle>
+                  <CardDescription>Manage tasks</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>Total tasks: {stats.totalTasks}</p>
+                </CardContent>
+                <CardFooter>
+                  <Button>Manage tasks</Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            <TabsContent value="rewards">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Rewards</CardTitle>
+                  <CardDescription>Manage rewards</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>Total rewards: {stats.totalRewards}</p>
+                </CardContent>
+                <CardFooter>
+                  <Button>Manage rewards</Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+            <TabsContent value="points">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Points</CardTitle>
+                  <CardDescription>Manage points</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p>Total points: {stats.totalPoints}</p>
+                </CardContent>
+                <CardFooter>
+                  <Button>Manage points</Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </AdminLayout>
   );

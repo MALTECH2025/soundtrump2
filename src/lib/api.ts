@@ -1,161 +1,102 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { UserProfile, Referral, ReferredUser, RPCResponse } from "@/types";
+import { Task, TaskCategory } from "@/types";
 
-export const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
+// Users and Profiles
+// ===========================================
+
+export const fetchUserProfile = async (userId: string) => {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
     .single();
-
-  if (error) {
-    console.error("Error fetching user profile:", error);
-    return null;
-  }
-
-  return data as UserProfile;
-};
-
-export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>): Promise<UserProfile | null> => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', userId)
-    .select('*')
-    .single();
-
-  if (error) {
-    console.error("Error updating user profile:", error);
-    return null;
-  }
-
-  return data as UserProfile;
-};
-
-export const fetchUserReferrals = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('referred_users')
-    .select(`
-      id,
-      referrer_id,
-      referred_user_id,
-      referral_code,
-      created_at,
-      points_awarded,
-      profiles!referred_user_id(id, username, full_name, avatar_url, initials)
-    `)
-    .eq('referrer_id', userId)
-    .order('created_at', { ascending: false });
-  
+    
   if (error) throw error;
   return data;
 };
 
-export const fetchReferralCode = async (userId: string): Promise<string | null> => {
-  const { data, error } = await supabase
-    .from('referrals')
-    .select('referral_code')
-    .eq('referrer_id', userId)
-    .single();
+export const updateUserProfile = async (updates: any) => {
+  const { data: { user } } = await supabase.auth.getUser();
   
-  if (error) {
-    // If no referral code exists, create one
-    if (error.code === 'PGRST116') {
-      return await generateReferralCode(userId);
-    }
-    console.error("Error fetching referral code:", error);
-    return null;
-  }
-  
-  return data.referral_code;
-};
-
-export const generateReferralCode = async (userId: string): Promise<string | null> => {
-  const referralCode = generateUniqueCode();
+  if (!user) throw new Error('Not authenticated');
   
   const { data, error } = await supabase
-    .from('referrals')
-    .insert([{ referrer_id: userId, referral_code: referralCode }])
-    .select('referral_code')
+    .from('profiles')
+    .update(updates)
+    .eq('id', user.id)
+    .select()
     .single();
-  
-  if (error) {
-    console.error("Error generating referral code:", error);
-    return null;
-  }
-  
-  return data.referral_code;
+    
+  if (error) throw error;
+  return data;
 };
 
-export const applyReferralCode = async (referralCode: string): Promise<RPCResponse> => {
-  try {
-    const { data, error } = await supabase.rpc('apply_referral_code', { referral_code: referralCode });
-    
-    if (error) {
-      console.error("Error applying referral code:", error);
-      return { success: false, message: error.message };
-    }
-    
-    return data as RPCResponse;
-  } catch (error: any) {
-    console.error("Unexpected error applying referral code:", error);
-    return { success: false, message: error.message };
-  }
-};
-
-function generateUniqueCode(): string {
-  const timestamp = Date.now().toString(36);
-  const randomChars = Math.random().toString(36).substring(2, 8);
-  return `${timestamp}-${randomChars}`.toUpperCase();
-}
+// Tasks
+// ===========================================
 
 export const fetchTasks = async () => {
   const { data, error } = await supabase
     .from('tasks')
     .select(`
       *,
-      category:task_categories(id, name, description)
+      category:task_categories(*)
     `)
     .order('created_at', { ascending: false });
-  
+    
   if (error) throw error;
   return data;
 };
 
 export const fetchUserTasks = async (userId: string) => {
   const { data, error } = await supabase
-    .from('user_tasks')
+    .from('tasks')
     .select(`
       *,
-      task:tasks(*, category:task_categories(id, name, description))
+      category:task_categories(*)
     `)
-    .eq('user_id', userId)
+    .eq('active', true)
     .order('created_at', { ascending: false });
-  
+    
   if (error) throw error;
   return data;
 };
 
-export const createTask = async (task: any) => {
+export const fetchTaskCategories = async () => {
+  const { data, error } = await supabase
+    .from('task_categories')
+    .select('*')
+    .order('name', { ascending: true });
+    
+  if (error) throw error;
+  return data;
+};
+
+export const createTask = async (task: Task) => {
   const { data, error } = await supabase
     .from('tasks')
-    .insert([task])
-    .select()
+    .insert(task)
+    .select(`
+      *,
+      category:task_categories(*)
+    `)
     .single();
-  
+    
   if (error) throw error;
   return data;
 };
 
-export const updateTask = async (taskId: string, updates: any) => {
+export const updateTask = async ({ taskId, updates }: { taskId: string, updates: Partial<Task> }) => {
   const { data, error } = await supabase
     .from('tasks')
     .update(updates)
     .eq('id', taskId)
-    .select()
+    .select(`
+      *,
+      category:task_categories(*)
+    `)
     .single();
-  
+    
   if (error) throw error;
   return data;
 };
@@ -165,138 +106,221 @@ export const deleteTask = async (taskId: string) => {
     .from('tasks')
     .delete()
     .eq('id', taskId);
-  
+    
   if (error) throw error;
 };
 
-export const updateUserRole = async (userId: string, role: 'user' | 'admin') => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ role: role })
-    .eq('id', userId)
-    .select()
+// Referrals
+// ===========================================
+
+export const generateReferralCode = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('Not authenticated');
+  
+  // Check if user already has a referral code
+  const { data: existingReferral } = await supabase
+    .from('referral_codes')
+    .select('code')
+    .eq('user_id', user.id)
     .single();
+    
+  if (existingReferral?.code) {
+    return existingReferral.code;
+  }
   
-  if (error) throw error;
-  return data;
-};
-
-export const updateUserStatus = async (userId: string, status: 'Normal' | 'Influencer') => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ status: status })
-    .eq('id', userId)
-    .select()
-    .single();
+  // Generate a new referral code
+  const referralCode = generateRandomCode(8);
   
-  if (error) throw error;
-  return data;
-};
-
-export const updateUserTier = async (userId: string, tier: 'Free' | 'Premium') => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({ tier: tier })
-    .eq('id', userId)
-    .select()
-    .single();
-  
-  if (error) throw error;
-  return data;
-};
-
-export const enableRealtimeForTable = async (tableName: string) => {
-  try {
-    const { data, error } = await supabase.functions.invoke('enable-realtime', {
-      body: { table_name: tableName },
+  const { error } = await supabase
+    .from('referral_codes')
+    .insert({
+      user_id: user.id,
+      code: referralCode
     });
     
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error enabling realtime for table:', error);
-    throw error;
-  }
+  if (error) throw error;
+  
+  return referralCode;
 };
+
+export const fetchReferralStats = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('Not authenticated');
+  
+  // Get the user's referral code
+  const { data: referralData } = await supabase
+    .from('referral_codes')
+    .select('code')
+    .eq('user_id', user.id)
+    .single();
+    
+  // Count the total number of users who used the referral code
+  const { data: countData, error } = await supabase
+    .from('user_referrals')
+    .select('id', { count: 'exact' })
+    .eq('referrer_id', user.id);
+    
+  if (error) throw error;
+  
+  return {
+    code: referralData?.code || null,
+    referralCount: countData?.length || 0
+  };
+};
+
+export const fetchReferrals = async (type: 'referred' | 'referrers') => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('Not authenticated');
+  
+  let query;
+  
+  if (type === 'referred') {
+    // Users I referred
+    query = supabase
+      .from('user_referrals')
+      .select(`
+        id,
+        created_at,
+        referred_user:profiles!referred_user_id(id, full_name, username, avatar_url, initials)
+      `)
+      .eq('referrer_id', user.id)
+      .order('created_at', { ascending: false });
+  } else {
+    // Users who referred me
+    query = supabase
+      .from('user_referrals')
+      .select(`
+        id,
+        created_at,
+        referrer:profiles!referrer_id(id, full_name, username, avatar_url, initials)
+      `)
+      .eq('referred_user_id', user.id)
+      .order('created_at', { ascending: false });
+  }
+  
+  const { data, error } = await query;
+  
+  if (error) throw error;
+  
+  return data;
+};
+
+// Admin
+// ===========================================
 
 export const getSystemStats = async () => {
-  try {
-    // Get actual stats from Supabase
-    const { data: userData, error: userError } = await supabase
-      .from('profiles')
-      .select('count', { count: 'exact' });
+  // Count total users
+  const { count: usersCount, error: usersError } = await supabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true });
     
-    const { data: taskData, error: taskError } = await supabase
-      .from('tasks')
-      .select('count', { count: 'exact' });
+  if (usersError) throw usersError;
+  
+  // Count total tasks
+  const { count: tasksCount, error: tasksError } = await supabase
+    .from('tasks')
+    .select('*', { count: 'exact', head: true });
     
-    const { data: rewardData, error: rewardError } = await supabase
-      .from('rewards')
-      .select('count', { count: 'exact' });
+  if (tasksError) throw tasksError;
+  
+  // Count total rewards claimed
+  const { count: rewardsCount, error: rewardsError } = await supabase
+    .from('user_rewards')
+    .select('*', { count: 'exact', head: true });
     
-    const { data: pointsData, error: pointsError } = await supabase
-      .from('profiles')
-      .select('points');
+  if (rewardsError) throw rewardsError;
+  
+  // Sum total points earned
+  const { data: pointsData, error: pointsError } = await supabase
+    .from('user_points')
+    .select('points');
     
-    if (userError || taskError || rewardError || pointsError) {
-      console.error('Error fetching system stats:', userError || taskError || rewardError || pointsError);
-      // Return fallback data if there's an error
-      return {
-        totalUsers: 0,
-        totalTasks: 0,
-        totalRewards: 0,
-        totalPoints: 0
-      };
-    }
-    
-    // Calculate total points
-    const totalPoints = pointsData?.reduce((sum, profile) => sum + (profile.points || 0), 0) || 0;
-    
-    return {
-      totalUsers: userData?.count || 0,
-      totalTasks: taskData?.count || 0,
-      totalRewards: rewardData?.count || 0,
-      totalPoints: totalPoints
-    };
-  } catch (error) {
-    console.error('Error fetching system stats:', error);
-    return {
-      totalUsers: 0,
-      totalTasks: 0,
-      totalRewards: 0,
-      totalPoints: 0
-    };
-  }
+  if (pointsError) throw pointsError;
+  
+  const totalPoints = pointsData.reduce((sum, entry) => sum + entry.points, 0);
+  
+  return {
+    totalUsers: usersCount,
+    totalTasks: tasksCount,
+    totalRewards: rewardsCount,
+    totalPoints: totalPoints
+  };
 };
+
+// Services (Spotify, etc.)
+// ===========================================
 
 export const connectService = async (
-  serviceName: string, 
-  accessToken: string, 
-  refreshToken?: string, 
-  expiresAt?: string, 
+  service: string,
+  accessToken: string,
+  refreshToken: string,
+  expiresAt: string,
   serviceUserId?: string
 ) => {
-  try {
-    const userId = (await supabase.auth.getUser()).data.user?.id;
-    if (!userId) throw new Error('User not authenticated');
-
-    const { data, error } = await supabase
-      .from('connected_services')
-      .upsert({
-        user_id: userId,
-        service_name: serviceName,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: expiresAt,
-        service_user_id: serviceUserId || userId,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error(`Error connecting ${serviceName} service:`, error);
-    throw error;
-  }
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('Not authenticated');
+  
+  const { error } = await supabase
+    .from('user_services')
+    .upsert({
+      user_id: user.id,
+      service,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_at: expiresAt,
+      service_user_id: serviceUserId
+    });
+    
+  if (error) throw error;
 };
+
+export const getUserService = async (service: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('Not authenticated');
+  
+  const { data, error } = await supabase
+    .from('user_services')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('service', service)
+    .single();
+    
+  if (error && error.code !== 'PGRST116') throw error;
+  
+  return data;
+};
+
+// Realtime
+// ===========================================
+
+export const enableRealtimeForTable = async (tableName: string) => {
+  const { error } = await supabase.functions.invoke('enable-realtime', {
+    body: { table: tableName }
+  });
+  
+  if (error) {
+    console.error(`Failed to enable realtime for ${tableName}:`, error);
+  }
+  
+  return !error;
+};
+
+// Utilities
+// ===========================================
+
+function generateRandomCode(length: number) {
+  const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = '';
+  
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * characters.length);
+    result += characters.charAt(randomIndex);
+  }
+  
+  return result;
+}

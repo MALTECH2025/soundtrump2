@@ -36,6 +36,30 @@ export const getSpotifyAuthUrl = () => {
   return authUrl.toString();
 };
 
+// Initiate Spotify authentication
+export const initiateSpotifyAuth = () => {
+  const authUrl = getSpotifyAuthUrl();
+  window.location.href = authUrl;
+};
+
+// Handle Spotify callback
+export const handleSpotifyCallback = async (code: string, state: string) => {
+  // Verify state matches what we stored
+  const storedState = localStorage.getItem("spotify_auth_state");
+  if (state !== storedState) {
+    return {
+      success: false,
+      message: "State verification failed"
+    };
+  }
+  
+  // Remove state from localStorage
+  localStorage.removeItem("spotify_auth_state");
+  
+  // Exchange code for token
+  return await exchangeSpotifyCode(code);
+};
+
 // Exchange code for access token
 export const exchangeSpotifyCode = async (code: string) => {
   try {
@@ -143,6 +167,9 @@ export const getTopTracks = async (accessToken: string, timeRange = 'medium_term
   return await response.json();
 };
 
+// Renamed function for SpotifyWidget.tsx
+export const getSpotifyTopTracks = getTopTracks;
+
 // Get user's recently played tracks
 export const getRecentlyPlayed = async (accessToken: string, limit = 10) => {
   const response = await fetch(`https://api.spotify.com/v1/me/player/recently-played?limit=${limit}`, {
@@ -157,6 +184,9 @@ export const getRecentlyPlayed = async (accessToken: string, limit = 10) => {
   
   return await response.json();
 };
+
+// Renamed function for SpotifyWidget.tsx
+export const getSpotifyRecentlyPlayed = getRecentlyPlayed;
 
 // Check if a user has saved a specific track
 export const checkSavedTracks = async (accessToken: string, trackIds: string[]) => {
