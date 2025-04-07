@@ -1,4 +1,3 @@
-
 import { User } from '@supabase/supabase-js';
 
 export interface UserProfile {
@@ -115,4 +114,15 @@ export interface RPCResponse {
   success: boolean;
   message: string;
   [key: string]: any;
+}
+
+export interface TaskProps {
+  id: string;
+  title: string;
+  description: string;
+  reward: number;
+  category: string | "referral" | "spotify" | "social" | "other";
+  expiresAt: Date;
+  progress: number;
+  completed: boolean;
 }

@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       if (data) {
-        // Type cast the tier and status to ensure they match the UserProfile type
+        // Type cast the profile data to ensure it matches the UserProfile type
         const typedProfile: UserProfile = {
           ...data,
           tier: (data.tier as "Free" | "Premium"),
