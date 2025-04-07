@@ -1,6 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { Task, TaskCategory } from "@/types";
+import { Task, TaskCategory, Reward, LeaderboardUser } from "@/types";
 
 // Users and Profiles
 // ===========================================
@@ -113,6 +112,73 @@ export const deleteTask = async (taskId: string) => {
   if (error) throw error;
 };
 
+// Rewards
+// ===========================================
+
+export const fetchRewards = async () => {
+  const { data, error } = await supabase
+    .from('rewards')
+    .select('*')
+    .eq('active', true)
+    .order('points_cost', { ascending: true });
+    
+  if (error) throw error;
+  return data || [];
+};
+
+export const fetchUserRewards = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('user_rewards')
+    .select(`
+      *,
+      reward:rewards(*)
+    `)
+    .eq('user_id', userId)
+    .order('redeemed_at', { ascending: false });
+    
+  if (error) throw error;
+  return data || [];
+};
+
+export const redeemReward = async (rewardId: string) => {
+  try {
+    const { data, error } = await supabase.functions.invoke('redeem-reward', {
+      body: { reward_id: rewardId }
+    });
+    
+    if (error) throw error;
+    
+    return data || { success: false, message: 'Failed to redeem reward' };
+  } catch (error: any) {
+    console.error('Error redeeming reward:', error);
+    return { 
+      success: false, 
+      message: error.message || 'An error occurred while redeeming the reward'
+    };
+  }
+};
+
+// Leaderboard
+// ===========================================
+
+export const fetchLeaderboard = async () => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, full_name, avatar_url, initials, points, tier, status')
+    .order('points', { ascending: false })
+    .limit(100);
+  
+  if (error) throw error;
+  
+  // Add position to each user
+  const leaderboard: LeaderboardUser[] = (data || []).map((user, index) => ({
+    ...user,
+    position: index + 1
+  }));
+  
+  return leaderboard;
+};
+
 // Referrals
 // ===========================================
 
@@ -157,6 +223,12 @@ export const fetchReferralCode = async (userId: string) => {
     
   if (error && error.code !== 'PGRST116') {
     throw error;
+  }
+  
+  // If no referral code exists, generate one
+  if (!data?.referral_code) {
+    const code = await generateReferralCode();
+    return code;
   }
   
   return data?.referral_code || null;

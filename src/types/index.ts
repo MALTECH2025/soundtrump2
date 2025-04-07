@@ -128,3 +128,15 @@ export interface TaskProps {
   progress: number;
   completed: boolean;
 }
+
+export interface LeaderboardUser {
+  id: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  initials: string;
+  points: number;
+  position: number;
+  tier: "Free" | "Premium";
+  status: "Normal" | "Influencer";
+}

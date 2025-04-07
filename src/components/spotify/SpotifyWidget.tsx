@@ -35,7 +35,7 @@ const SpotifyWidget = () => {
       setLoading(true);
       try {
         const [topTracksData, recentlyPlayedData] = await Promise.all([
-          getSpotifyTopTracks(timeRange),
+          getSpotifyTopTracks(timeRange), // Passing the required timeRange parameter
           getSpotifyRecentlyPlayed()
         ]);
         

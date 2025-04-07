@@ -159,22 +159,22 @@ const Dashboard = () => {
     const timeAgo = Math.floor((Date.now() - time.getTime()) / (1000 * 60 * 60));
     
     return {
-      icon: categoryName.toLowerCase() === 'spotify' ? <Music2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />,
-      color: categoryName.toLowerCase() === 'spotify' ? 'bg-[#1DB954]/10 text-[#1DB954]' : 'bg-amber-500/10 text-amber-500',
+      icon: categoryName.toLowerCase().includes('spotify') ? <Music2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />,
+      color: categoryName.toLowerCase().includes('spotify') ? 'bg-[#1DB954]/10 text-[#1DB954]' : 'bg-amber-500/10 text-amber-500',
       text: `Completed ${title}`,
       time: timeAgo <= 1 ? 'Just now' : timeAgo < 24 ? `${timeAgo} hours ago` : `${Math.floor(timeAgo / 24)} days ago`,
       amount: userTask.points_earned ? `+${userTask.points_earned} ST Coins` : null
     };
   });
   
-  while (recentActivity.length < 4) {
-    recentActivity.push(
-      ...[
-        { icon: <Bell className="w-4 h-4" />, color: 'bg-amber-500/10 text-amber-500', text: 'New task available: Weekend Challenge', time: '6 hours ago', amount: null },
-        { icon: <Award className="w-4 h-4" />, color: 'bg-purple-500/10 text-purple-500', text: `Ranked up to ${userRank.name}`, time: '2 days ago', amount: null },
-        { icon: <TrendingUp className="w-4 h-4" />, color: 'bg-green-500/10 text-green-500', text: 'Earned weekly bonus rewards', time: '3 days ago', amount: '+75 ST Coins' }
-      ].slice(0, 4 - recentActivity.length)
-    );
+  if (recentActivity.length === 0) {
+    recentActivity.push({
+      icon: <Bell className="w-4 h-4" />, 
+      color: 'bg-blue-500/10 text-blue-500',
+      text: 'Welcome to SoundTrump',
+      time: 'Just now', 
+      amount: null
+    });
   }
   
   const fadeInUp = {
