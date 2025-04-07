@@ -1,21 +1,50 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LucideIcon } from "lucide-react";
+import { Users, ListChecks, Award, Coins } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface StatItem {
-  title: string;
-  value: number | string;
-  description?: string;
-  icon: LucideIcon;
-}
-
 interface AdminStatsProps {
-  stats: StatItem[];
+  totalUsers: number;
+  totalTasks: number;
+  totalRewards: number;
+  totalPoints: number;
   isLoading?: boolean;
 }
 
-const AdminStats = ({ stats, isLoading = false }: AdminStatsProps) => {
+const AdminStats = ({ 
+  totalUsers, 
+  totalTasks, 
+  totalRewards, 
+  totalPoints, 
+  isLoading = false 
+}: AdminStatsProps) => {
+  const stats = [
+    {
+      title: "Total Users",
+      value: totalUsers,
+      icon: Users,
+      description: "Registered users in the system"
+    },
+    {
+      title: "Active Tasks",
+      value: totalTasks,
+      icon: ListChecks,
+      description: "Total available tasks"
+    },
+    {
+      title: "Rewards Claimed",
+      value: totalRewards,
+      icon: Award,
+      description: "Rewards redeemed by users"
+    },
+    {
+      title: "Total Points",
+      value: totalPoints,
+      icon: Coins,
+      description: "Total points awarded in the system"
+    }
+  ];
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, index) => (

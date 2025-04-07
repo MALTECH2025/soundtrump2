@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-import { fetchTasks, fetchUserTasks, fetchUserReferrals, fetchReferralCode } from '@/lib/api';
+import { fetchTasks, fetchUserTasks, fetchReferrals, fetchReferralCode } from '@/lib/api';
 import { UserTask, Task } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -50,7 +50,7 @@ const Dashboard = () => {
   
   const { data: referrals = [], refetch: refetchReferrals } = useQuery({
     queryKey: ['referrals', authUser?.id],
-    queryFn: () => fetchUserReferrals(authUser?.id || ''),
+    queryFn: () => fetchReferrals(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
   });
   
@@ -137,7 +137,7 @@ const Dashboard = () => {
   });
   
   const completedTasks = userTasks.filter(ut => ut.status === 'Completed');
-  const totalEarnings = user?.role ? user.points : 0;
+  const totalEarnings = user?.points || 0;
   const pendingEarnings = 0;
   
   const rankCalculation = () => {
@@ -151,11 +151,11 @@ const Dashboard = () => {
   
   const userRank = rankCalculation();
   
-  const recentActivity = completedTasks.slice(0, 4).map(task => {
-    const taskDetails = task.task as Task | undefined;
+  const recentActivity = completedTasks.slice(0, 4).map(userTask => {
+    const taskDetails = userTask.task;
     const categoryName = taskDetails?.category ? (taskDetails.category as any).name : 'Task';
     const title = taskDetails?.title || 'Completed task';
-    const time = task.completed_at ? new Date(task.completed_at) : new Date();
+    const time = userTask.completed_at ? new Date(userTask.completed_at) : new Date();
     const timeAgo = Math.floor((Date.now() - time.getTime()) / (1000 * 60 * 60));
     
     return {
@@ -163,7 +163,7 @@ const Dashboard = () => {
       color: categoryName.toLowerCase() === 'spotify' ? 'bg-[#1DB954]/10 text-[#1DB954]' : 'bg-amber-500/10 text-amber-500',
       text: `Completed ${title}`,
       time: timeAgo <= 1 ? 'Just now' : timeAgo < 24 ? `${timeAgo} hours ago` : `${Math.floor(timeAgo / 24)} days ago`,
-      amount: task.points_earned ? `+${task.points_earned} ST Coins` : null
+      amount: userTask.points_earned ? `+${userTask.points_earned} ST Coins` : null
     };
   });
   
@@ -216,10 +216,10 @@ const Dashboard = () => {
                   <div className="flex items-center gap-3">
                     <h1 className="text-3xl font-bold">Welcome back, {user?.name || 'User'}</h1>
                     <div className="flex gap-1.5">
-                      {user?.role?.tier === "Premium" && (
+                      {user?.tier === "Premium" && (
                         <Badge className="bg-sound-light">Premium</Badge>
                       )}
-                      {user?.role?.status === "Influencer" && (
+                      {user?.status === "Influencer" && (
                         <Badge className="bg-purple-500">Influencer</Badge>
                       )}
                     </div>
@@ -338,10 +338,10 @@ const Dashboard = () => {
                   
                   <div className="lg:col-span-1">
                     <ReferralWidget 
-                      totalReferrals={referrals.length}
+                      totalReferrals={Array.isArray(referrals) ? referrals.length : 0}
                       influencerThreshold={500}
                       referralCode={referralCode || 'SOUNDFAN2024'}
-                      isInfluencer={user?.role?.status === "Influencer"}
+                      isInfluencer={user?.status === "Influencer"}
                     />
                   </div>
                 </motion.div>

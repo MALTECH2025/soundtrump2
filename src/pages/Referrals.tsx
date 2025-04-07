@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -9,8 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-import { fetchUserReferrals, fetchReferralCode, applyReferralCode } from '@/lib/api';
-import { cn } from "@/lib/utils";
+import { fetchReferrals, fetchReferralCode, applyReferralCode } from '@/lib/api';
 
 const Referrals = () => {
   const [referralCode, setReferralCode] = useState<string | null>(null);
@@ -22,24 +22,20 @@ const Referrals = () => {
   
   const referralRewardAmount = 10;
 
-  const { data: referrals = [], refetch } = useQuery(
-    ['referrals', authUser?.id],
-    () => fetchUserReferrals(authUser?.id || ''),
-    {
-      enabled: isAuthenticated && !!authUser?.id,
-    }
-  );
+  const { data: referrals = [], refetch } = useQuery({
+    queryKey: ['referrals', authUser?.id],
+    queryFn: () => fetchReferrals(authUser?.id || ''),
+    enabled: isAuthenticated && !!authUser?.id,
+  });
 
-  const { data: fetchedReferralCode } = useQuery(
-    ['referralCode', authUser?.id],
-    () => fetchReferralCode(authUser?.id || ''),
-    {
-      enabled: isAuthenticated && !!authUser?.id,
-      onSuccess: (data) => {
-        setReferralCode(data);
-      },
+  const { data: fetchedReferralCode } = useQuery({
+    queryKey: ['referralCode', authUser?.id],
+    queryFn: () => fetchReferralCode(authUser?.id || ''),
+    enabled: isAuthenticated && !!authUser?.id,
+    onSuccess: (data) => {
+      if (data) setReferralCode(data);
     }
-  );
+  });
 
   useEffect(() => {
     if (fetchedReferralCode) {
@@ -133,9 +129,9 @@ const Referrals = () => {
           </CardHeader>
           <CardContent>
             <div className="hidden md:block">
-              {referrals.length > 0 ? (
+              {referrals && referrals.length > 0 ? (
                 <div className="space-y-4">
-                  {referrals.map((referral) => (
+                  {referrals.map((referral: any) => (
                     <div key={referral.id} className="flex items-center justify-between p-4 bg-card rounded-lg border">
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">
@@ -168,9 +164,9 @@ const Referrals = () => {
             </div>
 
             <div className="md:hidden">
-              {referrals.length > 0 ? (
+              {referrals && referrals.length > 0 ? (
                 <div className="space-y-4">
-                  {referrals.map((referral) => (
+                  {referrals.map((referral: any) => (
                     <div key={referral.id} className="flex items-center justify-between p-4 bg-card rounded-lg border">
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 mr-3">

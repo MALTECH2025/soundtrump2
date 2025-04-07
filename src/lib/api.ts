@@ -50,12 +50,15 @@ export const fetchTasks = async () => {
 
 export const fetchUserTasks = async (userId: string) => {
   const { data, error } = await supabase
-    .from('tasks')
+    .from('user_tasks')
     .select(`
       *,
-      category:task_categories(*)
+      task:tasks(
+        *,
+        category:task_categories(*)
+      )
     `)
-    .eq('active', true)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false });
     
   if (error) throw error;
@@ -120,28 +123,43 @@ export const generateReferralCode = async () => {
   
   // Check if user already has a referral code
   const { data: existingReferral } = await supabase
-    .from('referral_codes')
-    .select('code')
-    .eq('user_id', user.id)
+    .from('referrals')
+    .select('referral_code')
+    .eq('referrer_id', user.id)
     .single();
     
-  if (existingReferral?.code) {
-    return existingReferral.code;
+  if (existingReferral?.referral_code) {
+    return existingReferral.referral_code;
   }
   
   // Generate a new referral code
   const referralCode = generateRandomCode(8);
   
   const { error } = await supabase
-    .from('referral_codes')
+    .from('referrals')
     .insert({
-      user_id: user.id,
-      code: referralCode
+      referrer_id: user.id,
+      referral_code: referralCode
     });
     
   if (error) throw error;
   
   return referralCode;
+};
+
+export const fetchReferralCode = async (userId: string) => {
+  // Get the user's referral code
+  const { data, error } = await supabase
+    .from('referrals')
+    .select('referral_code')
+    .eq('referrer_id', userId)
+    .single();
+    
+  if (error && error.code !== 'PGRST116') {
+    throw error;
+  }
+  
+  return data?.referral_code || null;
 };
 
 export const fetchReferralStats = async () => {
@@ -151,61 +169,63 @@ export const fetchReferralStats = async () => {
   
   // Get the user's referral code
   const { data: referralData } = await supabase
-    .from('referral_codes')
-    .select('code')
-    .eq('user_id', user.id)
+    .from('referrals')
+    .select('referral_code')
+    .eq('referrer_id', user.id)
     .single();
     
   // Count the total number of users who used the referral code
   const { data: countData, error } = await supabase
-    .from('user_referrals')
+    .from('referred_users')
     .select('id', { count: 'exact' })
     .eq('referrer_id', user.id);
     
   if (error) throw error;
   
   return {
-    code: referralData?.code || null,
+    code: referralData?.referral_code || null,
     referralCount: countData?.length || 0
   };
 };
 
-export const fetchReferrals = async (type: 'referred' | 'referrers') => {
-  const { data: { user } } = await supabase.auth.getUser();
+export const fetchReferrals = async (userId: string) => {
+  if (!userId) throw new Error('User ID is required');
   
-  if (!user) throw new Error('Not authenticated');
-  
-  let query;
-  
-  if (type === 'referred') {
-    // Users I referred
-    query = supabase
-      .from('user_referrals')
-      .select(`
-        id,
-        created_at,
-        referred_user:profiles!referred_user_id(id, full_name, username, avatar_url, initials)
-      `)
-      .eq('referrer_id', user.id)
-      .order('created_at', { ascending: false });
-  } else {
-    // Users who referred me
-    query = supabase
-      .from('user_referrals')
-      .select(`
-        id,
-        created_at,
-        referrer:profiles!referrer_id(id, full_name, username, avatar_url, initials)
-      `)
-      .eq('referred_user_id', user.id)
-      .order('created_at', { ascending: false });
-  }
-  
-  const { data, error } = await query;
+  // Users I referred
+  const { data, error } = await supabase
+    .from('referred_users')
+    .select(`
+      id,
+      created_at,
+      referred_user_id,
+      profiles:referred_user_id(id, full_name, username, avatar_url, initials)
+    `)
+    .eq('referrer_id', userId)
+    .order('created_at', { ascending: false });
   
   if (error) throw error;
   
   return data;
+};
+
+export const fetchUserReferrals = fetchReferrals; // Alias for backward compatibility
+
+export const applyReferralCode = async (referralCode: string) => {
+  try {
+    const { data, error } = await supabase.functions.invoke('apply-referral-code', {
+      body: { referral_code: referralCode }
+    });
+    
+    if (error) throw error;
+    
+    return data || { success: false, message: 'Failed to apply referral code' };
+  } catch (error: any) {
+    console.error('Error applying referral code:', error);
+    return { 
+      success: false, 
+      message: error.message || 'An error occurred while applying the referral code'
+    };
+  }
 };
 
 // Admin
@@ -233,19 +253,19 @@ export const getSystemStats = async () => {
     
   if (rewardsError) throw rewardsError;
   
-  // Sum total points earned
+  // Calculate total points from user profiles
   const { data: pointsData, error: pointsError } = await supabase
-    .from('user_points')
+    .from('profiles')
     .select('points');
     
   if (pointsError) throw pointsError;
   
-  const totalPoints = pointsData.reduce((sum, entry) => sum + entry.points, 0);
+  const totalPoints = pointsData.reduce((sum, entry) => sum + (entry.points || 0), 0);
   
   return {
-    totalUsers: usersCount,
-    totalTasks: tasksCount,
-    totalRewards: rewardsCount,
+    totalUsers: usersCount || 0,
+    totalTasks: tasksCount || 0,
+    totalRewards: rewardsCount || 0,
     totalPoints: totalPoints
   };
 };
@@ -265,14 +285,14 @@ export const connectService = async (
   if (!user) throw new Error('Not authenticated');
   
   const { error } = await supabase
-    .from('user_services')
+    .from('connected_services')
     .upsert({
       user_id: user.id,
-      service,
+      service_name: service,
       access_token: accessToken,
       refresh_token: refreshToken,
       expires_at: expiresAt,
-      service_user_id: serviceUserId
+      service_user_id: serviceUserId || ''
     });
     
   if (error) throw error;
@@ -284,15 +304,51 @@ export const getUserService = async (service: string) => {
   if (!user) throw new Error('Not authenticated');
   
   const { data, error } = await supabase
-    .from('user_services')
+    .from('connected_services')
     .select('*')
     .eq('user_id', user.id)
-    .eq('service', service)
+    .eq('service_name', service)
     .single();
     
   if (error && error.code !== 'PGRST116') throw error;
   
   return data;
+};
+
+// User role and status management (admin)
+// ===========================================
+
+export const updateUserRole = async (userId: string, role: string) => {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ role })
+    .eq('id', userId);
+    
+  if (error) throw error;
+  
+  return { success: true };
+};
+
+export const updateUserStatus = async (userId: string, status: string) => {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ status })
+    .eq('id', userId);
+    
+  if (error) throw error;
+  
+  return { success: true };
+};
+
+export const updateUserTier = async (userId: string, tier: string) => {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ tier })
+    .eq('id', userId);
+    
+  if (error) throw error;
+  
+  return { success: true };
 };
 
 // Realtime

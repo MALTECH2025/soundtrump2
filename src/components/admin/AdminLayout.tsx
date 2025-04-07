@@ -10,11 +10,11 @@ import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 
 interface AdminLayoutProps {
   children: ReactNode;
-  title: string;
+  title?: string;
   description?: string;
 }
 
-const AdminLayout = ({ children, title, description }: AdminLayoutProps) => {
+const AdminLayout = ({ children, title = "Dashboard", description }: AdminLayoutProps) => {
   const adminNavItems = [
     {
       name: 'Dashboard',

@@ -168,7 +168,9 @@ export const getTopTracks = async (accessToken: string, timeRange = 'medium_term
 };
 
 // Renamed function for SpotifyWidget.tsx
-export const getSpotifyTopTracks = getTopTracks;
+export const getSpotifyTopTracks = async (accessToken: string, timeRange = 'medium_term', limit = 10) => {
+  return getTopTracks(accessToken, timeRange, limit);
+};
 
 // Get user's recently played tracks
 export const getRecentlyPlayed = async (accessToken: string, limit = 10) => {
@@ -186,7 +188,9 @@ export const getRecentlyPlayed = async (accessToken: string, limit = 10) => {
 };
 
 // Renamed function for SpotifyWidget.tsx
-export const getSpotifyRecentlyPlayed = getRecentlyPlayed;
+export const getSpotifyRecentlyPlayed = async (accessToken: string, limit = 10) => {
+  return getRecentlyPlayed(accessToken, limit);
+};
 
 // Check if a user has saved a specific track
 export const checkSavedTracks = async (accessToken: string, trackIds: string[]) => {
