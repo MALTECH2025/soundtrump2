@@ -7,7 +7,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ProfileProvider } from '@/context/ProfileContext';
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "@/lib/toast";
-import { enableRealtimeForTables } from '@/lib/api';
+import { enableRealtimeForTable } from '@/lib/api';
 
 // Import pages
 import Index from '@/pages/Index';
@@ -57,7 +57,11 @@ function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        await enableRealtimeForTables();
+        // Enable realtime for the tables we need
+        await enableRealtimeForTable('tasks');
+        await enableRealtimeForTable('user_tasks');
+        await enableRealtimeForTable('referred_users');
+        await enableRealtimeForTable('profiles');
       } catch (error) {
         console.error('Error during app initialization:', error);
       }

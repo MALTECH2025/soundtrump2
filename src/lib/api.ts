@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfile, Referral, ReferredUser, RPCResponse } from "@/types";
 
@@ -42,7 +43,7 @@ export const fetchUserReferrals = async (userId: string) => {
       referral_code,
       created_at,
       points_awarded,
-      referred_user:profiles!referred_user_id(id, username, full_name, avatar_url, initials)
+      profiles!referred_user_id(id, username, full_name, avatar_url, initials)
     `)
     .eq('referrer_id', userId)
     .order('created_at', { ascending: false });
@@ -89,7 +90,7 @@ export const generateReferralCode = async (userId: string): Promise<string | nul
 
 export const applyReferralCode = async (referralCode: string): Promise<RPCResponse> => {
   try {
-    const { data, error } = await supabase.rpc('apply_referral_code', { referral_code });
+    const { data, error } = await supabase.rpc('apply_referral_code', { referral_code: referralCode });
     
     if (error) {
       console.error("Error applying referral code:", error);
@@ -112,7 +113,24 @@ function generateUniqueCode(): string {
 export const fetchTasks = async () => {
   const { data, error } = await supabase
     .from('tasks')
-    .select('*')
+    .select(`
+      *,
+      category:task_categories(id, name, description)
+    `)
+    .order('created_at', { ascending: false });
+  
+  if (error) throw error;
+  return data;
+};
+
+export const fetchUserTasks = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('user_tasks')
+    .select(`
+      *,
+      task:tasks(*)
+    `)
+    .eq('user_id', userId)
     .order('created_at', { ascending: false });
   
   if (error) throw error;
@@ -197,6 +215,53 @@ export const enableRealtimeForTable = async (tableName: string) => {
     return data;
   } catch (error) {
     console.error('Error enabling realtime for table:', error);
+    throw error;
+  }
+};
+
+export const getSystemStats = async () => {
+  try {
+    // You can replace this with an actual API call to get system stats
+    // For now, returning mock data
+    return {
+      totalUsers: 120,
+      totalTasks: 35,
+      totalRewards: 12,
+      totalPoints: 15480
+    };
+  } catch (error) {
+    console.error('Error fetching system stats:', error);
+    return {
+      totalUsers: 0,
+      totalTasks: 0,
+      totalRewards: 0,
+      totalPoints: 0
+    };
+  }
+};
+
+export const connectService = async (serviceName: string, accessToken: string, refreshToken?: string, expiresAt?: string, serviceUserId?: string) => {
+  try {
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('connected_services')
+      .upsert({
+        user_id: userId,
+        service_name: serviceName,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_at: expiresAt,
+        service_user_id: serviceUserId || userId,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error(`Error connecting ${serviceName} service:`, error);
     throw error;
   }
 };

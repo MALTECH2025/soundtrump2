@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -122,13 +123,14 @@ const Dashboard = () => {
   const activeTasks = tasks.filter(task => task.active).map(task => {
     const userTask = userTasks.find(ut => ut.task_id === task.id);
     const progress = userTask ? (userTask.status === 'Completed' ? 100 : 60) : 0;
+    const categoryName = task.category ? (task.category as any).name : undefined;
     
     return {
       id: task.id,
       title: task.title,
       description: task.description,
       reward: task.points,
-      category: mapCategoryToTaskType(task.category?.name),
+      category: mapCategoryToTaskType(categoryName),
       expiresAt: new Date(Date.now() + 86400000 * 2),
       progress: progress,
       completed: userTask?.status === 'Completed'
@@ -151,15 +153,15 @@ const Dashboard = () => {
   const userRank = rankCalculation();
   
   const recentActivity = completedTasks.slice(0, 4).map(task => {
-    const taskDetails = tasks.find(t => t.id === task.task_id);
-    const category = taskDetails?.category?.name || 'Task';
+    const taskDetails = task.task as Task | undefined;
+    const categoryName = taskDetails?.category ? (taskDetails.category as any).name : 'Task';
     const title = taskDetails?.title || 'Completed task';
     const time = task.completed_at ? new Date(task.completed_at) : new Date();
     const timeAgo = Math.floor((Date.now() - time.getTime()) / (1000 * 60 * 60));
     
     return {
-      icon: category.toLowerCase() === 'spotify' ? <Music2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />,
-      color: category.toLowerCase() === 'spotify' ? 'bg-[#1DB954]/10 text-[#1DB954]' : 'bg-amber-500/10 text-amber-500',
+      icon: categoryName.toLowerCase() === 'spotify' ? <Music2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />,
+      color: categoryName.toLowerCase() === 'spotify' ? 'bg-[#1DB954]/10 text-[#1DB954]' : 'bg-amber-500/10 text-amber-500',
       text: `Completed ${title}`,
       time: timeAgo <= 1 ? 'Just now' : timeAgo < 24 ? `${timeAgo} hours ago` : `${Math.floor(timeAgo / 24)} days ago`,
       amount: task.points_earned ? `+${task.points_earned} ST Coins` : null

@@ -53,8 +53,8 @@ const TasksAdminPage = () => {
     title: '',
     description: '',
     points: 50,
-    difficulty: 'Easy' as const,
-    verification_type: 'Automatic' as const,
+    difficulty: 'Easy' as "Easy" | "Medium" | "Hard",
+    verification_type: 'Automatic' as "Automatic" | "Manual",
     category_id: '',
     estimated_time: '5 minutes',
     instructions: '',
@@ -144,7 +144,7 @@ const TasksAdminPage = () => {
         verification_type: selectedTask.verification_type as "Automatic" | "Manual"
       };
       
-      await updateTaskMutation.mutateAsync(updatedTask);
+      await updateTaskMutation.mutateAsync(updatedTask as Task);
       toast.success('Task updated successfully');
     } catch (error) {
       console.error('Error updating task:', error);
@@ -164,13 +164,13 @@ const TasksAdminPage = () => {
     }
   };
   
-  const handleEditClick = (task: Task) => {
-    setSelectedTask({ ...task });
+  const handleEditClick = (task: any) => {
+    setSelectedTask({ ...task } as Task);
     setIsEditDialogOpen(true);
   };
   
-  const handleDeleteClick = (task: Task) => {
-    setSelectedTask(task);
+  const handleDeleteClick = (task: any) => {
+    setSelectedTask(task as Task);
     setIsDeleteDialogOpen(true);
   };
   
@@ -324,7 +324,7 @@ const TasksAdminPage = () => {
                 <Label className="text-right">Difficulty</Label>
                 <Select
                   value={newTask.difficulty}
-                  onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setNewTask({ ...newTask, difficulty: value })}
+                  onValueChange={(value) => setNewTask({ ...newTask, difficulty: value as "Easy" | "Medium" | "Hard" })}
                 >
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select difficulty" />
@@ -341,7 +341,7 @@ const TasksAdminPage = () => {
                 <Label className="text-right">Verification</Label>
                 <Select
                   value={newTask.verification_type}
-                  onValueChange={(value: 'Automatic' | 'Manual') => setNewTask({ ...newTask, verification_type: value })}
+                  onValueChange={(value) => setNewTask({ ...newTask, verification_type: value as "Automatic" | "Manual" })}
                 >
                   <SelectTrigger className="col-span-3">
                     <SelectValue placeholder="Select verification type" />
@@ -438,7 +438,7 @@ const TasksAdminPage = () => {
                   <Label className="text-right">Difficulty</Label>
                   <Select
                     value={selectedTask.difficulty}
-                    onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setSelectedTask({ ...selectedTask, difficulty: value })}
+                    onValueChange={(value) => setSelectedTask({ ...selectedTask, difficulty: value as "Easy" | "Medium" | "Hard" })}
                   >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select difficulty" />
@@ -455,7 +455,7 @@ const TasksAdminPage = () => {
                   <Label className="text-right">Verification</Label>
                   <Select
                     value={selectedTask.verification_type}
-                    onValueChange={(value: 'Automatic' | 'Manual') => setSelectedTask({ ...selectedTask, verification_type: value })}
+                    onValueChange={(value) => setSelectedTask({ ...selectedTask, verification_type: value as "Automatic" | "Manual" })}
                   >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select verification type" />
