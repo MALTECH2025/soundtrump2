@@ -492,17 +492,32 @@ export const updateUserTier = async (userId: string, tier: "Free" | "Premium") =
 // Enable real-time for tables (Run this on app initialization)
 export const enableRealtimeForTables = async () => {
   try {
+    // Create a function to call the edge function for enabling realtime
+    const enableRealtimeForTable = async (tableName: string) => {
+      const { data, error } = await supabase.functions.invoke('enable-realtime', {
+        body: { table_name: tableName }
+      });
+      
+      if (error) {
+        console.error(`Error enabling realtime for ${tableName}:`, error);
+        return false;
+      }
+      
+      console.log(`Realtime enabled for ${tableName}:`, data);
+      return true;
+    };
+    
     // Enable realtime for tasks table
-    await supabase.rpc('enable_realtime_for_table', { table_name: 'tasks' });
+    await enableRealtimeForTable('tasks');
     
     // Enable realtime for user_tasks table
-    await supabase.rpc('enable_realtime_for_table', { table_name: 'user_tasks' });
+    await enableRealtimeForTable('user_tasks');
     
     // Enable realtime for user_rewards table
-    await supabase.rpc('enable_realtime_for_table', { table_name: 'user_rewards' });
+    await enableRealtimeForTable('user_rewards');
     
     // Enable realtime for referred_users table
-    await supabase.rpc('enable_realtime_for_table', { table_name: 'referred_users' });
+    await enableRealtimeForTable('referred_users');
     
     console.log('Realtime enabled for tables');
     return true;

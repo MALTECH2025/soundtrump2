@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,6 +8,39 @@ import { ProfileProvider } from '@/context/ProfileContext';
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "@/lib/toast";
 import { enableRealtimeForTables } from '@/lib/api';
+
+// Import pages
+import Index from '@/pages/Index';
+import Login from '@/pages/Login';
+import Support from '@/pages/Support';
+import Contact from '@/pages/Contact';
+import DspTrust from '@/pages/DspTrust';
+import NotFound from '@/pages/NotFound';
+
+// Import legal pages
+import TermsOfService from '@/pages/legal/TermsOfService';
+import PrivacyPolicy from '@/pages/legal/PrivacyPolicy';
+import CookiesPolicy from '@/pages/legal/CookiesPolicy';
+import Disclaimer from '@/pages/legal/Disclaimer';
+import WhitePaper from '@/pages/legal/WhitePaper';
+
+// Import app pages
+import Dashboard from '@/pages/Dashboard';
+import Tasks from '@/pages/Tasks';
+import Rewards from '@/pages/Rewards';
+import Referrals from '@/pages/Referrals';
+import Leaderboard from '@/pages/Leaderboard';
+import Profile from '@/pages/Profile';
+import Settings from '@/pages/Settings';
+
+// Import admin pages
+import AdminDashboard from '@/pages/admin/Dashboard';
+import AdminUsers from '@/pages/admin/Users';
+import AdminTasks from '@/pages/admin/Tasks';
+
+// Import route guards
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import AdminRoute from '@/components/auth/AdminRoute';
 
 const queryClient = new QueryClient({
   defaultOptions: {
