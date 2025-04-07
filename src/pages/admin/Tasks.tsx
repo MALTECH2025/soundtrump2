@@ -1,18 +1,20 @@
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Edit, Trash2, Plus, Filter, AlertCircle, CheckCircle } from 'lucide-react';
-import AdminLayout from '@/components/admin/AdminLayout';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
 } from '@/components/ui/table';
-import {
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
   Dialog,
   DialogContent,
   DialogDescription,
@@ -21,245 +23,417 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from '@/lib/toast';
-import {
-  fetchTasks,
-  createTask,
-  updateTask,
-  deleteTask
-} from '@/lib/api';
+import { Edit, Trash2, Plus, CheckCircle2, Settings } from 'lucide-react';
+import { fetchTasks, createTask, updateTask, deleteTask } from '@/lib/api';
 import { Task } from '@/types';
 
-const AdminTasks = () => {
-  const [showDialog, setShowDialog] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentTask, setCurrentTask] = useState<Partial<Task>>(null);
-  const [filter, setFilter] = useState('all');
+const TasksAdminPage = () => {
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [configureRewardsOpen, setConfigureRewardsOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [globalReferralPoints, setGlobalReferralPoints] = useState<number>(10);
+  const [globalInfluencerMultiplier, setGlobalInfluencerMultiplier] = useState<number>(2);
   
-  const { data: tasks = [], isLoading, refetch } = useQuery({
-    queryKey: ['admin', 'tasks'],
+  const [newTask, setNewTask] = useState({
+    title: '',
+    description: '',
+    points: 50,
+    difficulty: 'Easy' as const,
+    verification_type: 'Automatic' as const,
+    category_id: '',
+    estimated_time: '5 minutes',
+    instructions: '',
+    active: true
+  });
+  
+  const queryClient = useQueryClient();
+  
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['tasks'],
     queryFn: fetchTasks
   });
   
-  const filteredTasks = tasks.filter((task: any) => {
-    if (filter === 'all') return true;
-    if (filter === 'active') return task.active;
-    if (filter === 'inactive') return !task.active;
-    return true;
+  const createTaskMutation = useMutation({
+    mutationFn: createTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setIsCreateDialogOpen(false);
+      resetNewTaskForm();
+    }
   });
   
-  const handleAddTask = () => {
-    setIsEditing(false);
-    setCurrentTask({
+  const updateTaskMutation = useMutation({
+    mutationFn: (task: Task) => updateTask(task.id, task),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setIsEditDialogOpen(false);
+      setSelectedTask(null);
+    }
+  });
+  
+  const deleteTaskMutation = useMutation({
+    mutationFn: (taskId: string) => deleteTask(taskId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setIsDeleteDialogOpen(false);
+      setSelectedTask(null);
+    }
+  });
+  
+  const resetNewTaskForm = () => {
+    setNewTask({
       title: '',
       description: '',
-      points: 10,
-      difficulty: 'Easy' as 'Easy' | 'Medium' | 'Hard',
-      verification_type: 'Automatic' as 'Automatic' | 'Manual',
+      points: 50,
+      difficulty: 'Easy',
+      verification_type: 'Automatic',
+      category_id: '',
+      estimated_time: '5 minutes',
+      instructions: '',
       active: true
     });
-    setShowDialog(true);
   };
   
-  const handleEditTask = (task: Task) => {
-    setIsEditing(true);
-    setCurrentTask(task);
-    setShowDialog(true);
-  };
-  
-  const handleDeleteTask = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this task?')) {
-      try {
-        await deleteTask(id);
-        refetch();
-      } catch (error) {
-        console.error('Error deleting task:', error);
-        toast.error('Failed to delete task');
+  const handleCreateTask = async () => {
+    try {
+      if (!newTask.title || !newTask.description) {
+        toast.error('Please fill in all required fields');
+        return;
       }
+      
+      await createTaskMutation.mutateAsync(newTask);
+      toast.success('Task created successfully');
+    } catch (error) {
+      console.error('Error creating task:', error);
+      toast.error('Failed to create task');
     }
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleUpdateTask = async () => {
     try {
-      if (isEditing) {
-        await updateTask(currentTask.id, currentTask);
-        toast.success('Task updated successfully');
-      } else {
-        await createTask(currentTask as any);
-        toast.success('Task created successfully');
+      if (!selectedTask || !selectedTask.title || !selectedTask.description) {
+        toast.error('Please fill in all required fields');
+        return;
       }
       
-      setShowDialog(false);
-      refetch();
+      await updateTaskMutation.mutateAsync(selectedTask);
+      toast.success('Task updated successfully');
     } catch (error) {
-      console.error('Error saving task:', error);
-      toast.error('Failed to save task');
+      console.error('Error updating task:', error);
+      toast.error('Failed to update task');
+    }
+  };
+  
+  const handleDeleteTask = async () => {
+    try {
+      if (!selectedTask) return;
+      
+      await deleteTaskMutation.mutateAsync(selectedTask.id);
+      toast.success('Task deleted successfully');
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast.error('Failed to delete task');
+    }
+  };
+  
+  const handleEditClick = (task: Task) => {
+    setSelectedTask({ ...task });
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleDeleteClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // Function to update system settings for referral rewards
+  const saveReferralRewardSettings = async () => {
+    try {
+      // In a real implementation, this would call an API endpoint to update settings
+      // For now, we'll just show a success toast
+      toast.success('Reward settings updated successfully');
+      setConfigureRewardsOpen(false);
+    } catch (error) {
+      console.error('Error updating reward settings:', error);
+      toast.error('Failed to update reward settings');
     }
   };
   
   return (
-    <AdminLayout title="Task Management" description="Manage the tasks for your users to complete">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Tasks</h2>
-          <p className="text-muted-foreground">Manage all tasks in the system</p>
+    <AdminLayout title="Manage Tasks" description="Create, edit, and manage tasks">
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Tasks</h1>
+          <div className="flex space-x-2">
+            <Button variant="outline" onClick={() => setConfigureRewardsOpen(true)}>
+              <Settings className="w-4 h-4 mr-2" />
+              Configure Rewards
+            </Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Create Task
+            </Button>
+          </div>
         </div>
         
-        <div className="flex gap-4">
-          <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Tasks</SelectItem>
-              <SelectItem value="active">Active Tasks</SelectItem>
-              <SelectItem value="inactive">Inactive Tasks</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Button onClick={handleAddTask}>
-            <Plus className="mr-2 h-4 w-4" /> Add Task
-          </Button>
-        </div>
-      </div>
-      
-      <div className="rounded-md border">
         {isLoading ? (
-          <div className="p-8 text-center">Loading tasks...</div>
-        ) : filteredTasks.length > 0 ? (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Points</TableHead>
-                <TableHead>Difficulty</TableHead>
-                <TableHead>Verification</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTasks.map((task: any) => (
-                <TableRow key={task.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{task.title}</div>
-                      <div className="text-sm text-muted-foreground">{task.description.substring(0, 50)}...</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{task.points}</TableCell>
-                  <TableCell>
-                    <Badge variant={
-                      task.difficulty === 'Easy' ? 'outline' : 
-                      task.difficulty === 'Medium' ? 'secondary' : 
-                      'destructive'
-                    }>
-                      {task.difficulty}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {task.verification_type}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={task.active ? 'outline' : 'destructive'}>
-                      {task.active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditTask(task as Task)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDeleteTask(task.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="space-y-2">
+            <div className="h-10 bg-muted rounded animate-pulse" />
+            <div className="h-10 bg-muted rounded animate-pulse" />
+            <div className="h-10 bg-muted rounded animate-pulse" />
+          </div>
         ) : (
-          <div className="p-8 text-center">
-            <AlertCircle className="mx-auto h-12 w-12 text-muted-foreground" />
-            <h3 className="mt-2 text-lg font-semibold">No tasks found</h3>
-            <p className="text-muted-foreground">
-              {filter !== 'all' ? 'Try changing the filter or ' : ''}
-              create a new task to get started.
-            </p>
+          <div className="border rounded-md">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Points</TableHead>
+                  <TableHead>Difficulty</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tasks.length > 0 ? (
+                  tasks.map((task) => (
+                    <TableRow key={task.id}>
+                      <TableCell className="font-medium">{task.title}</TableCell>
+                      <TableCell>{task.points}</TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            task.difficulty === 'Easy'
+                              ? 'bg-green-500'
+                              : task.difficulty === 'Medium'
+                              ? 'bg-yellow-500'
+                              : 'bg-red-500'
+                          }
+                        >
+                          {task.difficulty}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {task.active ? (
+                          <Badge variant="outline" className="border-green-500 text-green-500">
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="border-gray-500 text-gray-500">
+                            Inactive
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditClick(task)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteClick(task)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">
+                      No tasks found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
           </div>
         )}
-      </div>
-      
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? 'Edit Task' : 'Create New Task'}</DialogTitle>
-            <DialogDescription>
-              {isEditing 
-                ? 'Update the task details below.'
-                : 'Fill in the task details to create a new task for users to complete.'}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="title">Task Title</Label>
+        
+        {/* Create Task Dialog */}
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Create New Task</DialogTitle>
+              <DialogDescription>
+                Create a new task for users to complete.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-3">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Title</Label>
                 <Input
-                  id="title"
-                  value={currentTask?.title || ''}
-                  onChange={(e) => setCurrentTask({ ...currentTask, title: e.target.value })}
-                  required
+                  className="col-span-3"
+                  placeholder="Task title"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
                 />
               </div>
               
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Description</Label>
                 <Textarea
-                  id="description"
-                  value={currentTask?.description || ''}
-                  onChange={(e) => setCurrentTask({ ...currentTask, description: e.target.value })}
-                  required
+                  className="col-span-3"
+                  placeholder="Task description"
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
                 />
               </div>
               
-              <div className="grid grid-cols-3 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="points">Points</Label>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Points</Label>
+                <Input
+                  className="col-span-3"
+                  type="number"
+                  placeholder="50"
+                  value={newTask.points}
+                  onChange={(e) => setNewTask({ ...newTask, points: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Difficulty</Label>
+                <Select
+                  value={newTask.difficulty}
+                  onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setNewTask({ ...newTask, difficulty: value })}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select difficulty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Easy">Easy</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Hard">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Verification</Label>
+                <Select
+                  value={newTask.verification_type}
+                  onValueChange={(value: 'Automatic' | 'Manual') => setNewTask({ ...newTask, verification_type: value })}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select verification type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Automatic">Automatic</SelectItem>
+                    <SelectItem value="Manual">Manual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Est. Time</Label>
+                <Input
+                  className="col-span-3"
+                  placeholder="5 minutes"
+                  value={newTask.estimated_time}
+                  onChange={(e) => setNewTask({ ...newTask, estimated_time: e.target.value })}
+                />
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">Instructions</Label>
+                <Textarea
+                  className="col-span-3"
+                  placeholder="Detailed instructions for completing the task"
+                  value={newTask.instructions || ''}
+                  onChange={(e) => setNewTask({ ...newTask, instructions: e.target.value })}
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateTask} disabled={createTaskMutation.isPending}>
+                {createTaskMutation.isPending ? (
+                  <span className="flex items-center">
+                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Creating...
+                  </span>
+                ) : (
+                  'Create Task'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Edit Task Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+              <DialogDescription>
+                Update task details and settings.
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedTask && (
+              <div className="grid gap-4 py-3">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Title</Label>
                   <Input
-                    id="points"
-                    type="number"
-                    min="1"
-                    value={currentTask?.points || 10}
-                    onChange={(e) => setCurrentTask({ ...currentTask, points: parseInt(e.target.value) })}
-                    required
+                    className="col-span-3"
+                    placeholder="Task title"
+                    value={selectedTask.title}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, title: e.target.value })}
                   />
                 </div>
                 
-                <div className="grid gap-2">
-                  <Label htmlFor="difficulty">Difficulty</Label>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Description</Label>
+                  <Textarea
+                    className="col-span-3"
+                    placeholder="Task description"
+                    value={selectedTask.description}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, description: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Points</Label>
+                  <Input
+                    className="col-span-3"
+                    type="number"
+                    placeholder="50"
+                    value={selectedTask.points}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, points: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Difficulty</Label>
                   <Select
-                    value={currentTask?.difficulty || 'Easy'}
-                    onValueChange={(value) => setCurrentTask({ 
-                      ...currentTask, 
-                      difficulty: value as 'Easy' | 'Medium' | 'Hard' 
-                    })}
+                    value={selectedTask.difficulty}
+                    onValueChange={(value: 'Easy' | 'Medium' | 'Hard') => setSelectedTask({ ...selectedTask, difficulty: value })}
                   >
-                    <SelectTrigger id="difficulty">
+                    <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
                     <SelectContent>
@@ -270,17 +444,14 @@ const AdminTasks = () => {
                   </Select>
                 </div>
                 
-                <div className="grid gap-2">
-                  <Label htmlFor="verification">Verification</Label>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Verification</Label>
                   <Select
-                    value={currentTask?.verification_type || 'Automatic'}
-                    onValueChange={(value) => setCurrentTask({ 
-                      ...currentTask, 
-                      verification_type: value as 'Automatic' | 'Manual' 
-                    })}
+                    value={selectedTask.verification_type}
+                    onValueChange={(value: 'Automatic' | 'Manual') => setSelectedTask({ ...selectedTask, verification_type: value })}
                   >
-                    <SelectTrigger id="verification">
-                      <SelectValue placeholder="Select type" />
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select verification type" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Automatic">Automatic</SelectItem>
@@ -288,33 +459,149 @@ const AdminTasks = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Est. Time</Label>
+                  <Input
+                    className="col-span-3"
+                    placeholder="5 minutes"
+                    value={selectedTask.estimated_time || ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, estimated_time: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Instructions</Label>
+                  <Textarea
+                    className="col-span-3"
+                    placeholder="Detailed instructions for completing the task"
+                    value={selectedTask.instructions || ''}
+                    onChange={(e) => setSelectedTask({ ...selectedTask, instructions: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Status</Label>
+                  <Select
+                    value={selectedTask.active ? 'active' : 'inactive'}
+                    onValueChange={(value) => setSelectedTask({ ...selectedTask, active: value === 'active' })}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="active"
-                  checked={currentTask?.active ?? true}
-                  onChange={(e) => setCurrentTask({ ...currentTask, active: e.target.checked })}
-                  className="rounded border-gray-300 focus:ring-indigo-500 h-4 w-4 text-indigo-600"
-                />
-                <Label htmlFor="active" className="text-sm">Active (available to users)</Label>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateTask} disabled={updateTaskMutation.isPending}>
+                {updateTaskMutation.isPending ? (
+                  <span className="flex items-center">
+                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Updating...
+                  </span>
+                ) : (
+                  'Update Task'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Delete Task Confirmation */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the task "{selectedTask?.title}". This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteTask}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+        
+        {/* Configure Reward Points Dialog */}
+        <Dialog open={configureRewardsOpen} onOpenChange={setConfigureRewardsOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Configure Reward Settings</DialogTitle>
+              <DialogDescription>
+                Set global reward points for tasks and referrals.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-3">
+              <div className="space-y-4">
+                <h3 className="font-semibold">Referral Rewards</h3>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Referral Points</Label>
+                  <Input
+                    className="col-span-3"
+                    type="number"
+                    value={globalReferralPoints}
+                    onChange={(e) => setGlobalReferralPoints(parseInt(e.target.value) || 10)}
+                    min={1}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label className="text-right">Influencer Multiplier</Label>
+                  <Input
+                    className="col-span-3"
+                    type="number"
+                    value={globalInfluencerMultiplier}
+                    onChange={(e) => setGlobalInfluencerMultiplier(parseInt(e.target.value) || 2)}
+                    min={1}
+                    step={0.1}
+                  />
+                </div>
+                
+                <div className="bg-muted p-3 rounded-md">
+                  <div className="flex items-start">
+                    <CheckCircle2 className="w-4 h-4 mt-0.5 mr-2 text-green-500" />
+                    <div>
+                      <p className="text-sm">Current Reward Structure</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Normal users: {globalReferralPoints} points per referral<br />
+                        Influencers: {globalReferralPoints * globalInfluencerMultiplier} points per referral
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>
+              <Button variant="outline" onClick={() => setConfigureRewardsOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {isEditing ? 'Update Task' : 'Create Task'}
+              <Button onClick={saveReferralRewardSettings}>
+                Save Settings
               </Button>
             </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      </div>
     </AdminLayout>
   );
 };
 
-export default AdminTasks;
+export default TasksAdminPage;
