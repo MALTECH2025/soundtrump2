@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -32,9 +31,6 @@ const Referrals = () => {
     queryKey: ['referralCode', authUser?.id],
     queryFn: () => fetchReferralCode(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
-    onSuccess: (data) => {
-      if (data) setReferralCode(data);
-    }
   });
 
   useEffect(() => {

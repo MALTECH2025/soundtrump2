@@ -49,9 +49,9 @@ const Tasks = () => {
     description: '',
     category_id: '',
     points: 10,
-    difficulty: 'Easy',
+    difficulty: 'Easy' as 'Easy' | 'Medium' | 'Hard',
     active: true,
-    verification_type: 'Automatic',
+    verification_type: 'Automatic' as 'Automatic' | 'Manual',
     required_media: false,
   });
 
@@ -60,18 +60,24 @@ const Tasks = () => {
   const { isLoading: isTasksLoading, error: tasksError, data: tasksData } = useQuery({
     queryKey: ['tasks'],
     queryFn: fetchTasks,
-    onSuccess: (data) => {
-      setTasks(data as Task[]);
-    }
   });
+
+  useEffect(() => {
+    if (tasksData) {
+      setTasks(tasksData as Task[]);
+    }
+  }, [tasksData]);
 
   const { isLoading: isCategoriesLoading, error: categoriesError, data: categoriesData } = useQuery({
     queryKey: ['taskCategories'],
     queryFn: fetchTaskCategories,
-    onSuccess: (data) => {
-      setCategories(data as TaskCategory[]);
-    }
   });
+
+  useEffect(() => {
+    if (categoriesData) {
+      setCategories(categoriesData as TaskCategory[]);
+    }
+  }, [categoriesData]);
 
   const createTaskMutation = useMutation({
     mutationFn: async (task: any) => {
@@ -111,7 +117,12 @@ const Tasks = () => {
   };
 
   const handleCreateTask = (formData: Partial<Task>) => {
-    createTaskMutation.mutate(formData as Task);
+    // Ensure difficulty is one of the valid enum values
+    if (formData.difficulty && ['Easy', 'Medium', 'Hard'].includes(formData.difficulty as string)) {
+      createTaskMutation.mutate(formData as Task);
+    } else {
+      toast.error("Invalid difficulty value");
+    }
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -129,9 +140,9 @@ const Tasks = () => {
       description: '',
       category_id: '',
       points: 10,
-      difficulty: 'Easy',
+      difficulty: 'Easy' as 'Easy' | 'Medium' | 'Hard',
       active: true,
-      verification_type: 'Automatic',
+      verification_type: 'Automatic' as 'Automatic' | 'Manual',
       required_media: false,
     });
   };
@@ -223,7 +234,7 @@ const Tasks = () => {
                     <Label htmlFor="difficulty" className="text-right">
                       Difficulty
                     </Label>
-                    <Select onValueChange={(value) => setNewTaskForm({ ...newTaskForm, difficulty: value })}>
+                    <Select onValueChange={(value) => setNewTaskForm({ ...newTaskForm, difficulty: value as "Easy" | "Medium" | "Hard" })}>
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Select difficulty" />
                       </SelectTrigger>
@@ -238,7 +249,7 @@ const Tasks = () => {
                     <Label htmlFor="verification_type" className="text-right">
                       Verification Type
                     </Label>
-                    <Select onValueChange={(value) => setNewTaskForm({ ...newTaskForm, verification_type: value })}>
+                    <Select onValueChange={(value) => setNewTaskForm({ ...newTaskForm, verification_type: value as "Automatic" | "Manual" })}>
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Select verification type" />
                       </SelectTrigger>
@@ -307,7 +318,7 @@ const Tasks = () => {
                       <TableCell>{task.points}</TableCell>
                       <TableCell>
                         <Select
-                          value={task.difficulty as "Easy" | "Medium" | "Hard"}
+                          value={task.difficulty}
                           onValueChange={(value) => handleUpdateTask(task.id, { difficulty: value as "Easy" | "Medium" | "Hard" })}
                         >
                           <SelectTrigger>
@@ -413,8 +424,8 @@ const Tasks = () => {
                     Difficulty
                   </Label>
                   <Select
-                    value={task.difficulty as "Easy" | "Medium" | "Hard"}
-                    onValueChange={(value) => handleUpdateTask(task.id, { difficulty: value as "Easy" | "Medium" | "Hard" })}
+                    value={selectedTask.difficulty}
+                    onValueChange={(value) => handleUpdateTask(selectedTask.id, { difficulty: value as "Easy" | "Medium" | "Hard" })}
                   >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select difficulty" />
@@ -431,8 +442,8 @@ const Tasks = () => {
                     Verification Type
                   </Label>
                   <Select
-                    value={task.verification_type as "Automatic" | "Manual"}
-                    onValueChange={(value) => handleUpdateTask(task.id, { verification_type: value as "Automatic" | "Manual" })}
+                    value={selectedTask.verification_type}
+                    onValueChange={(value) => handleUpdateTask(selectedTask.id, { verification_type: value as "Automatic" | "Manual" })}
                   >
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Select verification type" />

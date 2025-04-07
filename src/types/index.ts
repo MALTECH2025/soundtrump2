@@ -36,6 +36,7 @@ export interface Task {
   estimated_time?: string;
   instructions?: string;
   verification_type: "Automatic" | "Manual";
+  required_media?: boolean;
   active: boolean;
   created_at: string;
   updated_at: string;
