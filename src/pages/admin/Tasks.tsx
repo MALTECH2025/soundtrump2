@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -66,7 +65,14 @@ const TasksAdminPage = () => {
   
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks'],
-    queryFn: fetchTasks
+    queryFn: async () => {
+      const fetchedTasks = await fetchTasks();
+      return fetchedTasks.map(task => ({
+        ...task,
+        difficulty: task.difficulty as "Easy" | "Medium" | "Hard",
+        verification_type: task.verification_type as "Automatic" | "Manual"
+      }));
+    }
   });
   
   const createTaskMutation = useMutation({
@@ -132,7 +138,13 @@ const TasksAdminPage = () => {
         return;
       }
       
-      await updateTaskMutation.mutateAsync(selectedTask);
+      const updatedTask = {
+        ...selectedTask,
+        difficulty: selectedTask.difficulty as "Easy" | "Medium" | "Hard",
+        verification_type: selectedTask.verification_type as "Automatic" | "Manual"
+      };
+      
+      await updateTaskMutation.mutateAsync(updatedTask);
       toast.success('Task updated successfully');
     } catch (error) {
       console.error('Error updating task:', error);
@@ -162,11 +174,8 @@ const TasksAdminPage = () => {
     setIsDeleteDialogOpen(true);
   };
   
-  // Function to update system settings for referral rewards
   const saveReferralRewardSettings = async () => {
     try {
-      // In a real implementation, this would call an API endpoint to update settings
-      // For now, we'll just show a success toast
       toast.success('Reward settings updated successfully');
       setConfigureRewardsOpen(false);
     } catch (error) {
@@ -270,7 +279,6 @@ const TasksAdminPage = () => {
           </div>
         )}
         
-        {/* Create Task Dialog */}
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
@@ -384,7 +392,6 @@ const TasksAdminPage = () => {
           </DialogContent>
         </Dialog>
         
-        {/* Edit Task Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
@@ -516,7 +523,6 @@ const TasksAdminPage = () => {
           </DialogContent>
         </Dialog>
         
-        {/* Delete Task Confirmation */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -537,7 +543,6 @@ const TasksAdminPage = () => {
           </AlertDialogContent>
         </AlertDialog>
         
-        {/* Configure Reward Points Dialog */}
         <Dialog open={configureRewardsOpen} onOpenChange={setConfigureRewardsOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>

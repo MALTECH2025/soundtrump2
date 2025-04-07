@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -38,7 +37,6 @@ const Referrals = () => {
     enabled: isAuthenticated && !!authUser?.id,
   });
   
-  // Set up realtime subscription for referrals
   useEffect(() => {
     if (!isAuthenticated || !authUser?.id) return;
     
@@ -61,7 +59,6 @@ const Referrals = () => {
     if (referralsLoading || codeLoading) {
       setIsLoading(true);
     } else {
-      // Simulate loading for a smoother UX
       const timer = setTimeout(() => {
         setIsLoading(false);
       }, 500);
@@ -119,13 +116,11 @@ const Referrals = () => {
     }
   };
   
-  // Calculate progress towards influencer status (500 referrals)
   const influencerThreshold = 500;
   const referralCount = referrals.length;
   const referralProgress = Math.min((referralCount / influencerThreshold) * 100, 100);
   const isInfluencer = user?.role?.status === "Influencer";
   
-  // Animation variants
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
@@ -310,7 +305,7 @@ const Referrals = () => {
                               animate="visible"
                               className="space-y-2 max-h-[300px] overflow-y-auto pr-2"
                             >
-                              {referrals.map((referral, index) => (
+                              {referrals.map((referral) => (
                                 <motion.div
                                   key={referral.id}
                                   variants={fadeInUp}
@@ -359,7 +354,7 @@ const Referrals = () => {
                               animate="visible"
                               className="space-y-2 max-h-[300px] overflow-y-auto pr-2"
                             >
-                              {referrals.slice(0, 5).map((referral, index) => (
+                              {referrals.slice(0, 5).map((referral) => (
                                 <motion.div
                                   key={referral.id}
                                   variants={fadeInUp}
