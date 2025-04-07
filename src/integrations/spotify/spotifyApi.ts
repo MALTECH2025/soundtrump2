@@ -1,263 +1,174 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/lib/toast";
 import { connectService } from "@/lib/api";
 
-// Spotify API configuration
-const SPOTIFY_CLIENT_ID = '9590f00f4f6b4fc080b08c85dc699e9f';
-// Use window.location.origin for dynamic redirect instead of hardcoded value
-const SPOTIFY_REDIRECT_URI = `${window.location.origin}/settings`;
+// Constants for Spotify API
+const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || "";
+const SPOTIFY_REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI || "";
 const SPOTIFY_SCOPES = [
-  'user-read-private',
-  'user-read-email',
-  'user-top-read',
-  'user-library-read',
-  'playlist-read-private',
-  'user-read-recently-played'
-].join(' ');
+  "user-read-private",
+  "user-read-email",
+  "playlist-read-private",
+  "user-top-read",
+  "user-library-read",
+  "user-read-recently-played",
+  "user-follow-read"
+];
 
-// Initiate Spotify authentication flow
-export const initiateSpotifyAuth = () => {
-  // Generate a random state value for security
-  const state = Math.random().toString(36).substring(2, 15);
+// Generate authorization URL for Spotify OAuth
+export const getSpotifyAuthUrl = () => {
+  const state = generateRandomString(16);
+  const authUrl = new URL("https://accounts.spotify.com/authorize");
   
-  // Store the state in localStorage for verification when the user returns
-  localStorage.setItem('spotify_auth_state', state);
+  const params = {
+    response_type: "code",
+    client_id: SPOTIFY_CLIENT_ID,
+    scope: SPOTIFY_SCOPES.join(" "),
+    redirect_uri: SPOTIFY_REDIRECT_URI,
+    state: state
+  };
   
-  // Build the Spotify authorization URL
-  const authUrl = new URL('https://accounts.spotify.com/authorize');
-  authUrl.searchParams.append('client_id', SPOTIFY_CLIENT_ID);
-  authUrl.searchParams.append('response_type', 'code');
-  authUrl.searchParams.append('redirect_uri', SPOTIFY_REDIRECT_URI);
-  authUrl.searchParams.append('state', state);
-  authUrl.searchParams.append('scope', SPOTIFY_SCOPES);
+  authUrl.search = new URLSearchParams(params).toString();
   
-  // Redirect the user to the Spotify authorization page
-  window.location.href = authUrl.toString();
+  // Store state in local storage to verify callback
+  localStorage.setItem("spotify_auth_state", state);
+  
+  return authUrl.toString();
 };
 
-// Handle the Spotify callback after authorization
-export const handleSpotifyCallback = async (code: string, state: string) => {
+// Exchange code for access token
+export const exchangeSpotifyCode = async (code: string) => {
   try {
-    // Verify the state parameter to prevent CSRF attacks
-    const storedState = localStorage.getItem('spotify_auth_state');
-    if (state !== storedState) {
-      throw new Error('State verification failed');
-    }
-    
-    // Clear the stored state
-    localStorage.removeItem('spotify_auth_state');
-    
-    // Exchange the authorization code for an access token
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${btoa(`${SPOTIFY_CLIENT_ID}:b749e8a812b9421a867b62eaabc72b39`)}`
-      },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        redirect_uri: SPOTIFY_REDIRECT_URI
-      })
+    // Code exchange should be done server-side to protect client secret
+    const { data, error } = await supabase.functions.invoke('spotify-token-exchange', {
+      body: { code, redirect_uri: SPOTIFY_REDIRECT_URI }
     });
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error_description || 'Failed to exchange code for token');
+    if (error) throw error;
+    
+    if (data?.access_token) {
+      // Connect the Spotify service to the user's account
+      const expiresAt = new Date(Date.now() + (data.expires_in * 1000)).toISOString();
+      
+      // Get user profile to store Spotify ID
+      const userProfile = await getSpotifyUserProfile(data.access_token);
+      
+      await connectService(
+        'spotify',
+        data.access_token,
+        data.refresh_token,
+        expiresAt,
+        userProfile.id
+      );
+      
+      return {
+        success: true,
+        message: "Successfully connected Spotify account"
+      };
     }
     
-    const tokenData = await response.json();
-    
-    // Get the user's Spotify profile
-    const profileResponse = await fetch('https://api.spotify.com/v1/me', {
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`
-      }
-    });
-    
-    if (!profileResponse.ok) {
-      throw new Error('Failed to fetch Spotify profile');
-    }
-    
-    const profileData = await profileResponse.json();
-    
-    // Get the current user from Supabase
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('You must be logged in to connect Spotify');
-    }
-    
-    // Save the Spotify connection in our database
-    await connectService(
-      user.id,
-      'spotify',
-      profileData.id,
-      tokenData.access_token,
-      tokenData.refresh_token,
-      new Date(Date.now() + tokenData.expires_in * 1000)
-    );
-    
-    toast.success('Connected to Spotify successfully!');
-    return {
-      success: true,
-      profile: profileData
-    };
-  } catch (error: any) {
-    console.error('Error connecting to Spotify:', error);
-    toast.error(error.message || 'Failed to connect to Spotify');
     return {
       success: false,
-      error: error.message
+      message: "Failed to exchange code for access token"
+    };
+  } catch (error: any) {
+    console.error("Error exchanging Spotify code:", error);
+    return {
+      success: false,
+      message: error.message || "An error occurred while connecting Spotify"
     };
   }
 };
 
-// Get user's top tracks
-export const getSpotifyTopTracks = async (timeRange = 'medium_term') => {
+// Refresh Spotify token
+export const refreshSpotifyToken = async () => {
   try {
-    // Get the current user
+    // Retrieve the current user
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("User not authenticated");
     
-    if (!user) {
-      throw new Error('You must be logged in');
-    }
-    
-    // Get the Spotify connection from the database
-    const { data: serviceData, error } = await supabase
-      .from('connected_services')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('service_name', 'spotify')
-      .single();
-    
-    if (error || !serviceData) {
-      throw new Error('Spotify not connected');
-    }
-    
-    // Check if the token is expired and needs refreshing
-    const now = new Date();
-    const expiresAt = new Date(serviceData.expires_at);
-    
-    if (now >= expiresAt) {
-      // Token is expired, refresh it
-      try {
-        const response = await fetch(`${window.location.origin}/api/spotify-refresh-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            refreshToken: serviceData.refresh_token,
-            userId: user.id
-          })
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          // If token refresh failed and service was disconnected
-          if (errorData.disconnected) {
-            toast.error('Your Spotify connection has expired. Please reconnect.');
-            return [];
-          }
-          throw new Error(errorData.error || 'Failed to refresh token');
-        }
-      } catch (refreshError) {
-        console.error('Error refreshing token:', refreshError);
-        throw new Error('Failed to refresh access token');
-      }
-    }
-    
-    // Fetch top tracks
-    const response = await fetch(`https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=20`, {
-      headers: {
-        'Authorization': `Bearer ${serviceData.access_token}`
-      }
+    // Call edge function to refresh token
+    const { data, error } = await supabase.functions.invoke('spotify-refresh-token', {
+      body: { user_id: user.id }
     });
     
-    if (!response.ok) {
-      throw new Error('Failed to fetch top tracks');
-    }
+    if (error) throw error;
     
-    const data = await response.json();
-    return data.items;
+    return data;
   } catch (error: any) {
-    console.error('Error fetching Spotify top tracks:', error);
-    return [];
+    console.error("Error refreshing Spotify token:", error);
+    throw error;
   }
+};
+
+// Get Spotify user profile
+export const getSpotifyUserProfile = async (accessToken: string) => {
+  const response = await fetch('https://api.spotify.com/v1/me', {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Spotify profile: ${response.status}`);
+  }
+  
+  return await response.json();
+};
+
+// Helper function to generate random string for state parameter
+function generateRandomString(length: number) {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let text = '';
+  
+  for (let i = 0; i < length; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  
+  return text;
+}
+
+// Get user's top tracks
+export const getTopTracks = async (accessToken: string, timeRange = 'medium_term', limit = 10) => {
+  const response = await fetch(`https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=${limit}`, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch top tracks: ${response.status}`);
+  }
+  
+  return await response.json();
 };
 
 // Get user's recently played tracks
-export const getSpotifyRecentlyPlayed = async (limit = 20) => {
-  try {
-    // Get the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('You must be logged in');
+export const getRecentlyPlayed = async (accessToken: string, limit = 10) => {
+  const response = await fetch(`https://api.spotify.com/v1/me/player/recently-played?limit=${limit}`, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
     }
-    
-    // Get the Spotify connection from the database
-    const { data: serviceData, error } = await supabase
-      .from('connected_services')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('service_name', 'spotify')
-      .single();
-    
-    if (error || !serviceData) {
-      throw new Error('Spotify not connected');
-    }
-    
-    // Check if the token is expired and needs refreshing
-    const now = new Date();
-    const expiresAt = new Date(serviceData.expires_at);
-    
-    if (now >= expiresAt) {
-      // Token is expired, refresh it using the edge function
-      try {
-        const response = await fetch(`${window.location.origin}/api/spotify-refresh-token`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            refreshToken: serviceData.refresh_token,
-            userId: user.id
-          })
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          // If token refresh failed and service was disconnected
-          if (errorData.disconnected) {
-            toast.error('Your Spotify connection has expired. Please reconnect.');
-            return [];
-          }
-          throw new Error(errorData.error || 'Failed to refresh token');
-        }
-      } catch (refreshError) {
-        console.error('Error refreshing token:', refreshError);
-        throw new Error('Failed to refresh access token');
-      }
-    }
-    
-    // Fetch recently played tracks
-    const response = await fetch(`https://api.spotify.com/v1/me/player/recently-played?limit=${limit}`, {
-      headers: {
-        'Authorization': `Bearer ${serviceData.access_token}`
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch recently played tracks');
-    }
-    
-    const data = await response.json();
-    return data.items;
-  } catch (error: any) {
-    console.error('Error fetching Spotify recently played tracks:', error);
-    return [];
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch recently played: ${response.status}`);
   }
+  
+  return await response.json();
+};
+
+// Check if a user has saved a specific track
+export const checkSavedTracks = async (accessToken: string, trackIds: string[]) => {
+  const response = await fetch(`https://api.spotify.com/v1/me/tracks/contains?ids=${trackIds.join(',')}`, {
+    headers: {
+      'Authorization': `Bearer ${accessToken}`
+    }
+  });
+  
+  if (!response.ok) {
+    throw new Error(`Failed to check saved tracks: ${response.status}`);
+  }
+  
+  return await response.json();
 };

@@ -128,7 +128,7 @@ export const fetchUserTasks = async (userId: string) => {
     .from('user_tasks')
     .select(`
       *,
-      task:tasks(*)
+      task:tasks(*, category:task_categories(id, name, description))
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
@@ -221,13 +221,42 @@ export const enableRealtimeForTable = async (tableName: string) => {
 
 export const getSystemStats = async () => {
   try {
-    // You can replace this with an actual API call to get system stats
-    // For now, returning mock data
+    // Get actual stats from Supabase
+    const { data: userData, error: userError } = await supabase
+      .from('profiles')
+      .select('count', { count: 'exact' });
+    
+    const { data: taskData, error: taskError } = await supabase
+      .from('tasks')
+      .select('count', { count: 'exact' });
+    
+    const { data: rewardData, error: rewardError } = await supabase
+      .from('rewards')
+      .select('count', { count: 'exact' });
+    
+    const { data: pointsData, error: pointsError } = await supabase
+      .from('profiles')
+      .select('points');
+    
+    if (userError || taskError || rewardError || pointsError) {
+      console.error('Error fetching system stats:', userError || taskError || rewardError || pointsError);
+      // Return fallback data if there's an error
+      return {
+        totalUsers: 0,
+        totalTasks: 0,
+        totalRewards: 0,
+        totalPoints: 0
+      };
+    }
+    
+    // Calculate total points
+    const totalPoints = pointsData?.reduce((sum, profile) => sum + (profile.points || 0), 0) || 0;
+    
     return {
-      totalUsers: 120,
-      totalTasks: 35,
-      totalRewards: 12,
-      totalPoints: 15480
+      totalUsers: userData?.count || 0,
+      totalTasks: taskData?.count || 0,
+      totalRewards: rewardData?.count || 0,
+      totalPoints: totalPoints
     };
   } catch (error) {
     console.error('Error fetching system stats:', error);
@@ -240,7 +269,13 @@ export const getSystemStats = async () => {
   }
 };
 
-export const connectService = async (serviceName: string, accessToken: string, refreshToken?: string, expiresAt?: string, serviceUserId?: string) => {
+export const connectService = async (
+  serviceName: string, 
+  accessToken: string, 
+  refreshToken?: string, 
+  expiresAt?: string, 
+  serviceUserId?: string
+) => {
   try {
     const userId = (await supabase.auth.getUser()).data.user?.id;
     if (!userId) throw new Error('User not authenticated');

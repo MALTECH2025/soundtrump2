@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -19,10 +18,11 @@ import { fetchTasks, fetchUserTasks, fetchUserReferrals, fetchReferralCode } fro
 import { UserTask, Task } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
-const mapCategoryToTaskType = (categoryName: string | undefined): "spotify" | "social" | "referral" | "other" => {
-  if (!categoryName) return "other";
+const mapCategoryToTaskType = (task: any): "spotify" | "social" | "referral" | "other" => {
+  if (!task.category) return "other";
   
-  const lowerCaseName = categoryName.toLowerCase();
+  const categoryName = typeof task.category === 'object' ? task.category.name : task.category;
+  const lowerCaseName = (categoryName || "").toLowerCase();
   
   if (lowerCaseName === "spotify") return "spotify";
   if (lowerCaseName === "social") return "social";
@@ -123,14 +123,13 @@ const Dashboard = () => {
   const activeTasks = tasks.filter(task => task.active).map(task => {
     const userTask = userTasks.find(ut => ut.task_id === task.id);
     const progress = userTask ? (userTask.status === 'Completed' ? 100 : 60) : 0;
-    const categoryName = task.category ? (task.category as any).name : undefined;
     
     return {
       id: task.id,
       title: task.title,
       description: task.description,
       reward: task.points,
-      category: mapCategoryToTaskType(categoryName),
+      category: mapCategoryToTaskType(task),
       expiresAt: new Date(Date.now() + 86400000 * 2),
       progress: progress,
       completed: userTask?.status === 'Completed'

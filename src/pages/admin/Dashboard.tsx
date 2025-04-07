@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Users, ListChecks, Gift, Coins } from 'lucide-react';
@@ -22,13 +21,32 @@ import {
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  
-  const { data: stats, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['admin', 'stats'],
-    queryFn: getSystemStats,
-    refetchInterval: 60000 // Refresh every minute
-  });
-  
+  const [stats, setStats] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        const stats = await getSystemStats();
+        setStats(stats);
+      } catch (error) {
+        console.error('Error fetching system stats:', error);
+        // Set default values if fetch fails
+        setStats({
+          totalUsers: 0,
+          totalTasks: 0, 
+          totalRewards: 0,
+          totalPoints: 0
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   const statsItems = [
     {
       title: 'Total Users',
@@ -76,7 +94,12 @@ const AdminDashboard = () => {
   return (
     <AdminLayout title="Dashboard" description="Admin system dashboard with key metrics">
       <div className="space-y-6">
-        <AdminStats stats={statsItems} isLoading={isLoadingStats} />
+        <AdminStats 
+          totalUsers={stats?.totalUsers || 0}
+          totalTasks={stats?.totalTasks || 0}
+          totalRewards={stats?.totalRewards || 0}
+          totalPoints={stats?.totalPoints || 0}
+        />
         
         <Tabs defaultValue="overview" className="space-y-4" onValueChange={setActiveTab}>
           <TabsList>
