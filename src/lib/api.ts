@@ -64,6 +64,25 @@ export const fetchUserTasks = async (userId: string) => {
   return data;
 };
 
+export const completeTask = async (taskId: string) => {
+  try {
+    // Call the complete_task database function
+    const { data, error } = await supabase.rpc('complete_task', {
+      task_id: taskId
+    });
+    
+    if (error) throw error;
+    
+    return data;
+  } catch (error: any) {
+    console.error('Error completing task:', error);
+    return { 
+      success: false, 
+      message: error.message || 'An error occurred while completing the task'
+    };
+  }
+};
+
 export const fetchTaskCategories = async () => {
   const { data, error } = await supabase
     .from('task_categories')

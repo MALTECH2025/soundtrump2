@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -28,12 +28,13 @@ import {
   Instagram,
   PlayCircle
 } from 'lucide-react';
-import { fetchTasks, fetchUserTasks } from '@/lib/api';
+import { fetchTasks, fetchUserTasks, completeTask } from '@/lib/api';
 import { Task, UserTask } from '@/types';
 
 const Tasks = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, user: authUser } = useAuth();
+  const queryClient = useQueryClient();
   
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
@@ -45,6 +46,22 @@ const Tasks = () => {
     queryKey: ['userTasks', authUser?.id],
     queryFn: () => fetchUserTasks(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
+  });
+
+  const completeTaskMutation = useMutation({
+    mutationFn: completeTask,
+    onSuccess: (data) => {
+      if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ['userTasks'] });
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        toast.success(data.message || 'Task completed successfully!');
+      } else {
+        toast.error(data.message || 'Failed to complete task');
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'An error occurred');
+    }
   });
   
   useEffect(() => {
@@ -63,8 +80,7 @@ const Tasks = () => {
   };
   
   const handleTaskComplete = (taskId: string) => {
-    toast.success(`Starting task...`);
-    // In a real app, this would call an API to mark the task as started or completed
+    completeTaskMutation.mutate(taskId);
   };
 
   const getCategoryIcon = (categoryName: string | undefined) => {
@@ -140,8 +156,21 @@ const Tasks = () => {
               Completed
             </Badge>
           ) : (
-            <Button onClick={() => handleTaskComplete(task.id)}>
-              {progress === 100 ? 'Claim Reward' : 'Start Task'}
+            <Button 
+              onClick={() => handleTaskComplete(task.id)}
+              disabled={completeTaskMutation.isPending}
+            >
+              {completeTaskMutation.isPending ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </>
+              ) : (
+                'Complete Task'
+              )}
             </Button>
           )}
         </CardFooter>
