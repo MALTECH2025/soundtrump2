@@ -88,6 +88,10 @@ const Tasks = () => {
       setNewTaskDialogOpen(false);
       resetNewTaskForm();
       toast.success("Task created successfully");
+    },
+    onError: (error: any) => {
+      console.error("Error creating task:", error);
+      toast.error(error.message || "Failed to create task");
     }
   });
 
@@ -116,10 +120,27 @@ const Tasks = () => {
     updateTaskMutation.mutate({ taskId, updates });
   };
 
-  const handleCreateTask = (formData: Partial<Task>) => {
-    // Ensure difficulty is one of the valid enum values
-    if (formData.difficulty && ['Easy', 'Medium', 'Hard'].includes(formData.difficulty as string)) {
-      createTaskMutation.mutate(formData as Task);
+  const handleCreateTask = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    if (!newTaskForm.title) {
+      toast.error("Title is required");
+      return;
+    }
+    
+    if (!newTaskForm.description) {
+      toast.error("Description is required");
+      return;
+    }
+    
+    if (!newTaskForm.category_id) {
+      toast.error("Category is required");
+      return;
+    }
+
+    if (newTaskForm.difficulty && ['Easy', 'Medium', 'Hard'].includes(newTaskForm.difficulty)) {
+      console.log("Creating task with data:", newTaskForm);
+      createTaskMutation.mutate(newTaskForm);
     } else {
       toast.error("Invalid difficulty value");
     }
@@ -177,117 +198,134 @@ const Tasks = () => {
                     Add a new task for users to complete.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="title" className="text-right">
-                      Title
-                    </Label>
-                    <Input
-                      type="text"
-                      id="title"
-                      value={newTaskForm.title}
-                      onChange={(e) => setNewTaskForm({ ...newTaskForm, title: e.target.value })}
-                      className="col-span-3"
-                    />
+                <form onSubmit={handleCreateTask}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="title" className="text-right">
+                        Title
+                      </Label>
+                      <Input
+                        type="text"
+                        id="title"
+                        value={newTaskForm.title}
+                        onChange={(e) => setNewTaskForm({ ...newTaskForm, title: e.target.value })}
+                        className="col-span-3"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="description" className="text-right">
+                        Description
+                      </Label>
+                      <Textarea
+                        id="description"
+                        value={newTaskForm.description}
+                        onChange={(e) => setNewTaskForm({ ...newTaskForm, description: e.target.value })}
+                        className="col-span-3"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="category" className="text-right">
+                        Category
+                      </Label>
+                      <Select 
+                        value={newTaskForm.category_id} 
+                        onValueChange={(value) => setNewTaskForm({ ...newTaskForm, category_id: value })}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="points" className="text-right">
+                        Points
+                      </Label>
+                      <Input
+                        type="number"
+                        id="points"
+                        value={newTaskForm.points}
+                        onChange={(e) => setNewTaskForm({ ...newTaskForm, points: parseInt(e.target.value) })}
+                        className="col-span-3"
+                        min="1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="difficulty" className="text-right">
+                        Difficulty
+                      </Label>
+                      <Select 
+                        value={newTaskForm.difficulty}
+                        onValueChange={(value) => setNewTaskForm({ ...newTaskForm, difficulty: value as "Easy" | "Medium" | "Hard" })}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select difficulty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Easy">Easy</SelectItem>
+                          <SelectItem value="Medium">Medium</SelectItem>
+                          <SelectItem value="Hard">Hard</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="verification_type" className="text-right">
+                        Verification Type
+                      </Label>
+                      <Select 
+                        value={newTaskForm.verification_type}
+                        onValueChange={(value) => setNewTaskForm({ ...newTaskForm, verification_type: value as "Automatic" | "Manual" })}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select verification type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Automatic">Automatic</SelectItem>
+                          <SelectItem value="Manual">Manual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="active" className="text-right">
+                        Active
+                      </Label>
+                      <Switch
+                        id="active"
+                        checked={newTaskForm.active}
+                        onCheckedChange={(checked) => setNewTaskForm({ ...newTaskForm, active: checked })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="required_media" className="text-right">
+                        Required Media
+                      </Label>
+                      <Switch
+                        id="required_media"
+                        checked={newTaskForm.required_media}
+                        onCheckedChange={(checked) => setNewTaskForm({ ...newTaskForm, required_media: checked })}
+                      />
+                    </div>
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="description" className="text-right">
-                      Description
-                    </Label>
-                    <Textarea
-                      id="description"
-                      value={newTaskForm.description}
-                      onChange={(e) => setNewTaskForm({ ...newTaskForm, description: e.target.value })}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="category" className="text-right">
-                      Category
-                    </Label>
-                    <Select onValueChange={(value) => setNewTaskForm({ ...newTaskForm, category_id: value })}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="points" className="text-right">
-                      Points
-                    </Label>
-                    <Input
-                      type="number"
-                      id="points"
-                      value={newTaskForm.points}
-                      onChange={(e) => setNewTaskForm({ ...newTaskForm, points: parseInt(e.target.value) })}
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="difficulty" className="text-right">
-                      Difficulty
-                    </Label>
-                    <Select onValueChange={(value) => setNewTaskForm({ ...newTaskForm, difficulty: value as "Easy" | "Medium" | "Hard" })}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select difficulty" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Easy">Easy</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="Hard">Hard</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="verification_type" className="text-right">
-                      Verification Type
-                    </Label>
-                    <Select onValueChange={(value) => setNewTaskForm({ ...newTaskForm, verification_type: value as "Automatic" | "Manual" })}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select verification type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Automatic">Automatic</SelectItem>
-                        <SelectItem value="Manual">Manual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="active" className="text-right">
-                      Active
-                    </Label>
-                    <Switch
-                      id="active"
-                      checked={newTaskForm.active}
-                      onCheckedChange={(checked) => setNewTaskForm({ ...newTaskForm, active: checked })}
-                    />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="required_media" className="text-right">
-                      Required Media
-                    </Label>
-                    <Switch
-                      id="required_media"
-                      checked={newTaskForm.required_media}
-                      onCheckedChange={(checked) => setNewTaskForm({ ...newTaskForm, required_media: checked })}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="secondary" onClick={() => setNewTaskDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" onClick={() => handleCreateTask(newTaskForm)}>
-                    Create
-                  </Button>
-                </DialogFooter>
+                  <DialogFooter>
+                    <Button type="button" variant="secondary" onClick={() => setNewTaskDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={createTaskMutation.isPending}
+                    >
+                      {createTaskMutation.isPending ? 'Creating...' : 'Create'}
+                    </Button>
+                  </DialogFooter>
+                </form>
               </DialogContent>
             </Dialog>
           </div>
