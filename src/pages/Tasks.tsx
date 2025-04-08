@@ -51,12 +51,19 @@ const Tasks = () => {
   const completeTaskMutation = useMutation({
     mutationFn: completeTask,
     onSuccess: (data) => {
-      if (data.success) {
-        queryClient.invalidateQueries({ queryKey: ['userTasks'] });
-        queryClient.invalidateQueries({ queryKey: ['tasks'] });
-        toast.success(data.message || 'Task completed successfully!');
+      // Handle the response properly based on its structure
+      if (typeof data === 'object' && data !== null && 'success' in data) {
+        if (data.success) {
+          queryClient.invalidateQueries({ queryKey: ['userTasks'] });
+          queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          toast.success(data.message || 'Task completed successfully!');
+        } else {
+          toast.error(data.message || 'Failed to complete task');
+        }
       } else {
-        toast.error(data.message || 'Failed to complete task');
+        // Handle unexpected response format
+        console.error('Unexpected response format:', data);
+        toast.error('An unexpected error occurred');
       }
     },
     onError: (error: any) => {
