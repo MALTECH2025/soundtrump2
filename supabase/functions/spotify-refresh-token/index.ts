@@ -40,6 +40,8 @@ Deno.serve(async (req) => {
     const clientId = Deno.env.get('SPOTIFY_CLIENT_ID') || ''
     const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET') || ''
     
+    console.log('Attempting to refresh Spotify token')
+    
     // Request new access token from Spotify
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',

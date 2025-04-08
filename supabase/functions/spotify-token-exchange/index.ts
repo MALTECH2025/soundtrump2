@@ -42,6 +42,8 @@ Deno.serve(async (req) => {
       })
     }
     
+    console.log('Attempting to exchange Spotify code for token')
+    
     // Exchange the code for an access token
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
@@ -68,6 +70,7 @@ Deno.serve(async (req) => {
     }
     
     const tokenData = await tokenResponse.json()
+    console.log('Successfully exchanged Spotify code for token')
     
     return new Response(JSON.stringify(tokenData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { connectService } from "@/lib/api";
 
 // Constants for Spotify API
-const SPOTIFY_CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID || "";
-const SPOTIFY_REDIRECT_URI = import.meta.env.VITE_SPOTIFY_REDIRECT_URI || "";
+const SPOTIFY_CLIENT_ID = "9590f00f4f6b4fc080b08c85dc699e9f";
+const SPOTIFY_REDIRECT_URI = `${window.location.origin}/spotify/callback`;
 const SPOTIFY_SCOPES = [
   "user-read-private",
   "user-read-email",

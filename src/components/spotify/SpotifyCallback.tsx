@@ -27,6 +27,8 @@ const SpotifyCallback = () => {
           return;
         }
         
+        console.log('Processing Spotify callback with code and state');
+        
         // Process the callback
         const result = await handleSpotifyCallback(code, state);
         
