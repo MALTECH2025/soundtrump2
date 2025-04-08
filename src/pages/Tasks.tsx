@@ -88,7 +88,14 @@ const Tasks = () => {
     return userTask?.status === 'Completed';
   };
 
-  const renderTaskCard = (task: Task) => {
+  const renderTaskCard = (taskData: any) => {
+    // Cast to Task type to ensure compatibility
+    const task = {
+      ...taskData,
+      difficulty: taskData.difficulty as "Easy" | "Medium" | "Hard",
+      verification_type: taskData.verification_type as "Automatic" | "Manual",
+    } as Task;
+    
     const progress = getTaskProgress(task);
     const completed = isTaskCompleted(task);
     const categoryName = task.category?.name || 'Other';
@@ -190,7 +197,7 @@ const Tasks = () => {
                   <TabsContent value="all" className="m-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {tasks.length > 0 ? (
-                        tasks.filter(task => task.active).map(renderTaskCard)
+                        tasks.filter((taskData: any) => taskData.active).map(renderTaskCard)
                       ) : (
                         <p>No active tasks available at the moment. Check back later!</p>
                       )}
@@ -199,30 +206,30 @@ const Tasks = () => {
                   
                   <TabsContent value="music" className="m-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {tasks.filter(task => 
-                        task.active && 
-                        task.category && 
-                        (task.category as any).name?.toLowerCase().includes('music')
+                      {tasks.filter((taskData: any) => 
+                        taskData.active && 
+                        taskData.category && 
+                        (taskData.category as any).name?.toLowerCase().includes('music')
                       ).map(renderTaskCard)}
                     </div>
                   </TabsContent>
                   
                   <TabsContent value="social" className="m-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {tasks.filter(task => 
-                        task.active && 
-                        task.category && 
-                        (task.category as any).name?.toLowerCase().includes('social')
+                      {tasks.filter((taskData: any) => 
+                        taskData.active && 
+                        taskData.category && 
+                        (taskData.category as any).name?.toLowerCase().includes('social')
                       ).map(renderTaskCard)}
                     </div>
                   </TabsContent>
 
                   <TabsContent value="daily" className="m-0">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {tasks.filter(task => 
-                        task.active && 
-                        task.category && 
-                        (task.category as any).name?.toLowerCase().includes('daily')
+                      {tasks.filter((taskData: any) => 
+                        taskData.active && 
+                        taskData.category && 
+                        (taskData.category as any).name?.toLowerCase().includes('daily')
                       ).map(renderTaskCard)}
                     </div>
                   </TabsContent>

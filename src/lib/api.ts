@@ -170,10 +170,12 @@ export const fetchLeaderboard = async () => {
   
   if (error) throw error;
   
-  // Add position to each user
+  // Add position to each user and ensure type safety
   const leaderboard: LeaderboardUser[] = (data || []).map((user, index) => ({
     ...user,
-    position: index + 1
+    position: index + 1,
+    tier: user.tier as "Free" | "Premium", // Explicit type casting
+    status: user.status as "Normal" | "Influencer" // Explicit type casting
   }));
   
   return leaderboard;
