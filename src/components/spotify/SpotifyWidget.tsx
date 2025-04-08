@@ -1,11 +1,12 @@
-
 import { useEffect, useState } from 'react';
 import { getSpotifyTopTracks, getSpotifyRecentlyPlayed } from '@/integrations/spotify/spotifyApi';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { Music, Clock, BarChart } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Track {
   id: string;
@@ -29,14 +30,48 @@ const SpotifyWidget = () => {
   const [recentlyPlayed, setRecentlyPlayed] = useState<RecentlyPlayedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('medium_term');
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
+  // First, fetch the user's Spotify access token
   useEffect(() => {
+    const fetchAccessToken = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('connected_services')
+          .select('access_token')
+          .eq('service_name', 'spotify')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching Spotify token:', error);
+          return;
+        }
+
+        if (data?.access_token) {
+          setAccessToken(data.access_token);
+        }
+      } catch (error) {
+        console.error('Error retrieving Spotify token:', error);
+      }
+    };
+
+    fetchAccessToken();
+  }, []);
+
+  // Then, fetch Spotify data when we have the access token
+  useEffect(() => {
+    if (!accessToken) return;
+
     const fetchData = async () => {
       setLoading(true);
       try {
         const [topTracksData, recentlyPlayedData] = await Promise.all([
-          getSpotifyTopTracks(timeRange), // Passing the required timeRange parameter
-          getSpotifyRecentlyPlayed()
+          getSpotifyTopTracks(accessToken, timeRange), // Passing the required access token and timeRange parameter
+          getSpotifyRecentlyPlayed(accessToken)        // Passing the required access token parameter
         ]);
         
         setTopTracks(topTracksData || []);
@@ -49,7 +84,7 @@ const SpotifyWidget = () => {
     };
     
     fetchData();
-  }, [timeRange]);
+  }, [accessToken, timeRange]);
 
   // Helper to format duration from milliseconds to MM:SS
   const formatDuration = (ms: number) => {
@@ -72,134 +107,144 @@ const SpotifyWidget = () => {
           Your Spotify Stats
         </CardTitle>
         <CardDescription>
-          Explore your listening habits and discover your top tracks
+          {accessToken ? 
+            "Explore your listening habits and discover your top tracks" : 
+            "Connect your Spotify account to see your listening stats"
+          }
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="top" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="top">
-              <BarChart className="h-4 w-4 mr-2" />
-              Top Tracks
-            </TabsTrigger>
-            <TabsTrigger value="recent">
-              <Clock className="h-4 w-4 mr-2" />
-              Recently Played
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="top">
-            <div className="mb-4">
-              <TabsList>
-                <TabsTrigger 
-                  value="short_term" 
-                  onClick={() => setTimeRange('short_term')}
-                  className={timeRange === 'short_term' ? 'bg-sound-light' : ''}
-                >
-                  Past Month
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="medium_term" 
-                  onClick={() => setTimeRange('medium_term')}
-                  className={timeRange === 'medium_term' ? 'bg-sound-light' : ''}
-                >
-                  Past 6 Months
-                </TabsTrigger>
-                <TabsTrigger 
-                  value="long_term" 
-                  onClick={() => setTimeRange('long_term')}
-                  className={timeRange === 'long_term' ? 'bg-sound-light' : ''}
-                >
-                  All Time
-                </TabsTrigger>
-              </TabsList>
-            </div>
+        {!accessToken ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground mb-4">No Spotify account connected</p>
+            <Button variant="outline">Connect Spotify</Button>
+          </div>
+        ) : (
+          <Tabs defaultValue="top" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="top">
+                <BarChart className="h-4 w-4 mr-2" />
+                Top Tracks
+              </TabsTrigger>
+              <TabsTrigger value="recent">
+                <Clock className="h-4 w-4 mr-2" />
+                Recently Played
+              </TabsTrigger>
+            </TabsList>
             
-            <div className="space-y-4">
-              {loading ? (
-                // Loading skeletons
-                Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <Skeleton className="h-12 w-12 rounded-md" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-3 w-24" />
+            <TabsContent value="top">
+              <div className="mb-4">
+                <TabsList>
+                  <TabsTrigger 
+                    value="short_term" 
+                    onClick={() => setTimeRange('short_term')}
+                    className={timeRange === 'short_term' ? 'bg-sound-light' : ''}
+                  >
+                    Past Month
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="medium_term" 
+                    onClick={() => setTimeRange('medium_term')}
+                    className={timeRange === 'medium_term' ? 'bg-sound-light' : ''}
+                  >
+                    Past 6 Months
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="long_term" 
+                    onClick={() => setTimeRange('long_term')}
+                    className={timeRange === 'long_term' ? 'bg-sound-light' : ''}
+                  >
+                    All Time
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              
+              <div className="space-y-4">
+                {loading ? (
+                  // Loading skeletons
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <Skeleton className="h-12 w-12 rounded-md" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
                     </div>
-                  </div>
-                ))
-              ) : topTracks.length > 0 ? (
-                topTracks.slice(0, 10).map((track, index) => (
-                  <div key={track.id} className="flex items-center gap-3">
-                    <div className="w-6 text-center font-bold text-muted-foreground">{index + 1}</div>
-                    <Avatar className="h-12 w-12 rounded-md">
-                      <img 
-                        src={track.album.images[0]?.url} 
-                        alt={track.album.name}
-                        className="object-cover"
-                      />
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{track.name}</p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {track.artists.map(a => a.name).join(', ')}
-                      </p>
+                  ))
+                ) : topTracks.length > 0 ? (
+                  topTracks.slice(0, 10).map((track, index) => (
+                    <div key={track.id} className="flex items-center gap-3">
+                      <div className="w-6 text-center font-bold text-muted-foreground">{index + 1}</div>
+                      <Avatar className="h-12 w-12 rounded-md">
+                        <img 
+                          src={track.album.images[0]?.url} 
+                          alt={track.album.name}
+                          className="object-cover"
+                        />
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{track.name}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {track.artists.map(a => a.name).join(', ')}
+                        </p>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatDuration(track.duration_ms)}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {formatDuration(track.duration_ms)}
+                  ))
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground">
+                    No top tracks data available. Connect your Spotify account to see your stats.
+                  </p>
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="recent">
+              <div className="space-y-4">
+                {loading ? (
+                  // Loading skeletons
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <Skeleton className="h-12 w-12 rounded-md" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-3 w-20" />
                     </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center py-4 text-muted-foreground">
-                  No top tracks data available. Connect your Spotify account to see your stats.
-                </p>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="recent">
-            <div className="space-y-4">
-              {loading ? (
-                // Loading skeletons
-                Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <Skeleton className="h-12 w-12 rounded-md" />
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-3 w-24" />
+                  ))
+                ) : recentlyPlayed.length > 0 ? (
+                  recentlyPlayed.slice(0, 10).map((item) => (
+                    <div key={`${item.track.id}-${item.played_at}`} className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12 rounded-md">
+                        <img 
+                          src={item.track.album.images[0]?.url} 
+                          alt={item.track.album.name}
+                          className="object-cover"
+                        />
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{item.track.name}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {item.track.artists.map(a => a.name).join(', ')}
+                        </p>
+                      </div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        {formatPlayedAt(item.played_at)}
+                      </div>
                     </div>
-                    <Skeleton className="h-3 w-20" />
-                  </div>
-                ))
-              ) : recentlyPlayed.length > 0 ? (
-                recentlyPlayed.slice(0, 10).map((item) => (
-                  <div key={`${item.track.id}-${item.played_at}`} className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12 rounded-md">
-                      <img 
-                        src={item.track.album.images[0]?.url} 
-                        alt={item.track.album.name}
-                        className="object-cover"
-                      />
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.track.name}</p>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {item.track.artists.map(a => a.name).join(', ')}
-                      </p>
-                    </div>
-                    <div className="text-xs text-muted-foreground text-right">
-                      {formatPlayedAt(item.played_at)}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center py-4 text-muted-foreground">
-                  No recently played tracks available. Connect your Spotify account to see your listening history.
-                </p>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+                  ))
+                ) : (
+                  <p className="text-center py-4 text-muted-foreground">
+                    No recently played tracks available. Connect your Spotify account to see your listening history.
+                  </p>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
       </CardContent>
     </Card>
   );

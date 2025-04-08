@@ -167,7 +167,7 @@ export const getTopTracks = async (accessToken: string, timeRange = 'medium_term
   return await response.json();
 };
 
-// Renamed function for SpotifyWidget.tsx
+// Function for SpotifyWidget.tsx
 export const getSpotifyTopTracks = async (accessToken: string, timeRange = 'medium_term', limit = 10) => {
   return getTopTracks(accessToken, timeRange, limit);
 };
@@ -187,7 +187,7 @@ export const getRecentlyPlayed = async (accessToken: string, limit = 10) => {
   return await response.json();
 };
 
-// Renamed function for SpotifyWidget.tsx
+// Function for SpotifyWidget.tsx
 export const getSpotifyRecentlyPlayed = async (accessToken: string, limit = 10) => {
   return getRecentlyPlayed(accessToken, limit);
 };
