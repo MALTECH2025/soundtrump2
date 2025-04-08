@@ -1,5 +1,6 @@
+
 import { useEffect, useState } from 'react';
-import { getSpotifyTopTracks, getSpotifyRecentlyPlayed } from '@/integrations/spotify/spotifyApi';
+import { getSpotifyTopTracks, getSpotifyRecentlyPlayed, initiateSpotifyAuth } from '@/integrations/spotify/spotifyApi';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar } from '@/components/ui/avatar';
@@ -74,8 +75,8 @@ const SpotifyWidget = () => {
           getSpotifyRecentlyPlayed(accessToken)        // Passing the required access token parameter
         ]);
         
-        setTopTracks(topTracksData || []);
-        setRecentlyPlayed(recentlyPlayedData || []);
+        setTopTracks(topTracksData.items || []);
+        setRecentlyPlayed(recentlyPlayedData.items || []);
       } catch (error) {
         console.error('Error loading Spotify data:', error);
       } finally {
@@ -99,6 +100,10 @@ const SpotifyWidget = () => {
     return date.toLocaleString();
   };
 
+  const handleConnectSpotify = () => {
+    initiateSpotifyAuth();
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -117,7 +122,7 @@ const SpotifyWidget = () => {
         {!accessToken ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground mb-4">No Spotify account connected</p>
-            <Button variant="outline">Connect Spotify</Button>
+            <Button variant="outline" onClick={handleConnectSpotify}>Connect Spotify</Button>
           </div>
         ) : (
           <Tabs defaultValue="top" className="w-full">

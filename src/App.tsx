@@ -42,6 +42,9 @@ import AdminTasks from '@/pages/admin/Tasks';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import AdminRoute from '@/components/auth/AdminRoute';
 
+// Import Spotify callback component
+import SpotifyCallback from '@/components/spotify/SpotifyCallback';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -94,6 +97,7 @@ function App() {
                 <Route path="/support" element={<Support />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/dsp-trust" element={<DspTrust />} />
+                <Route path="/spotify/callback" element={<SpotifyCallback />} />
                 
                 <Route path="/legal/terms" element={<TermsOfService />} />
                 <Route path="/legal/privacy" element={<PrivacyPolicy />} />

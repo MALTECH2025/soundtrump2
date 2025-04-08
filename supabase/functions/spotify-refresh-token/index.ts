@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     }
     
     // Get the request body
-    const { refreshToken, userId } = await req.json()
+    const { userId, refreshToken } = await req.json()
     
     if (!refreshToken || !userId) {
       return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
@@ -37,8 +37,8 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
     
     // Get the Spotify client ID and secret from environment variables
-    const clientId = Deno.env.get('SPOTIFY_CLIENT_ID') || '9590f00f4f6b4fc080b08c85dc699e9f'
-    const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET') || 'b749e8a812b9421a867b62eaabc72b39'
+    const clientId = Deno.env.get('SPOTIFY_CLIENT_ID') || ''
+    const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET') || ''
     
     // Request new access token from Spotify
     const tokenResponse = await fetch('https://accounts.spotify.com/api/token', {

@@ -105,15 +105,11 @@ export const exchangeSpotifyCode = async (code: string) => {
 };
 
 // Refresh Spotify token
-export const refreshSpotifyToken = async () => {
+export const refreshSpotifyToken = async (userId: string, refreshToken: string) => {
   try {
-    // Retrieve the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("User not authenticated");
-    
     // Call edge function to refresh token
     const { data, error } = await supabase.functions.invoke('spotify-refresh-token', {
-      body: { user_id: user.id }
+      body: { userId, refreshToken }
     });
     
     if (error) throw error;
