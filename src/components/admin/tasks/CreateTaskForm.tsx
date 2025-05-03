@@ -25,7 +25,6 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
     difficulty: 'Easy' as 'Easy' | 'Medium' | 'Hard',
     active: true,
     verification_type: 'Automatic' as 'Automatic' | 'Manual',
-    required_media: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -109,7 +108,7 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
             type="number"
             id="points"
             value={formData.points}
-            onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) })}
+            onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
             className="col-span-3"
             min="1"
           />
@@ -157,16 +156,6 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
             id="active"
             checked={formData.active}
             onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
-          />
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="required_media" className="text-right">
-            Required Media
-          </Label>
-          <Switch
-            id="required_media"
-            checked={formData.required_media}
-            onCheckedChange={(checked) => setFormData({ ...formData, required_media: checked })}
           />
         </div>
       </div>
