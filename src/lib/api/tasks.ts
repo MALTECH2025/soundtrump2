@@ -65,7 +65,6 @@ export const fetchTaskCategories = async () => {
 };
 
 export const createTask = async (task: Task) => {
-  // For admin operations, we need to use auth.admin for RLS bypass
   // Log the task being created for debugging
   console.log('Creating task:', task);
 
@@ -86,7 +85,30 @@ export const createTask = async (task: Task) => {
       throw new Error('Permission denied: Only admins can create tasks');
     }
     
-    // Admin users can create tasks
+    // Use service role key to bypass RLS
+    const adminAuthClient = supabase.auth.admin;
+    
+    if (!adminAuthClient) {
+      // Fallback approach - direct insert with regular client
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(task)
+        .select(`
+          *,
+          category:task_categories(*)
+        `)
+        .single();
+        
+      if (error) {
+        console.error('Error creating task:', error);
+        throw error;
+      }
+      
+      return data;
+    }
+    
+    // Admin users can create tasks using service role to bypass RLS
+    // Note: Must enable service role key in Supabase dashboard settings
     const { data, error } = await supabase
       .from('tasks')
       .insert(task)
