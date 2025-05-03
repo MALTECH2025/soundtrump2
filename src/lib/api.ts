@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Task, TaskCategory, Reward, LeaderboardUser } from "@/types";
 
@@ -94,17 +95,47 @@ export const fetchTaskCategories = async () => {
 };
 
 export const createTask = async (task: Task) => {
-  const { data, error } = await supabase
-    .from('tasks')
-    .insert(task)
-    .select(`
-      *,
-      category:task_categories(*)
-    `)
-    .single();
+  // For admin operations, we need to use auth.admin for RLS bypass
+  // Log the task being created for debugging
+  console.log('Creating task:', task);
+
+  try {
+    // First check if user has admin role
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
     
-  if (error) throw error;
-  return data;
+    // Get user profile to check role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+      
+    if (profile?.role !== 'admin') {
+      console.error('Permission denied: User is not an admin');
+      throw new Error('Permission denied: Only admins can create tasks');
+    }
+    
+    // Admin users can create tasks
+    const { data, error } = await supabase
+      .from('tasks')
+      .insert(task)
+      .select(`
+        *,
+        category:task_categories(*)
+      `)
+      .single();
+      
+    if (error) {
+      console.error('Error creating task:', error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error: any) {
+    console.error('Create task error:', error);
+    throw error;
+  }
 };
 
 export const updateTask = async ({ taskId, updates }: { taskId: string, updates: Partial<Task> }) => {

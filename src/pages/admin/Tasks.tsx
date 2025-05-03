@@ -71,6 +71,10 @@ const Tasks = () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       setEditTaskDialogOpen(false);
       toast.success("Task updated successfully");
+    },
+    onError: (error: any) => {
+      console.error("Error updating task:", error);
+      toast.error(error.message || "Failed to update task");
     }
   });
 
@@ -82,6 +86,10 @@ const Tasks = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       toast.success("Task deleted successfully");
+    },
+    onError: (error: any) => {
+      console.error("Error deleting task:", error);
+      toast.error(error.message || "Failed to delete task");
     }
   });
 
@@ -104,8 +112,8 @@ const Tasks = () => {
   };
 
   if (isTasksLoading || isCategoriesLoading) return <div>Loading...</div>;
-  if (tasksError) return <div>Error: {tasksError.message}</div>;
-  if (categoriesError) return <div>Error: {categoriesError.message}</div>;
+  if (tasksError) return <div>Error: {(tasksError as Error).message}</div>;
+  if (categoriesError) return <div>Error: {(categoriesError as Error).message}</div>;
 
   return (
     <AdminLayout>
