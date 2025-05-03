@@ -380,8 +380,12 @@ export type Database = {
         Returns: Json
       }
       complete_task: {
-        Args: { task_id: string }
+        Args: Record<PropertyKey, never> | { task_id: string }
         Returns: Json
+      }
+      complete_task_v2: {
+        Args: { task_id: string }
+        Returns: undefined
       }
       redeem_reward: {
         Args: { reward_id: string }
