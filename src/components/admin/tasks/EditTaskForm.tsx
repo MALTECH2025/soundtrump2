@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,6 +108,29 @@ const EditTaskForm = ({ task, categories, onUpdateTask, onClose }: EditTaskFormP
         </Select>
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="redirect_url" className="text-right">
+          Redirect URL
+        </Label>
+        <Input
+          type="url"
+          id="redirect_url"
+          defaultValue={task.redirect_url || ''}
+          onChange={(e) => onUpdateTask(task.id, { redirect_url: e.target.value })}
+          className="col-span-3"
+          placeholder="https://example.com/task"
+        />
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
+        <Label htmlFor="required_media" className="text-right">
+          Require Screenshot
+        </Label>
+        <Switch
+          id="required_media"
+          checked={task.required_media}
+          onCheckedChange={(checked) => onUpdateTask(task.id, { required_media: checked })}
+        />
+      </div>
+      <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="active" className="text-right">
           Active
         </Label>
@@ -116,16 +138,6 @@ const EditTaskForm = ({ task, categories, onUpdateTask, onClose }: EditTaskFormP
           id="active"
           checked={task.active}
           onCheckedChange={(checked) => onUpdateTask(task.id, { active: checked })}
-        />
-      </div>
-      <div className="grid grid-cols-4 items-center gap-4">
-        <Label htmlFor="required_media" className="text-right">
-          Required Media
-        </Label>
-        <Switch
-          id="required_media"
-          checked={task.required_media}
-          onCheckedChange={(checked) => onUpdateTask(task.id, { required_media: checked })}
         />
       </div>
       <div className="flex justify-end">

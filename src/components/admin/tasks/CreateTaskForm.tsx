@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,8 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
     difficulty: 'Easy' as 'Easy' | 'Medium' | 'Hard',
     active: true,
     verification_type: 'Automatic' as 'Automatic' | 'Manual',
+    redirect_url: '',
+    required_media: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -148,6 +149,32 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
             </SelectContent>
           </Select>
         </div>
+
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="redirect_url" className="text-right">
+            Redirect URL
+          </Label>
+          <Input
+            type="url"
+            id="redirect_url"
+            value={formData.redirect_url}
+            onChange={(e) => setFormData({ ...formData, redirect_url: e.target.value })}
+            className="col-span-3"
+            placeholder="https://example.com/task"
+          />
+        </div>
+
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="required_media" className="text-right">
+            Require Screenshot
+          </Label>
+          <Switch
+            id="required_media"
+            checked={formData.required_media}
+            onCheckedChange={(checked) => setFormData({ ...formData, required_media: checked })}
+          />
+        </div>
+        
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="active" className="text-right">
             Active

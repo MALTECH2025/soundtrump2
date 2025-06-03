@@ -1,4 +1,3 @@
-
 import { User } from '@supabase/supabase-js';
 
 export interface UserProfile {
@@ -37,6 +36,7 @@ export interface Task {
   instructions?: string;
   verification_type: "Automatic" | "Manual";
   required_media?: boolean;
+  redirect_url?: string;
   active: boolean;
   created_at: string;
   updated_at: string;
@@ -54,11 +54,25 @@ export interface UserTask {
   id: string;
   user_id: string;
   task_id: string;
-  status: "Pending" | "Completed" | "Failed";
+  status: "Pending" | "Submitted" | "Completed" | "Rejected";
   completed_at?: string;
   points_earned?: number;
+  submission_id?: string;
   created_at: string;
   task?: Task;
+  submission?: TaskSubmission;
+}
+
+export interface TaskSubmission {
+  id: string;
+  user_task_id: string;
+  screenshot_url?: string;
+  submission_notes?: string;
+  submitted_at: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  admin_notes?: string;
+  created_at: string;
 }
 
 export interface Reward {

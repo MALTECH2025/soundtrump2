@@ -1,6 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { Task } from "@/types";
+import { Task, TaskSubmission } from "@/types";
 
 // Tasks
 // ===========================================
@@ -26,7 +25,8 @@ export const fetchUserTasks = async (userId: string) => {
       task:tasks(
         *,
         category:task_categories(*)
-      )
+      ),
+      submission:task_submissions(*)
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
@@ -35,9 +35,88 @@ export const fetchUserTasks = async (userId: string) => {
   return data;
 };
 
+export const startTask = async (taskId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('user_tasks')
+      .insert({
+        task_id: taskId,
+        status: 'Pending'
+      })
+      .select(`
+        *,
+        task:tasks(
+          *,
+          category:task_categories(*)
+        )
+      `)
+      .single();
+      
+    if (error) throw error;
+    return data;
+  } catch (error: any) {
+    console.error('Error starting task:', error);
+    throw error;
+  }
+};
+
+export const submitTask = async (userTaskId: string, submissionData: {
+  screenshot?: File;
+  notes?: string;
+}) => {
+  try {
+    let screenshot_url = null;
+    
+    // Upload screenshot if provided
+    if (submissionData.screenshot) {
+      const fileExt = submissionData.screenshot.name.split('.').pop();
+      const fileName = `${userTaskId}-${Date.now()}.${fileExt}`;
+      const filePath = `${await getCurrentUserId()}/${fileName}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('task-screenshots')
+        .upload(filePath, submissionData.screenshot);
+      
+      if (uploadError) throw uploadError;
+      screenshot_url = uploadData.path;
+    }
+    
+    // Create submission record
+    const { data: submission, error: submissionError } = await supabase
+      .from('task_submissions')
+      .insert({
+        user_task_id: userTaskId,
+        screenshot_url,
+        submission_notes: submissionData.notes
+      })
+      .select()
+      .single();
+      
+    if (submissionError) throw submissionError;
+    
+    // Update user task status
+    const { data: userTask, error: updateError } = await supabase
+      .from('user_tasks')
+      .update({
+        status: 'Submitted',
+        submission_id: submission.id
+      })
+      .eq('id', userTaskId)
+      .select()
+      .single();
+      
+    if (updateError) throw updateError;
+    
+    return { userTask, submission };
+  } catch (error: any) {
+    console.error('Error submitting task:', error);
+    throw error;
+  }
+};
+
 export const completeTask = async (taskId: string) => {
   try {
-    // Call the complete_task database function
+    // For automatic verification tasks
     const { data, error } = await supabase.rpc('complete_task', {
       task_id: taskId
     });
@@ -52,6 +131,85 @@ export const completeTask = async (taskId: string) => {
       message: error.message || 'An error occurred while completing the task'
     };
   }
+};
+
+// Admin functions
+export const fetchPendingSubmissions = async () => {
+  const { data, error } = await supabase
+    .from('task_submissions')
+    .select(`
+      *,
+      user_task:user_tasks(
+        *,
+        user:profiles(id, username, full_name),
+        task:tasks(*)
+      )
+    `)
+    .is('reviewed_at', null)
+    .order('submitted_at', { ascending: true });
+    
+  if (error) throw error;
+  return data;
+};
+
+export const reviewTaskSubmission = async (submissionId: string, decision: 'approve' | 'reject', adminNotes?: string) => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    
+    // Update submission with review
+    const { data: submission, error: submissionError } = await supabase
+      .from('task_submissions')
+      .update({
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: user.id,
+        admin_notes: adminNotes
+      })
+      .eq('id', submissionId)
+      .select(`
+        *,
+        user_task:user_tasks(*, task:tasks(*))
+      `)
+      .single();
+      
+    if (submissionError) throw submissionError;
+    
+    // Update user task status and award points if approved
+    const newStatus = decision === 'approve' ? 'Completed' : 'Rejected';
+    const updateData: any = { status: newStatus };
+    
+    if (decision === 'approve') {
+      updateData.completed_at = new Date().toISOString();
+      updateData.points_earned = submission.user_task.task.points;
+      
+      // Award points to user
+      const { error: pointsError } = await supabase
+        .from('profiles')
+        .update({
+          points: supabase.sql`points + ${submission.user_task.task.points}`
+        })
+        .eq('id', submission.user_task.user_id);
+        
+      if (pointsError) throw pointsError;
+    }
+    
+    const { error: taskUpdateError } = await supabase
+      .from('user_tasks')
+      .update(updateData)
+      .eq('id', submission.user_task_id);
+      
+    if (taskUpdateError) throw taskUpdateError;
+    
+    return { success: true, message: `Task ${decision}d successfully` };
+  } catch (error: any) {
+    console.error('Error reviewing submission:', error);
+    throw error;
+  }
+};
+
+const getCurrentUserId = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id;
 };
 
 export const fetchTaskCategories = async () => {

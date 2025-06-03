@@ -18,21 +18,21 @@ import {
   Share, 
   Users, 
   CheckCircle2, 
-  Lock, 
-  ChevronRight, 
-  Trophy,
-  Flame,
+  ExternalLink, 
   Calendar,
-  Twitter,
-  Facebook,
-  Instagram,
-  PlayCircle
+  Trophy,
+  Upload,
+  Eye
 } from 'lucide-react';
-import { fetchTasks, fetchUserTasks, completeTask } from '@/lib/api';
+import { fetchTasks, fetchUserTasks, startTask, completeTask } from '@/lib/api';
 import { Task, UserTask } from '@/types';
+import TaskSubmissionModal from '@/components/tasks/TaskSubmissionModal';
 
 const Tasks = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedUserTask, setSelectedUserTask] = useState<UserTask | null>(null);
+  const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
   const { isAuthenticated, user: authUser } = useAuth();
   const queryClient = useQueryClient();
   
@@ -48,10 +48,20 @@ const Tasks = () => {
     enabled: isAuthenticated && !!authUser?.id,
   });
 
+  const startTaskMutation = useMutation({
+    mutationFn: startTask,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userTasks'] });
+      toast.success('Task started! Good luck!');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to start task');
+    }
+  });
+
   const completeTaskMutation = useMutation({
     mutationFn: completeTask,
     onSuccess: (data) => {
-      // Handle the response properly based on its structure
       if (typeof data === 'object' && data !== null && 'success' in data) {
         if (data.success) {
           queryClient.invalidateQueries({ queryKey: ['userTasks'] });
@@ -61,7 +71,6 @@ const Tasks = () => {
           toast.error(data.message || 'Failed to complete task');
         }
       } else {
-        // Handle unexpected response format
         console.error('Unexpected response format:', data);
         toast.error('An unexpected error occurred');
       }
@@ -80,47 +89,109 @@ const Tasks = () => {
       return () => clearTimeout(timer);
     }
   }, [tasksLoading, userTasksLoading]);
-  
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-  };
-  
-  const handleTaskComplete = (taskId: string) => {
-    completeTaskMutation.mutate(taskId);
+
+  const getUserTask = (taskId: string): UserTask | undefined => {
+    return userTasks.find(ut => ut.task_id === taskId);
   };
 
-  const getCategoryIcon = (categoryName: string | undefined) => {
-    const name = (categoryName || '').toLowerCase();
-    if (name.includes('music') || name.includes('spotify')) return <Music2 className="w-4 h-4 mr-2" />;
-    if (name.includes('social')) return <Share className="w-4 h-4 mr-2" />;
-    if (name.includes('daily')) return <Calendar className="w-4 h-4 mr-2" />;
-    return <Trophy className="w-4 h-4 mr-2" />;
+  const getTaskStatus = (task: Task): { status: string; progress: number; userTask?: UserTask } => {
+    const userTask = getUserTask(task.id);
+    
+    if (!userTask) {
+      return { status: 'not_started', progress: 0 };
+    }
+    
+    switch (userTask.status) {
+      case 'Pending':
+        return { status: 'in_progress', progress: 25, userTask };
+      case 'Submitted':
+        return { status: 'submitted', progress: 75, userTask };
+      case 'Completed':
+        return { status: 'completed', progress: 100, userTask };
+      case 'Rejected':
+        return { status: 'rejected', progress: 0, userTask };
+      default:
+        return { status: 'not_started', progress: 0 };
+    }
   };
 
-  const getTaskProgress = (task: Task): number => {
-    const userTask = userTasks.find(ut => ut.task_id === task.id);
-    if (!userTask) return 0;
-    if (userTask.status === 'Completed') return 100;
-    if (userTask.status === 'Pending') return 50;
-    return 0;
+  const handleTaskAction = (task: Task) => {
+    const { status, userTask } = getTaskStatus(task);
+    
+    switch (status) {
+      case 'not_started':
+        startTaskMutation.mutate(task.id);
+        break;
+      case 'in_progress':
+        if (task.verification_type === 'Manual') {
+          setSelectedTask(task);
+          setSelectedUserTask(userTask!);
+          setSubmissionModalOpen(true);
+        } else {
+          completeTaskMutation.mutate(task.id);
+        }
+        break;
+      case 'submitted':
+        toast.info('Task is pending admin review');
+        break;
+      case 'completed':
+        toast.info('Task already completed!');
+        break;
+      case 'rejected':
+        toast.error('Task was rejected. You can try again.');
+        startTaskMutation.mutate(task.id);
+        break;
+    }
   };
 
-  const isTaskCompleted = (task: Task): boolean => {
-    const userTask = userTasks.find(ut => ut.task_id === task.id);
-    return userTask?.status === 'Completed';
+  const getActionButtonText = (task: Task) => {
+    const { status } = getTaskStatus(task);
+    
+    switch (status) {
+      case 'not_started':
+        return 'Start Task';
+      case 'in_progress':
+        return task.verification_type === 'Manual' ? 'Submit Task' : 'Complete Task';
+      case 'submitted':
+        return 'Pending Review';
+      case 'completed':
+        return 'Completed';
+      case 'rejected':
+        return 'Try Again';
+      default:
+        return 'Start Task';
+    }
+  };
+
+  const getActionButtonVariant = (task: Task) => {
+    const { status } = getTaskStatus(task);
+    
+    switch (status) {
+      case 'completed':
+        return 'secondary';
+      case 'submitted':
+        return 'outline';
+      case 'rejected':
+        return 'destructive';
+      default:
+        return 'default';
+    }
+  };
+
+  const isActionDisabled = (task: Task) => {
+    const { status } = getTaskStatus(task);
+    return status === 'submitted' || status === 'completed' || 
+           startTaskMutation.isPending || completeTaskMutation.isPending;
   };
 
   const renderTaskCard = (taskData: any) => {
-    // Cast to Task type to ensure compatibility
     const task = {
       ...taskData,
       difficulty: taskData.difficulty as "Easy" | "Medium" | "Hard",
       verification_type: taskData.verification_type as "Automatic" | "Manual",
     } as Task;
     
-    const progress = getTaskProgress(task);
-    const completed = isTaskCompleted(task);
+    const { status, progress, userTask } = getTaskStatus(task);
     const categoryName = task.category?.name || 'Other';
     const isPremium = task.difficulty === 'Hard';
 
@@ -129,11 +200,12 @@ const Tasks = () => {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             {task.title}
-            {isPremium && (
-              <Badge variant="secondary">
-                Premium
-              </Badge>
-            )}
+            <div className="flex gap-2">
+              {isPremium && <Badge variant="secondary">Premium</Badge>}
+              {task.verification_type === 'Manual' && (
+                <Badge variant="outline">Manual Review</Badge>
+              )}
+            </div>
           </CardTitle>
           <CardDescription>{task.description}</CardDescription>
         </CardHeader>
@@ -144,6 +216,12 @@ const Tasks = () => {
               <span>{progress}%</span>
             </div>
             <Progress value={progress} />
+            {userTask?.status === 'Submitted' && (
+              <p className="text-xs text-orange-600 mt-1">Waiting for admin review</p>
+            )}
+            {userTask?.status === 'Rejected' && userTask.submission?.admin_notes && (
+              <p className="text-xs text-red-600 mt-1">Rejected: {userTask.submission.admin_notes}</p>
+            )}
           </div>
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center">
@@ -155,19 +233,33 @@ const Tasks = () => {
               {task.points} Points
             </div>
           </div>
+          {task.redirect_url && status === 'in_progress' && (
+            <div className="mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(task.redirect_url, '_blank')}
+                className="w-full"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Go to Task
+              </Button>
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex justify-end">
-          {completed ? (
+          {status === 'completed' ? (
             <Badge variant="outline" className="gap-1.5">
               <CheckCircle2 className="h-4 w-4" />
               Completed
             </Badge>
           ) : (
             <Button 
-              onClick={() => handleTaskComplete(task.id)}
-              disabled={completeTaskMutation.isPending}
+              onClick={() => handleTaskAction(task)}
+              disabled={isActionDisabled(task)}
+              variant={getActionButtonVariant(task)}
             >
-              {completeTaskMutation.isPending ? (
+              {startTaskMutation.isPending || completeTaskMutation.isPending ? (
                 <>
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -176,7 +268,7 @@ const Tasks = () => {
                   Processing...
                 </>
               ) : (
-                'Complete Task'
+                getActionButtonText(task)
               )}
             </Button>
           )}
@@ -210,7 +302,10 @@ const Tasks = () => {
             ) : (
               <>
                 <motion.div
-                  variants={fadeInUp}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+                  }}
                   initial="hidden"
                   animate="visible"
                   className="mb-6"
@@ -277,6 +372,19 @@ const Tasks = () => {
         
         <Footer />
       </div>
+
+      {/* Task Submission Modal */}
+      {selectedTask && selectedUserTask && (
+        <TaskSubmissionModal
+          isOpen={submissionModalOpen}
+          onClose={() => setSubmissionModalOpen(false)}
+          task={selectedTask}
+          userTask={selectedUserTask}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['userTasks'] });
+          }}
+        />
+      )}
     </AnimatedTransition>
   );
 };

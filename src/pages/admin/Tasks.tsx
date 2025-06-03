@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import TaskList from "@/components/admin/tasks/TaskList";
 import CreateTaskForm from "@/components/admin/tasks/CreateTaskForm";
 import EditTaskForm from "@/components/admin/tasks/EditTaskForm";
+import TaskSubmissionsPanel from "@/components/admin/tasks/TaskSubmissionsPanel";
 
 const Tasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -125,9 +125,9 @@ const Tasks = () => {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Tasks Management</h1>
               <p className="text-muted-foreground">
-                Manage and create tasks for users to complete.
+                Manage tasks and review user submissions.
               </p>
             </div>
             <Dialog open={newTaskDialogOpen} onOpenChange={setNewTaskDialogOpen}>
@@ -150,22 +150,39 @@ const Tasks = () => {
               </DialogContent>
             </Dialog>
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Task List</CardTitle>
-              <CardDescription>
-                A list of all available tasks.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TaskList
-                tasks={tasks}
-                onUpdateTask={handleUpdateTask}
-                onOpenEditDialog={handleOpenEditTaskDialog}
-                onDeleteTask={handleDeleteTask}
-              />
-            </CardContent>
-          </Card>
+
+          <div className="grid gap-6">
+            {/* Task Submissions Panel */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Submissions</CardTitle>
+                <CardDescription>
+                  Review and approve user task submissions that require manual verification.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TaskSubmissionsPanel />
+              </CardContent>
+            </Card>
+
+            {/* Existing Task List */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Task List</CardTitle>
+                <CardDescription>
+                  A list of all available tasks.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <TaskList
+                  tasks={tasks}
+                  onUpdateTask={handleUpdateTask}
+                  onOpenEditDialog={handleOpenEditTaskDialog}
+                  onDeleteTask={handleDeleteTask}
+                />
+              </CardContent>
+            </Card>
+          </div>
         </motion.div>
       </div>
       <Dialog open={editTaskDialogOpen} onOpenChange={setEditTaskDialogOpen}>
