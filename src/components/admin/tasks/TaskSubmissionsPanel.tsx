@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CheckCircle, XCircle, Eye, Calendar, User } from "lucide-react";
 import { toast } from "@/lib/toast";
+import { supabase } from "@/integrations/supabase/client";
 import { fetchPendingSubmissions, reviewTaskSubmission } from "@/lib/api/tasks";
-import { TaskSubmission } from "@/types";
 
 const TaskSubmissionsPanel = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
@@ -52,7 +52,6 @@ const TaskSubmissionsPanel = () => {
   };
 
   const getImageUrl = (path: string) => {
-    // Get the public URL for the screenshot
     const { data } = supabase.storage.from('task-screenshots').getPublicUrl(path);
     return data.publicUrl;
   };
