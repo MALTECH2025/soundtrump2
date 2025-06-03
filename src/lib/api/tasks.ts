@@ -65,50 +65,10 @@ export const fetchTaskCategories = async () => {
 };
 
 export const createTask = async (task: Task) => {
-  // Log the task being created for debugging
   console.log('Creating task:', task);
 
   try {
-    // First check if user has admin role
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-    
-    // Get user profile to check role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-      
-    if (profile?.role !== 'admin') {
-      console.error('Permission denied: User is not an admin');
-      throw new Error('Permission denied: Only admins can create tasks');
-    }
-    
-    // Use service role key to bypass RLS
-    const adminAuthClient = supabase.auth.admin;
-    
-    if (!adminAuthClient) {
-      // Fallback approach - direct insert with regular client
-      const { data, error } = await supabase
-        .from('tasks')
-        .insert(task)
-        .select(`
-          *,
-          category:task_categories(*)
-        `)
-        .single();
-        
-      if (error) {
-        console.error('Error creating task:', error);
-        throw error;
-      }
-      
-      return data;
-    }
-    
-    // Admin users can create tasks using service role to bypass RLS
-    // Note: Must enable service role key in Supabase dashboard settings
+    // The RLS policies will now handle admin permission checking automatically
     const { data, error } = await supabase
       .from('tasks')
       .insert(task)
@@ -123,6 +83,7 @@ export const createTask = async (task: Task) => {
       throw error;
     }
     
+    console.log('Task created successfully:', data);
     return data;
   } catch (error: any) {
     console.error('Create task error:', error);

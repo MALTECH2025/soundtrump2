@@ -381,11 +381,15 @@ export type Database = {
       }
       complete_task: {
         Args: Record<PropertyKey, never> | { task_id: string }
-        Returns: Json
+        Returns: undefined
       }
       complete_task_v2: {
         Args: { task_id: string }
         Returns: undefined
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       redeem_reward: {
         Args: { reward_id: string }
