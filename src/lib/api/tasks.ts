@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
 
@@ -89,43 +88,19 @@ export const submitTask = async (userTaskId: string, submissionData: {
       screenshot_url = uploadData.path;
     }
     
-    // Use raw SQL for insertion since the table might not be in types yet
-    const { data: submission, error: submissionError } = await supabase
-      .rpc('create_task_submission', {
+    // Use the edge function to create submission
+    const { data: functionResult, error: functionError } = await supabase.functions.invoke('create-task-submission', {
+      body: {
         p_user_task_id: userTaskId,
         p_screenshot_url: screenshot_url,
         p_submission_notes: submissionData.notes || null
-      });
-      
-    if (submissionError) {
-      // Fallback to direct insertion if RPC doesn't exist
-      const { data: submissionFallback, error: fallbackError } = await supabase
-        .from('task_submissions' as any)
-        .insert({
-          user_task_id: userTaskId,
-          screenshot_url,
-          submission_notes: submissionData.notes
-        } as any)
-        .select()
-        .single();
-        
-      if (fallbackError) throw fallbackError;
-      
-      // Update user task status
-      const { error: updateError } = await supabase
-        .from('user_tasks')
-        .update({
-          status: 'Submitted',
-          submission_id: submissionFallback.id
-        })
-        .eq('id', userTaskId);
-        
-      if (updateError) throw updateError;
-      
-      return { userTask: null, submission: submissionFallback };
-    }
+      }
+    });
     
-    return { userTask: null, submission };
+    if (functionError) throw functionError;
+    if (!functionResult?.success) throw new Error(functionResult?.error || 'Failed to submit task');
+    
+    return { userTask: null, submission: functionResult.data };
   } catch (error: any) {
     console.error('Error submitting task:', error);
     throw error;
@@ -134,14 +109,36 @@ export const submitTask = async (userTaskId: string, submissionData: {
 
 export const completeTask = async (taskId: string) => {
   try {
-    // For automatic verification tasks
-    const { data, error } = await supabase.rpc('complete_task', {
-      task_id: taskId
-    });
-    
-    if (error) throw error;
-    
-    return data;
+    // For automatic verification tasks, we'll use a simple approach
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Get the user task
+    const { data: userTask, error: getUserTaskError } = await supabase
+      .from('user_tasks')
+      .select('*')
+      .eq('task_id', taskId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (getUserTaskError) throw getUserTaskError;
+    if (!userTask) throw new Error('User task not found');
+
+    // Update to completed
+    const { error: updateError } = await supabase
+      .from('user_tasks')
+      .update({
+        status: 'Completed',
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', userTask.id);
+
+    if (updateError) throw updateError;
+
+    return { 
+      success: true, 
+      message: 'Task completed successfully!'
+    };
   } catch (error: any) {
     console.error('Error completing task:', error);
     return { 
@@ -154,9 +151,8 @@ export const completeTask = async (taskId: string) => {
 // Admin functions
 export const fetchPendingSubmissions = async () => {
   try {
-    // Use a simpler query approach since the table might not be in types
     const { data, error } = await supabase
-      .from('task_submissions' as any)
+      .from('task_submissions')
       .select(`
         *,
         user_task:user_tasks(
@@ -164,7 +160,7 @@ export const fetchPendingSubmissions = async () => {
           user:profiles(id, username, full_name),
           task:tasks(*)
         )
-      ` as any)
+      `)
       .is('reviewed_at', null)
       .order('submitted_at', { ascending: true });
       
@@ -183,29 +179,30 @@ export const reviewTaskSubmission = async (submissionId: string, decision: 'appr
     
     // Get submission details first
     const { data: submission, error: getError } = await supabase
-      .from('task_submissions' as any)
+      .from('task_submissions')
       .select(`
         *,
         user_task:user_tasks(*, task:tasks(*))
-      ` as any)
+      `)
       .eq('id', submissionId)
       .single();
       
     if (getError) throw getError;
+    if (!submission || !submission.user_task) throw new Error('Submission not found');
     
     // Update submission with review
     const { error: submissionError } = await supabase
-      .from('task_submissions' as any)
+      .from('task_submissions')
       .update({
         reviewed_at: new Date().toISOString(),
         reviewed_by: user.id,
         admin_notes: adminNotes
-      } as any)
+      })
       .eq('id', submissionId);
       
     if (submissionError) throw submissionError;
     
-    // Update user task status and award points if approved
+    // Update user task status
     const newStatus = decision === 'approve' ? 'Completed' : 'Rejected';
     const updateData: any = { status: newStatus };
     
@@ -213,22 +210,22 @@ export const reviewTaskSubmission = async (submissionId: string, decision: 'appr
       updateData.completed_at = new Date().toISOString();
       updateData.points_earned = submission.user_task.task.points;
       
-      // Award points to user
-      const { error: pointsError } = await supabase
+      // Award points to user - simple approach without RPC
+      const { data: currentProfile, error: profileError } = await supabase
         .from('profiles')
-        .update({
-          points: submission.user_task.task.points
-        })
-        .eq('id', submission.user_task.user_id);
+        .select('points')
+        .eq('id', submission.user_task.user_id)
+        .single();
         
-      if (pointsError) {
-        // Try with increment instead
-        const { error: incrementError } = await supabase.rpc('increment_user_points', {
-          user_id: submission.user_task.user_id,
-          points_to_add: submission.user_task.task.points
-        });
-        
-        if (incrementError) console.error('Error updating points:', incrementError);
+      if (!profileError && currentProfile) {
+        const { error: pointsError } = await supabase
+          .from('profiles')
+          .update({
+            points: currentProfile.points + submission.user_task.task.points
+          })
+          .eq('id', submission.user_task.user_id);
+          
+        if (pointsError) console.error('Error updating points:', pointsError);
       }
     }
     

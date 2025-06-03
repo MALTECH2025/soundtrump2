@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -24,7 +23,7 @@ import {
   Upload,
   Eye
 } from 'lucide-react';
-import { fetchTasks, fetchUserTasks, startTask, completeTask } from '@/lib/api';
+import { fetchTasks, fetchUserTasks, startTask, completeTask } from '@/lib/api/tasks';
 import { Task, UserTask } from '@/types';
 import TaskSubmissionModal from '@/components/tasks/TaskSubmissionModal';
 
@@ -91,7 +90,7 @@ const Tasks = () => {
   }, [tasksLoading, userTasksLoading]);
 
   const getUserTask = (taskId: string): UserTask | undefined => {
-    return userTasks.find(ut => ut.task_id === taskId);
+    return userTasks.find((ut: any) => ut.task_id === taskId) as UserTask | undefined;
   };
 
   const getTaskStatus = (task: Task): { status: string; progress: number; userTask?: UserTask } => {
@@ -101,7 +100,10 @@ const Tasks = () => {
       return { status: 'not_started', progress: 0 };
     }
     
-    switch (userTask.status) {
+    // Ensure status is properly typed
+    const status = userTask.status as "Pending" | "Submitted" | "Completed" | "Rejected";
+    
+    switch (status) {
       case 'Pending':
         return { status: 'in_progress', progress: 25, userTask };
       case 'Submitted':
@@ -257,7 +259,7 @@ const Tasks = () => {
             <Button 
               onClick={() => handleTaskAction(task)}
               disabled={isActionDisabled(task)}
-              variant={getActionButtonVariant(task)}
+              variant={getActionButtonVariant(task) as any}
             >
               {startTaskMutation.isPending || completeTaskMutation.isPending ? (
                 <>
