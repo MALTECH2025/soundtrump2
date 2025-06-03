@@ -230,6 +230,50 @@ export type Database = {
         }
         Relationships: []
       }
+      task_submissions: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          screenshot_url: string | null
+          submission_notes: string | null
+          submitted_at: string
+          user_task_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshot_url?: string | null
+          submission_notes?: string | null
+          submitted_at?: string
+          user_task_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screenshot_url?: string | null
+          submission_notes?: string | null
+          submitted_at?: string
+          user_task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_submissions_user_task_id_fkey"
+            columns: ["user_task_id"]
+            isOneToOne: false
+            referencedRelation: "user_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           active: boolean
@@ -241,6 +285,8 @@ export type Database = {
           id: string
           instructions: string | null
           points: number
+          redirect_url: string | null
+          required_media: boolean | null
           title: string
           updated_at: string
           verification_type: string
@@ -255,6 +301,8 @@ export type Database = {
           id?: string
           instructions?: string | null
           points: number
+          redirect_url?: string | null
+          required_media?: boolean | null
           title: string
           updated_at?: string
           verification_type: string
@@ -269,6 +317,8 @@ export type Database = {
           id?: string
           instructions?: string | null
           points?: number
+          redirect_url?: string | null
+          required_media?: boolean | null
           title?: string
           updated_at?: string
           verification_type?: string
@@ -332,6 +382,7 @@ export type Database = {
           id: string
           points_earned: number | null
           status: string
+          submission_id: string | null
           task_id: string
           user_id: string
         }
@@ -341,6 +392,7 @@ export type Database = {
           id?: string
           points_earned?: number | null
           status: string
+          submission_id?: string | null
           task_id: string
           user_id: string
         }
@@ -350,10 +402,18 @@ export type Database = {
           id?: string
           points_earned?: number | null
           status?: string
+          submission_id?: string | null
           task_id?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "user_tasks_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "task_submissions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "user_tasks_task_id_fkey"
             columns: ["task_id"]

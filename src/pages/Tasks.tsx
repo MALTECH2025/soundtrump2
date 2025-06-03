@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -127,7 +128,7 @@ const Tasks = () => {
       case 'in_progress':
         if (task.verification_type === 'Manual') {
           setSelectedTask(task);
-          setSelectedUserTask(userTask!);
+          setSelectedUserTask(userTask as UserTask);
           setSubmissionModalOpen(true);
         } else {
           completeTaskMutation.mutate(task.id);
