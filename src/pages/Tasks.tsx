@@ -284,8 +284,8 @@ const Tasks = () => {
               {task.estimated_time || '1 day'}
             </div>
             <div className="flex items-center">
-              <Trophy className="w-4 h-4 mr-2" />
-              {task.points} Points
+              <Trophy className="w-4 h-4 mr-2 text-yellow-500" />
+              <span className="font-medium text-sound-light">{task.points} ST</span>
             </div>
           </div>
           {task.redirect_url && status === 'in_progress' && (
@@ -366,7 +366,7 @@ const Tasks = () => {
                   className="mb-6"
                 >
                   <h1 className="text-3xl font-bold mb-2">Available Tasks</h1>
-                  <p className="text-muted-foreground">Complete tasks to earn rewards</p>
+                  <p className="text-muted-foreground">Complete tasks to earn ST rewards</p>
                 </motion.div>
                 
                 <Tabs defaultValue="all" className="w-full">

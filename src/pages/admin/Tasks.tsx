@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from "@/lib/toast";
 import { fetchTasks, fetchTaskCategories, createTask, updateTask, deleteTask } from "@/lib/api";
@@ -12,6 +13,7 @@ import TaskList from "@/components/admin/tasks/TaskList";
 import CreateTaskForm from "@/components/admin/tasks/CreateTaskForm";
 import EditTaskForm from "@/components/admin/tasks/EditTaskForm";
 import TaskSubmissionsPanel from "@/components/admin/tasks/TaskSubmissionsPanel";
+import RewardsManager from "@/components/admin/rewards/RewardsManager";
 
 const Tasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -125,66 +127,90 @@ const Tasks = () => {
         >
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Tasks Management</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Tasks & Rewards Management</h1>
               <p className="text-muted-foreground">
-                Manage tasks and review user submissions.
+                Manage tasks, review submissions, and create rewards for users.
               </p>
             </div>
-            <Dialog open={newTaskDialogOpen} onOpenChange={setNewTaskDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>Create New Task</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Task</DialogTitle>
-                  <DialogDescription>
-                    Add a new task for users to complete.
-                  </DialogDescription>
-                </DialogHeader>
-                <CreateTaskForm
-                  categories={categories}
-                  onCreateTask={handleCreateTask}
-                  isCreating={createTaskMutation.isPending}
-                  onCancel={() => setNewTaskDialogOpen(false)}
-                />
-              </DialogContent>
-            </Dialog>
           </div>
 
-          <div className="grid gap-6">
-            {/* Task Submissions Panel */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Pending Submissions</CardTitle>
-                <CardDescription>
-                  Review and approve user task submissions that require manual verification.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TaskSubmissionsPanel />
-              </CardContent>
-            </Card>
+          <Tabs defaultValue="submissions" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="submissions">Pending Submissions</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="rewards">Rewards</TabsTrigger>
+              <TabsTrigger value="create">Create Task</TabsTrigger>
+            </TabsList>
 
-            {/* Existing Task List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Task List</CardTitle>
-                <CardDescription>
-                  A list of all available tasks.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <TaskList
-                  tasks={tasks}
-                  onUpdateTask={handleUpdateTask}
-                  onOpenEditDialog={handleOpenEditTaskDialog}
-                  onDeleteTask={handleDeleteTask}
-                />
-              </CardContent>
-            </Card>
-          </div>
+            <TabsContent value="submissions" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Pending Task Submissions</CardTitle>
+                  <CardDescription>
+                    Review and approve user task submissions that require manual verification.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <TaskSubmissionsPanel />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="tasks" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Task Management</CardTitle>
+                  <CardDescription>
+                    Manage all available tasks for users.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <TaskList
+                    tasks={tasks}
+                    onUpdateTask={handleUpdateTask}
+                    onOpenEditDialog={handleOpenEditTaskDialog}
+                    onDeleteTask={handleDeleteTask}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="rewards" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Rewards Management</CardTitle>
+                  <CardDescription>
+                    Create and manage rewards that users can redeem with their ST.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <RewardsManager />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="create" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Create New Task</CardTitle>
+                  <CardDescription>
+                    Add a new task for users to complete and earn ST.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <CreateTaskForm
+                    categories={categories}
+                    onCreateTask={handleCreateTask}
+                    isCreating={createTaskMutation.isPending}
+                    onCancel={() => {}}
+                  />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </motion.div>
       </div>
+      
       <Dialog open={editTaskDialogOpen} onOpenChange={setEditTaskDialogOpen}>
         <DialogContent>
           <DialogHeader>

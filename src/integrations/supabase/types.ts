@@ -177,7 +177,9 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          created_by: string | null
           description: string
+          expires_at: string | null
           id: string
           image_url: string | null
           name: string
@@ -188,7 +190,9 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          created_by?: string | null
           description: string
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           name: string
@@ -199,7 +203,9 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          created_by?: string | null
           description?: string
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           name?: string

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Clock, Music2, Check, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -144,7 +143,7 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
           )}
           
           <div className="mt-4 flex items-center">
-            <div className="text-sm font-medium text-sound-light">{task.reward} ST Coins</div>
+            <div className="text-sm font-medium text-sound-light">{task.reward} ST</div>
           </div>
         </CardContent>
         
