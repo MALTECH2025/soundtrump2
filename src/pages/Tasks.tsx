@@ -33,6 +33,7 @@ const Tasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedUserTask, setSelectedUserTask] = useState<UserTask | null>(null);
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
+  const [processingTasks, setProcessingTasks] = useState<Set<string>>(new Set());
   const { isAuthenticated, user: authUser } = useAuth();
   const queryClient = useQueryClient();
   
@@ -50,32 +51,62 @@ const Tasks = () => {
 
   const startTaskMutation = useMutation({
     mutationFn: startTask,
-    onSuccess: () => {
+    onSuccess: (data, taskId) => {
       queryClient.invalidateQueries({ queryKey: ['userTasks'] });
+      setProcessingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
       toast.success('Task started! Good luck!');
     },
-    onError: (error: any) => {
+    onError: (error: any, taskId) => {
+      setProcessingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
       toast.error(error.message || 'Failed to start task');
     }
   });
 
   const completeTaskMutation = useMutation({
     mutationFn: completeTask,
-    onSuccess: (data) => {
+    onSuccess: (data, taskId) => {
       if (typeof data === 'object' && data !== null && 'success' in data) {
         if (data.success) {
           queryClient.invalidateQueries({ queryKey: ['userTasks'] });
           queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          setProcessingTasks(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(taskId);
+            return newSet;
+          });
           toast.success(data.message || 'Task completed successfully!');
         } else {
+          setProcessingTasks(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(taskId);
+            return newSet;
+          });
           toast.error(data.message || 'Failed to complete task');
         }
       } else {
         console.error('Unexpected response format:', data);
+        setProcessingTasks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(taskId);
+          return newSet;
+        });
         toast.error('An unexpected error occurred');
       }
     },
-    onError: (error: any) => {
+    onError: (error: any, taskId) => {
+      setProcessingTasks(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(taskId);
+        return newSet;
+      });
       toast.error(error.message || 'An error occurred');
     }
   });
@@ -121,6 +152,9 @@ const Tasks = () => {
   const handleTaskAction = (task: Task) => {
     const { status, userTask } = getTaskStatus(task);
     
+    // Add the task to processing set
+    setProcessingTasks(prev => new Set(prev).add(task.id));
+    
     switch (status) {
       case 'not_started':
         startTaskMutation.mutate(task.id);
@@ -130,14 +164,32 @@ const Tasks = () => {
           setSelectedTask(task);
           setSelectedUserTask(userTask as UserTask);
           setSubmissionModalOpen(true);
+          // Remove from processing since we're opening modal
+          setProcessingTasks(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(task.id);
+            return newSet;
+          });
         } else {
           completeTaskMutation.mutate(task.id);
         }
         break;
       case 'submitted':
+        // Remove from processing since no action needed
+        setProcessingTasks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(task.id);
+          return newSet;
+        });
         toast.info('Task is pending admin review');
         break;
       case 'completed':
+        // Remove from processing since no action needed
+        setProcessingTasks(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(task.id);
+          return newSet;
+        });
         toast.info('Task already completed!');
         break;
       case 'rejected':
@@ -183,8 +235,7 @@ const Tasks = () => {
 
   const isActionDisabled = (task: Task) => {
     const { status } = getTaskStatus(task);
-    return status === 'submitted' || status === 'completed' || 
-           startTaskMutation.isPending || completeTaskMutation.isPending;
+    return status === 'submitted' || status === 'completed' || processingTasks.has(task.id);
   };
 
   const renderTaskCard = (taskData: any) => {
@@ -197,6 +248,7 @@ const Tasks = () => {
     const { status, progress, userTask } = getTaskStatus(task);
     const categoryName = task.category?.name || 'Other';
     const isPremium = task.difficulty === 'Hard';
+    const isProcessing = processingTasks.has(task.id);
 
     return (
       <Card key={task.id} className="bg-card/80">
@@ -262,7 +314,7 @@ const Tasks = () => {
               disabled={isActionDisabled(task)}
               variant={getActionButtonVariant(task) as any}
             >
-              {startTaskMutation.isPending || completeTaskMutation.isPending ? (
+              {isProcessing ? (
                 <>
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
