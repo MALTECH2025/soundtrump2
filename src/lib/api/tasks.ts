@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
 
@@ -41,6 +40,30 @@ export const startTask = async (taskId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    // Check if user already has this task
+    const { data: existingUserTask, error: checkError } = await supabase
+      .from('user_tasks')
+      .select(`
+        *,
+        task:tasks(
+          *,
+          category:task_categories(*)
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('task_id', taskId)
+      .single();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      throw checkError;
+    }
+
+    // If user already has this task, return the existing record
+    if (existingUserTask) {
+      return existingUserTask;
+    }
+
+    // If no existing task, create a new one
     const { data, error } = await supabase
       .from('user_tasks')
       .insert({
