@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
 
@@ -9,7 +10,7 @@ export const fetchTasks = async () => {
     .from('tasks')
     .select(`
       *,
-      category:task_categories(*)
+      category:task_categories!tasks_category_id_fkey(*)
     `)
     .gt('expires_at', new Date().toISOString()) // Only fetch non-expired tasks
     .order('created_at', { ascending: false });
@@ -25,7 +26,7 @@ export const fetchUserTasks = async (userId: string) => {
       *,
       task:tasks!user_tasks_task_id_fkey(
         *,
-        category:task_categories(*)
+        category:task_categories!tasks_category_id_fkey(*)
       ),
       submission:task_submissions!task_submissions_user_task_id_fkey(*)
     `)
