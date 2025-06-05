@@ -16,7 +16,7 @@ import { fetchRewards, fetchUserRewards, redeemReward } from '@/lib/api/rewards'
 
 const Rewards = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, user: authUser } = useAuth();
+  const { isAuthenticated, user: authUser, profile } = useAuth();
   const queryClient = useQueryClient();
   
   const { data: rewards = [], isLoading: rewardsLoading } = useQuery({
@@ -64,8 +64,8 @@ const Rewards = () => {
       return;
     }
 
-    if (authUser.points < reward.points_cost) {
-      toast.error(`You need ${reward.points_cost - authUser.points} more ST to redeem this reward`);
+    if ((profile?.points || 0) < reward.points_cost) {
+      toast.error(`You need ${reward.points_cost - (profile?.points || 0)} more ST to redeem this reward`);
       return;
     }
     
@@ -138,7 +138,7 @@ const Rewards = () => {
                             <h2 className="text-xl font-semibold text-white">SoundTrump Balance</h2>
                           </div>
                           <div className="flex items-baseline">
-                            <span className="text-3xl font-bold text-white">{authUser?.points || 0}</span>
+                            <span className="text-3xl font-bold text-white">{profile?.points || 0}</span>
                             <span className="text-sm ml-2 text-white/80">ST available</span>
                           </div>
                           <p className="text-sm text-white/60 mt-1">
@@ -220,7 +220,7 @@ const Rewards = () => {
                                     onClick={() => handleRedeemReward(reward)}
                                     disabled={
                                       !authUser || 
-                                      authUser.points < reward.points_cost || 
+                                      (profile?.points || 0) < reward.points_cost || 
                                       reward.quantity === 0 ||
                                       redeemMutation.isPending
                                     }
@@ -229,7 +229,7 @@ const Rewards = () => {
                                       'Sold Out'
                                     ) : !authUser ? (
                                       'Login to Redeem'
-                                    ) : authUser.points >= reward.points_cost ? (
+                                    ) : (profile?.points || 0) >= reward.points_cost ? (
                                       redeemMutation.isPending ? (
                                         <>
                                           <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -247,7 +247,7 @@ const Rewards = () => {
                                     ) : (
                                       <>
                                         <Coins className="w-4 h-4 mr-2" />
-                                        Need {reward.points_cost - authUser.points} More ST
+                                        Need {reward.points_cost - (profile?.points || 0)} More ST
                                       </>
                                     )}
                                   </Button>
