@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
 
@@ -301,7 +300,7 @@ export const createTask = async (taskData: Task & { image?: File; duration?: num
     })
     .select(`
       *,
-      category:task_categories(*)
+      category:task_categories!tasks_category_id_fkey(*)
     `)
     .single();
     
@@ -321,7 +320,7 @@ export const updateTask = async ({ taskId, updates }: { taskId: string, updates:
     .eq('id', taskId)
     .select(`
       *,
-      category:task_categories(*)
+      category:task_categories!tasks_category_id_fkey(*)
     `)
     .single();
     
