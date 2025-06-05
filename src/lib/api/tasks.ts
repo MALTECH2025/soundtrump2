@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
 
@@ -116,7 +117,10 @@ export const submitTask = async (userTaskId: string, submissionData: {
       .from('task-screenshots')
       .upload(filePath, submissionData.screenshot);
     
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      throw new Error(`Failed to upload screenshot: ${uploadError.message}`);
+    }
     screenshot_url = uploadData.path;
   }
   
@@ -129,8 +133,15 @@ export const submitTask = async (userTaskId: string, submissionData: {
     }
   });
   
-  if (functionError) throw functionError;
-  if (!functionResult?.success) throw new Error(functionResult?.error || 'Failed to submit task');
+  if (functionError) {
+    console.error('Function error:', functionError);
+    throw new Error(`Submission failed: ${functionError.message}`);
+  }
+  
+  if (!functionResult?.success) {
+    console.error('Function result error:', functionResult);
+    throw new Error(functionResult?.error || 'Failed to submit task');
+  }
   
   return { userTask: null, submission: functionResult.data };
 };
