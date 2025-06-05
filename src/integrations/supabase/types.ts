@@ -272,6 +272,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_task_submissions_user_task_id"
+            columns: ["user_task_id"]
+            isOneToOne: false
+            referencedRelation: "user_tasks"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "task_submissions_user_task_id_fkey"
             columns: ["user_task_id"]
             isOneToOne: false
@@ -288,7 +295,9 @@ export type Database = {
           description: string
           difficulty: string
           estimated_time: string | null
+          expires_at: string | null
           id: string
+          image_url: string | null
           instructions: string | null
           points: number
           redirect_url: string | null
@@ -304,7 +313,9 @@ export type Database = {
           description: string
           difficulty: string
           estimated_time?: string | null
+          expires_at?: string | null
           id?: string
+          image_url?: string | null
           instructions?: string | null
           points: number
           redirect_url?: string | null
@@ -320,7 +331,9 @@ export type Database = {
           description?: string
           difficulty?: string
           estimated_time?: string | null
+          expires_at?: string | null
           id?: string
+          image_url?: string | null
           instructions?: string | null
           points?: number
           redirect_url?: string | null
@@ -414,6 +427,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_user_tasks_task_id"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_tasks_submission_id_fkey"
             columns: ["submission_id"]
             isOneToOne: false
@@ -445,6 +465,10 @@ export type Database = {
         Args: { referral_code: string }
         Returns: Json
       }
+      cleanup_expired_tasks: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       complete_task: {
         Args: Record<PropertyKey, never> | { task_id: string }
         Returns: undefined
@@ -460,6 +484,10 @@ export type Database = {
       redeem_reward: {
         Args: { reward_id: string }
         Returns: Json
+      }
+      schedule_task_cleanup: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {

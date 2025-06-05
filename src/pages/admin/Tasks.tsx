@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from "@/lib/toast";
-import { fetchTasks, fetchTaskCategories, createTask, updateTask, deleteTask } from "@/lib/api";
+import { fetchTasks, fetchTaskCategories, createTask, updateTask, deleteTask, cleanupExpiredTasks } from "@/lib/api/tasks";
 import { Task, TaskCategory } from "@/types";
 import AdminLayout from "@/components/admin/AdminLayout";
 import TaskList from "@/components/admin/tasks/TaskList";
@@ -14,6 +14,7 @@ import CreateTaskForm from "@/components/admin/tasks/CreateTaskForm";
 import EditTaskForm from "@/components/admin/tasks/EditTaskForm";
 import TaskSubmissionsPanel from "@/components/admin/tasks/TaskSubmissionsPanel";
 import RewardsManager from "@/components/admin/rewards/RewardsManager";
+import { Trash2 } from "lucide-react";
 
 const Tasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -95,6 +96,19 @@ const Tasks = () => {
     }
   });
 
+  // Cleanup expired tasks mutation
+  const cleanupMutation = useMutation({
+    mutationFn: cleanupExpiredTasks,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      toast.success("Expired tasks cleaned up successfully");
+    },
+    onError: (error: any) => {
+      console.error("Error cleaning up tasks:", error);
+      toast.error(error.message || "Failed to clean up expired tasks");
+    }
+  });
+
   // Event handlers
   const handleUpdateTask = (taskId: string, updates: Partial<Task>) => {
     updateTaskMutation.mutate({ taskId, updates });
@@ -111,6 +125,10 @@ const Tasks = () => {
   const handleOpenEditTaskDialog = (task: Task) => {
     setSelectedTask(task);
     setEditTaskDialogOpen(true);
+  };
+
+  const handleCleanupExpiredTasks = () => {
+    cleanupMutation.mutate();
   };
 
   if (isTasksLoading || isCategoriesLoading) return <div>Loading...</div>;
@@ -132,6 +150,15 @@ const Tasks = () => {
                 Manage tasks, review submissions, and create rewards for users.
               </p>
             </div>
+            <Button
+              onClick={handleCleanupExpiredTasks}
+              disabled={cleanupMutation.isPending}
+              variant="outline"
+              className="gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              {cleanupMutation.isPending ? "Cleaning..." : "Cleanup Expired Tasks"}
+            </Button>
           </div>
 
           <Tabs defaultValue="submissions" className="w-full">

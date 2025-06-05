@@ -9,8 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CheckCircle, XCircle, Eye, Calendar, User } from "lucide-react";
 import { toast } from "@/lib/toast";
-import { supabase } from "@/integrations/supabase/client";
-import { fetchPendingSubmissions, reviewTaskSubmission } from "@/lib/api/tasks";
+import { fetchPendingSubmissions, reviewTaskSubmission, getScreenshotUrl } from "@/lib/api/tasks";
 
 const TaskSubmissionsPanel = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
@@ -49,11 +48,6 @@ const TaskSubmissionsPanel = () => {
       decision,
       notes: adminNotes
     });
-  };
-
-  const getImageUrl = (path: string) => {
-    const { data } = supabase.storage.from('task-screenshots').getPublicUrl(path);
-    return data.publicUrl;
   };
 
   if (isLoading) {
@@ -115,7 +109,7 @@ const TaskSubmissionsPanel = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            setSelectedImage(getImageUrl(submission.screenshot_url));
+                            setSelectedImage(getScreenshotUrl(submission.screenshot_url) || '');
                             setImageDialogOpen(true);
                           }}
                         >

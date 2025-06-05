@@ -12,6 +12,7 @@ export const fetchTasks = async () => {
       *,
       category:task_categories(*)
     `)
+    .gt('expires_at', new Date().toISOString()) // Only fetch non-expired tasks
     .order('created_at', { ascending: false });
     
   if (error) throw error;
@@ -39,6 +40,19 @@ export const fetchUserTasks = async (userId: string) => {
 export const startTask = async (taskId: string) => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
+
+  // Check if task is expired
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('expires_at')
+    .eq('id', taskId)
+    .single();
+
+  if (taskError) throw taskError;
+  
+  if (new Date(task.expires_at) < new Date()) {
+    throw new Error('This task has expired and is no longer available');
+  }
 
   // Check if user already has this task
   const { data: existingUserTask, error: checkError } = await supabase
@@ -250,13 +264,41 @@ export const fetchTaskCategories = async () => {
   return data;
 };
 
-export const createTask = async (task: Task) => {
-  console.log('Creating task:', task);
+export const createTask = async (taskData: Task & { image?: File; duration?: number }) => {
+  console.log('Creating task:', taskData);
 
   // The RLS policies will now handle admin permission checking automatically
+  let image_url = null;
+  
+  // Upload task image if provided
+  if (taskData.image) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+    
+    const fileExt = taskData.image.name.split('.').pop();
+    const fileName = `task-${Date.now()}.${fileExt}`;
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('task-images')
+      .upload(fileName, taskData.image);
+    
+    if (uploadError) throw uploadError;
+    image_url = uploadData.path;
+  }
+  
+  // Calculate expiration date
+  const duration = taskData.duration || 24; // Default 24 hours
+  const expires_at = new Date(Date.now() + duration * 60 * 60 * 1000).toISOString();
+  
+  const { image, duration: _, ...taskWithoutFile } = taskData;
+  
   const { data, error } = await supabase
     .from('tasks')
-    .insert(task)
+    .insert({
+      ...taskWithoutFile,
+      image_url,
+      expires_at
+    })
     .select(`
       *,
       category:task_categories(*)
@@ -288,10 +330,46 @@ export const updateTask = async ({ taskId, updates }: { taskId: string, updates:
 };
 
 export const deleteTask = async (taskId: string) => {
+  // Get task details first to delete associated image
+  const { data: task, error: getError } = await supabase
+    .from('tasks')
+    .select('image_url')
+    .eq('id', taskId)
+    .single();
+    
+  if (!getError && task?.image_url) {
+    // Delete the task image from storage
+    await supabase.storage
+      .from('task-images')
+      .remove([task.image_url]);
+  }
+  
   const { error } = await supabase
     .from('tasks')
     .delete()
     .eq('id', taskId);
     
   if (error) throw error;
+};
+
+// Cleanup expired tasks manually (can be called by admin)
+export const cleanupExpiredTasks = async () => {
+  const { data, error } = await supabase.rpc('cleanup_expired_tasks');
+  
+  if (error) throw error;
+  return { success: true, message: 'Expired tasks cleaned up successfully' };
+};
+
+// Get task image URL
+export const getTaskImageUrl = (imagePath: string) => {
+  if (!imagePath) return null;
+  const { data } = supabase.storage.from('task-images').getPublicUrl(imagePath);
+  return data.publicUrl;
+};
+
+// Get screenshot URL
+export const getScreenshotUrl = (screenshotPath: string) => {
+  if (!screenshotPath) return null;
+  const { data } = supabase.storage.from('task-screenshots').getPublicUrl(screenshotPath);
+  return data.publicUrl;
 };

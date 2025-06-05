@@ -20,6 +20,7 @@ import {
 import { fetchTasks, fetchUserTasks, startTask, completeTask } from '@/lib/api/tasks';
 import { Task, UserTask } from '@/types';
 import TaskSubmissionModal from '@/components/tasks/TaskSubmissionModal';
+import { getTaskImageUrl } from '@/lib/api/tasks';
 
 const Tasks = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -229,9 +230,19 @@ const Tasks = () => {
     const { status, progress, userTask } = getTaskStatus(task);
     const isPremium = task.difficulty === 'Hard';
     const isProcessing = processingTasks.has(task.id);
+    const taskImageUrl = task.image_url ? getTaskImageUrl(task.image_url) : null;
 
     return (
       <Card key={task.id} className="bg-card/80">
+        {taskImageUrl && (
+          <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+            <img 
+              src={taskImageUrl} 
+              alt={task.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             {task.title}
@@ -243,6 +254,11 @@ const Tasks = () => {
             </div>
           </CardTitle>
           <CardDescription>{task.description}</CardDescription>
+          {task.instructions && (
+            <div className="mt-2 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">{task.instructions}</p>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="mb-4">
@@ -258,7 +274,7 @@ const Tasks = () => {
               <p className="text-xs text-red-600 mt-1">Rejected: {userTask.submission.admin_notes}</p>
             )}
           </div>
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-sm mb-3">
             <div className="flex items-center">
               <Clock className="w-4 h-4 mr-2" />
               {task.estimated_time || '1 day'}
@@ -268,6 +284,16 @@ const Tasks = () => {
               <span className="font-medium text-sound-light">{task.points} ST</span>
             </div>
           </div>
+          
+          {/* Task expiration notice */}
+          {task.expires_at && (
+            <div className="mb-3 p-2 bg-amber-50 rounded-lg">
+              <p className="text-xs text-amber-700">
+                Expires: {new Date(task.expires_at).toLocaleDateString()} at {new Date(task.expires_at).toLocaleTimeString()}
+              </p>
+            </div>
+          )}
+          
           {task.redirect_url && status === 'in_progress' && (
             <div className="mt-3">
               <Button
