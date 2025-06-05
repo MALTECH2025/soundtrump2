@@ -24,11 +24,11 @@ export const fetchUserTasks = async (userId: string) => {
     .from('user_tasks')
     .select(`
       *,
-      task:tasks(
+      task:tasks!user_tasks_task_id_fkey(
         *,
         category:task_categories(*)
       ),
-      submission:task_submissions(*)
+      submission:task_submissions!task_submissions_user_task_id_fkey(*)
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
@@ -175,10 +175,10 @@ export const fetchPendingSubmissions = async () => {
     .from('task_submissions')
     .select(`
       *,
-      user_task:user_tasks(
+      user_task:user_tasks!task_submissions_user_task_id_fkey(
         *,
-        user:profiles(id, username, full_name),
-        task:tasks(*)
+        user:profiles!user_tasks_user_id_fkey(id, username, full_name),
+        task:tasks!user_tasks_task_id_fkey(*)
       )
     `)
     .is('reviewed_at', null)
@@ -197,7 +197,7 @@ export const reviewTaskSubmission = async (submissionId: string, decision: 'appr
     .from('task_submissions')
     .select(`
       *,
-      user_task:user_tasks(*, task:tasks(*))
+      user_task:user_tasks!task_submissions_user_task_id_fkey(*, task:tasks!user_tasks_task_id_fkey(*))
     `)
     .eq('id', submissionId)
     .single();

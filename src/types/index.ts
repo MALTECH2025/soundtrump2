@@ -1,3 +1,4 @@
+
 import { User } from '@supabase/supabase-js';
 
 export interface UserProfile {
@@ -38,6 +39,8 @@ export interface Task {
   required_media?: boolean;
   redirect_url?: string;
   active: boolean;
+  image_url?: string;
+  expires_at?: string;
   created_at: string;
   updated_at: string;
   category?: TaskCategory;
