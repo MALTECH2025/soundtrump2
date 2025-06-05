@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
 
@@ -59,7 +58,7 @@ export const startTask = async (taskId: string) => {
     .from('user_tasks')
     .select(`
       *,
-      task:tasks(
+      task:tasks!user_tasks_task_id_fkey(
         *,
         category:task_categories(*)
       )
@@ -87,7 +86,7 @@ export const startTask = async (taskId: string) => {
     })
     .select(`
       *,
-      task:tasks(
+      task:tasks!user_tasks_task_id_fkey(
         *,
         category:task_categories(*)
       )

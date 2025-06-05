@@ -232,6 +232,11 @@ const Tasks = () => {
     const isProcessing = processingTasks.has(task.id);
     const taskImageUrl = task.image_url ? getTaskImageUrl(task.image_url) : null;
 
+    // Get the latest submission for status messages
+    const latestSubmission = userTask?.submission && userTask.submission.length > 0 
+      ? userTask.submission[userTask.submission.length - 1] 
+      : null;
+
     return (
       <Card key={task.id} className="bg-card/80">
         {taskImageUrl && (
@@ -270,8 +275,8 @@ const Tasks = () => {
             {userTask?.status === 'Submitted' && (
               <p className="text-xs text-orange-600 mt-1">Waiting for admin review</p>
             )}
-            {userTask?.status === 'Rejected' && userTask.submission?.admin_notes && (
-              <p className="text-xs text-red-600 mt-1">Rejected: {userTask.submission.admin_notes}</p>
+            {userTask?.status === 'Rejected' && latestSubmission?.admin_notes && (
+              <p className="text-xs text-red-600 mt-1">Rejected: {latestSubmission.admin_notes}</p>
             )}
           </div>
           <div className="flex items-center justify-between text-sm mb-3">

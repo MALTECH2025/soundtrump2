@@ -63,7 +63,7 @@ export interface UserTask {
   submission_id?: string;
   created_at: string;
   task?: Task;
-  submission?: TaskSubmission;
+  submission?: TaskSubmission[];
 }
 
 export interface TaskSubmission {
