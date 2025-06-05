@@ -23,7 +23,7 @@ const Rewards = () => {
     queryFn: fetchRewards,
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
   
   const { data: userRewards = [], isLoading: userRewardsLoading } = useQuery({
@@ -31,7 +31,7 @@ const Rewards = () => {
     queryFn: () => fetchUserRewards(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    cacheTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const redeemMutation = useMutation({

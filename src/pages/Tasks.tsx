@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -35,7 +34,7 @@ const Tasks = () => {
     queryFn: fetchTasks,
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
   
   const { data: userTasks = [], isLoading: userTasksLoading } = useQuery({
@@ -43,7 +42,7 @@ const Tasks = () => {
     queryFn: () => fetchUserTasks(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    cacheTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const startTaskMutation = useMutation({
