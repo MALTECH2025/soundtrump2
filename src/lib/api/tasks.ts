@@ -61,7 +61,7 @@ export const startTask = async (taskId: string) => {
       *,
       task:tasks!user_tasks_task_id_fkey(
         *,
-        category:task_categories(*)
+        category:task_categories!tasks_category_id_fkey(*)
       )
     `)
     .eq('user_id', user.id)
@@ -89,7 +89,7 @@ export const startTask = async (taskId: string) => {
       *,
       task:tasks!user_tasks_task_id_fkey(
         *,
-        category:task_categories(*)
+        category:task_categories!tasks_category_id_fkey(*)
       )
     `)
     .single();
