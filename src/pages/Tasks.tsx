@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,22 +14,15 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
 import { 
   Clock, 
-  Music2, 
-  Share, 
-  Users, 
   CheckCircle2, 
   ExternalLink, 
-  Calendar,
   Trophy,
-  Upload,
-  Eye
 } from 'lucide-react';
 import { fetchTasks, fetchUserTasks, startTask, completeTask } from '@/lib/api/tasks';
 import { Task, UserTask } from '@/types';
 import TaskSubmissionModal from '@/components/tasks/TaskSubmissionModal';
 
 const Tasks = () => {
-  const [isLoading, setIsLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [selectedUserTask, setSelectedUserTask] = useState<UserTask | null>(null);
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
@@ -41,12 +34,16 @@ const Tasks = () => {
     queryKey: ['tasks'],
     queryFn: fetchTasks,
     enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
   
   const { data: userTasks = [], isLoading: userTasksLoading } = useQuery({
     queryKey: ['userTasks', authUser?.id],
     queryFn: () => fetchUserTasks(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    cacheTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const startTaskMutation = useMutation({
@@ -110,16 +107,6 @@ const Tasks = () => {
       toast.error(error.message || 'An error occurred');
     }
   });
-  
-  useEffect(() => {
-    if (!tasksLoading && !userTasksLoading) {
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [tasksLoading, userTasksLoading]);
 
   const getUserTask = (taskId: string): UserTask | undefined => {
     return userTasks.find((ut: any) => ut.task_id === taskId) as UserTask | undefined;
@@ -132,7 +119,6 @@ const Tasks = () => {
       return { status: 'not_started', progress: 0 };
     }
     
-    // Ensure status is properly typed
     const status = userTask.status as "Pending" | "Submitted" | "Completed" | "Rejected";
     
     switch (status) {
@@ -152,7 +138,6 @@ const Tasks = () => {
   const handleTaskAction = (task: Task) => {
     const { status, userTask } = getTaskStatus(task);
     
-    // Add the task to processing set
     setProcessingTasks(prev => new Set(prev).add(task.id));
     
     switch (status) {
@@ -164,7 +149,6 @@ const Tasks = () => {
           setSelectedTask(task);
           setSelectedUserTask(userTask as UserTask);
           setSubmissionModalOpen(true);
-          // Remove from processing since we're opening modal
           setProcessingTasks(prev => {
             const newSet = new Set(prev);
             newSet.delete(task.id);
@@ -175,7 +159,6 @@ const Tasks = () => {
         }
         break;
       case 'submitted':
-        // Remove from processing since no action needed
         setProcessingTasks(prev => {
           const newSet = new Set(prev);
           newSet.delete(task.id);
@@ -184,7 +167,6 @@ const Tasks = () => {
         toast.info('Task is pending admin review');
         break;
       case 'completed':
-        // Remove from processing since no action needed
         setProcessingTasks(prev => {
           const newSet = new Set(prev);
           newSet.delete(task.id);
@@ -246,7 +228,6 @@ const Tasks = () => {
     } as Task;
     
     const { status, progress, userTask } = getTaskStatus(task);
-    const categoryName = task.category?.name || 'Other';
     const isPremium = task.difficulty === 'Hard';
     const isProcessing = processingTasks.has(task.id);
 
@@ -332,6 +313,23 @@ const Tasks = () => {
     );
   };
 
+  if (!isAuthenticated) {
+    return (
+      <AnimatedTransition>
+        <div className="min-h-screen flex flex-col">
+          <Navbar />
+          <main className="flex-grow pt-24 pb-12 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-4">Please log in to view tasks</h1>
+              <p className="text-muted-foreground">Sign in to your account to access available tasks.</p>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </AnimatedTransition>
+    );
+  }
+
   return (
     <AnimatedTransition>
       <div className="min-h-screen flex flex-col">
@@ -339,89 +337,78 @@ const Tasks = () => {
         
         <main className="flex-grow pt-24 pb-12">
           <div className="container px-4 mx-auto">
-            {isLoading ? (
-              <div className="animate-pulse">
-                <div className="h-8 bg-muted w-1/3 mb-6 rounded"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                  <div className="h-48 bg-muted rounded-lg"></div>
-                  <div className="h-48 bg-muted rounded-lg"></div>
-                  <div className="h-48 bg-muted rounded-lg"></div>
-                </div>
-                <div className="h-6 bg-muted w-1/4 mb-6 rounded"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="h-32 bg-muted rounded-lg"></div>
-                  <div className="h-32 bg-muted rounded-lg"></div>
-                  <div className="h-32 bg-muted rounded-lg"></div>
-                </div>
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+              }}
+              initial="hidden"
+              animate="visible"
+              className="mb-6"
+            >
+              <h1 className="text-3xl font-bold mb-2">Available Tasks</h1>
+              <p className="text-muted-foreground">Complete tasks to earn ST rewards</p>
+            </motion.div>
+            
+            <Tabs defaultValue="all" className="w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Task Categories</h2>
+                <TabsList>
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="music">Music</TabsTrigger>
+                  <TabsTrigger value="social">Social</TabsTrigger>
+                  <TabsTrigger value="daily">Daily</TabsTrigger>
+                </TabsList>
               </div>
-            ) : (
-              <>
-                <motion.div
-                  variants={{
-                    hidden: { opacity: 0, y: 20 },
-                    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
-                  }}
-                  initial="hidden"
-                  animate="visible"
-                  className="mb-6"
-                >
-                  <h1 className="text-3xl font-bold mb-2">Available Tasks</h1>
-                  <p className="text-muted-foreground">Complete tasks to earn ST rewards</p>
-                </motion.div>
-                
-                <Tabs defaultValue="all" className="w-full">
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">Task Categories</h2>
-                    <TabsList>
-                      <TabsTrigger value="all">All</TabsTrigger>
-                      <TabsTrigger value="music">Music</TabsTrigger>
-                      <TabsTrigger value="social">Social</TabsTrigger>
-                      <TabsTrigger value="daily">Daily</TabsTrigger>
-                    </TabsList>
+              
+              <TabsContent value="all" className="m-0">
+                {tasksLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="h-64 bg-muted rounded-lg animate-pulse"></div>
+                    ))}
                   </div>
-                  
-                  <TabsContent value="all" className="m-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {tasks.length > 0 ? (
-                        tasks.filter((taskData: any) => taskData.active).map(renderTaskCard)
-                      ) : (
-                        <p>No active tasks available at the moment. Check back later!</p>
-                      )}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="music" className="m-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {tasks.filter((taskData: any) => 
-                        taskData.active && 
-                        taskData.category && 
-                        (taskData.category as any).name?.toLowerCase().includes('music')
-                      ).map(renderTaskCard)}
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="social" className="m-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {tasks.filter((taskData: any) => 
-                        taskData.active && 
-                        taskData.category && 
-                        (taskData.category as any).name?.toLowerCase().includes('social')
-                      ).map(renderTaskCard)}
-                    </div>
-                  </TabsContent>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {tasks.length > 0 ? (
+                      tasks.filter((taskData: any) => taskData.active).map(renderTaskCard)
+                    ) : (
+                      <p>No active tasks available at the moment. Check back later!</p>
+                    )}
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="music" className="m-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {tasks.filter((taskData: any) => 
+                    taskData.active && 
+                    taskData.category && 
+                    (taskData.category as any).name?.toLowerCase().includes('music')
+                  ).map(renderTaskCard)}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="social" className="m-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {tasks.filter((taskData: any) => 
+                    taskData.active && 
+                    taskData.category && 
+                    (taskData.category as any).name?.toLowerCase().includes('social')
+                  ).map(renderTaskCard)}
+                </div>
+              </TabsContent>
 
-                  <TabsContent value="daily" className="m-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {tasks.filter((taskData: any) => 
-                        taskData.active && 
-                        taskData.category && 
-                        (taskData.category as any).name?.toLowerCase().includes('daily')
-                      ).map(renderTaskCard)}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </>
-            )}
+              <TabsContent value="daily" className="m-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {tasks.filter((taskData: any) => 
+                    taskData.active && 
+                    taskData.category && 
+                    (taskData.category as any).name?.toLowerCase().includes('daily')
+                  ).map(renderTaskCard)}
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
         
