@@ -16,7 +16,8 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-import { fetchTasks, fetchUserTasks, fetchReferrals, fetchReferralCode } from '@/lib/api';
+import { fetchTasks, fetchReferrals, fetchReferralCode } from '@/lib/api';
+import { fetchUserTasks } from '@/lib/api/tasks/userTasks';
 import { UserTask, Task } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
