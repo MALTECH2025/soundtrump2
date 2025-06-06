@@ -34,8 +34,7 @@ const mapCategoryToTaskType = (task: any): "spotify" | "social" | "referral" | "
 
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, user: authUser } = useAuth();
-  const { user } = useProfile();
+  const { isAuthenticated, user: authUser, profile } = useAuth();
   
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks'],
@@ -114,12 +113,12 @@ const Dashboard = () => {
   }, [tasksLoading, userTasksLoading]);
   
   useEffect(() => {
-    if (user && !isLoading) {
-      toast.success(`Welcome back, ${user.name || 'User'}!`, {
+    if (profile && !isLoading) {
+      toast.success(`Welcome back, ${profile.name || 'User'}!`, {
         description: `You have ${tasks.filter(t => t.active).length} active tasks to complete.`,
       });
     }
-  }, [user, tasks, isLoading]);
+  }, [profile, tasks, isLoading]);
   
   const activeTasks = tasks.filter(task => task.active).map(task => {
     const userTask = userTasks.find(ut => ut.task_id === task.id);
@@ -138,7 +137,7 @@ const Dashboard = () => {
   });
   
   const completedTasks = userTasks.filter(ut => ut.status === 'Completed');
-  const totalEarnings = user?.points || 0;
+  const totalEarnings = profile?.points || 0;
   const pendingEarnings = 0;
   
   const rankCalculation = () => {
@@ -184,8 +183,8 @@ const Dashboard = () => {
   };
 
   const handlePointsUpdate = () => {
-    // Refetch user profile to update points display
-    window.location.reload(); // Simple refresh to update all user data
+    // Force refetch of user profile and related data
+    window.location.reload();
   };
 
   return (
@@ -220,12 +219,12 @@ const Dashboard = () => {
                   className="mb-6"
                 >
                   <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold">Welcome back, {user?.name || 'User'}</h1>
+                    <h1 className="text-3xl font-bold">Welcome back, {profile?.name || 'User'}</h1>
                     <div className="flex gap-1.5">
-                      {user?.tier === "Premium" && (
+                      {profile?.tier === "Premium" && (
                         <Badge className="bg-sound-light">Premium</Badge>
                       )}
-                      {user?.status === "Influencer" && (
+                      {profile?.status === "Influencer" && (
                         <Badge className="bg-purple-500">Influencer</Badge>
                       )}
                     </div>
@@ -349,7 +348,7 @@ const Dashboard = () => {
                       totalReferrals={Array.isArray(referrals) ? referrals.length : 0}
                       influencerThreshold={500}
                       referralCode={referralCode || 'SOUNDFAN2024'}
-                      isInfluencer={user?.status === "Influencer"}
+                      isInfluencer={profile?.status === "Influencer"}
                     />
                   </div>
                 </motion.div>

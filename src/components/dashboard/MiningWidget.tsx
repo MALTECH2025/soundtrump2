@@ -6,45 +6,66 @@ import { Badge } from '@/components/ui/badge';
 import { Coins, Clock, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '@/lib/toast';
-import { useProfile } from '@/context/ProfileContext';
-import { updateUserProfile } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { updateUserProfile, fetchUserProfile } from '@/lib/api';
+import { supabase } from '@/integrations/supabase/client';
+
+interface MiningSession {
+  startTime: number;
+  isActive: boolean;
+  canClaim: boolean;
+  accumulatedCoins: number;
+}
 
 interface MiningWidgetProps {
   onPointsUpdate?: () => void;
 }
 
 const MiningWidget: React.FC<MiningWidgetProps> = ({ onPointsUpdate }) => {
-  const { user } = useProfile();
+  const { user, updateUserProfile: updateAuthProfile } = useAuth();
   const [isMining, setIsMining] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [canClaim, setCanClaim] = useState(false);
   const [accumulatedCoins, setAccumulatedCoins] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   const MINING_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
   const COINS_PER_HOUR = 0.003;
 
+  // Load mining session from database on component mount
   useEffect(() => {
-    // Check if user has an active mining session
-    const miningData = localStorage.getItem(`mining_${user?.id}`);
-    if (miningData) {
-      const { startTime, isActive } = JSON.parse(miningData);
-      const elapsed = Date.now() - startTime;
-      
-      if (isActive && elapsed < MINING_DURATION) {
-        setIsMining(true);
-        setTimeRemaining(MINING_DURATION - elapsed);
-      } else if (isActive && elapsed >= MINING_DURATION) {
-        setCanClaim(true);
-        setAccumulatedCoins(COINS_PER_HOUR);
-        localStorage.setItem(`mining_${user?.id}`, JSON.stringify({
-          startTime,
-          isActive: false,
-          canClaim: true
-        }));
-      }
-    }
+    loadMiningSession();
   }, [user?.id]);
 
+  // Set up real-time subscription for user profile updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('user-profile-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Profile updated:', payload);
+          if (onPointsUpdate) {
+            onPointsUpdate();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, onPointsUpdate]);
+
+  // Mining countdown timer
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
@@ -56,11 +77,12 @@ const MiningWidget: React.FC<MiningWidgetProps> = ({ onPointsUpdate }) => {
             setIsMining(false);
             setCanClaim(true);
             setAccumulatedCoins(COINS_PER_HOUR);
-            localStorage.setItem(`mining_${user?.id}`, JSON.stringify({
+            saveMiningSession({
               startTime: Date.now() - MINING_DURATION,
               isActive: false,
-              canClaim: true
-            }));
+              canClaim: true,
+              accumulatedCoins: COINS_PER_HOUR
+            });
             toast.success('Mining complete! You can now claim your ST coins.');
             return 0;
           }
@@ -72,38 +94,93 @@ const MiningWidget: React.FC<MiningWidgetProps> = ({ onPointsUpdate }) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isMining, timeRemaining, user?.id]);
+  }, [isMining, timeRemaining]);
 
-  const startMining = () => {
+  const loadMiningSession = async () => {
+    if (!user?.id) return;
+
+    try {
+      // Try to get mining session from localStorage first for immediate feedback
+      const localSession = localStorage.getItem(`mining_${user.id}`);
+      if (localSession) {
+        const session: MiningSession = JSON.parse(localSession);
+        const elapsed = Date.now() - session.startTime;
+        
+        if (session.isActive && elapsed < MINING_DURATION) {
+          setIsMining(true);
+          setTimeRemaining(MINING_DURATION - elapsed);
+        } else if (session.isActive && elapsed >= MINING_DURATION) {
+          setCanClaim(true);
+          setAccumulatedCoins(COINS_PER_HOUR);
+          localStorage.setItem(`mining_${user.id}`, JSON.stringify({
+            ...session,
+            isActive: false,
+            canClaim: true,
+            accumulatedCoins: COINS_PER_HOUR
+          }));
+        } else if (session.canClaim) {
+          setCanClaim(true);
+          setAccumulatedCoins(session.accumulatedCoins);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading mining session:', error);
+    }
+  };
+
+  const saveMiningSession = (session: MiningSession) => {
+    if (!user?.id) return;
+    localStorage.setItem(`mining_${user.id}`, JSON.stringify(session));
+  };
+
+  const startMining = async () => {
     if (!user) {
       toast.error('You need to be logged in to start mining.');
       return;
     }
 
-    const startTime = Date.now();
-    setIsMining(true);
-    setTimeRemaining(MINING_DURATION);
-    setCanClaim(false);
-    setAccumulatedCoins(0);
+    setIsLoading(true);
+    try {
+      const startTime = Date.now();
+      const session: MiningSession = {
+        startTime,
+        isActive: true,
+        canClaim: false,
+        accumulatedCoins: 0
+      };
 
-    localStorage.setItem(`mining_${user.id}`, JSON.stringify({
-      startTime,
-      isActive: true,
-      canClaim: false
-    }));
+      setIsMining(true);
+      setTimeRemaining(MINING_DURATION);
+      setCanClaim(false);
+      setAccumulatedCoins(0);
 
-    toast.success('Mining started! Come back in 1 hour to claim your coins.');
+      saveMiningSession(session);
+      toast.success('Mining started! Come back in 1 hour to claim your coins.');
+    } catch (error) {
+      console.error('Error starting mining:', error);
+      toast.error('Failed to start mining. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const claimCoins = async () => {
     if (!user || !canClaim) return;
 
+    setIsLoading(true);
     try {
-      const currentPoints = user.points || 0;
+      // Get current user profile to ensure we have the latest points
+      const currentProfile = await fetchUserProfile(user.id);
+      const currentPoints = currentProfile.points || 0;
       const newPoints = currentPoints + accumulatedCoins;
 
+      // Update user points in the database
       await updateUserProfile({ points: newPoints });
       
+      // Update local auth context
+      await updateAuthProfile({ points: newPoints });
+      
+      // Clear mining session
       setCanClaim(false);
       setAccumulatedCoins(0);
       localStorage.removeItem(`mining_${user.id}`);
@@ -116,6 +193,8 @@ const MiningWidget: React.FC<MiningWidgetProps> = ({ onPointsUpdate }) => {
     } catch (error) {
       console.error('Error claiming coins:', error);
       toast.error('Failed to claim coins. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -182,20 +261,22 @@ const MiningWidget: React.FC<MiningWidgetProps> = ({ onPointsUpdate }) => {
           {!isMining && !canClaim && (
             <Button
               onClick={startMining}
+              disabled={isLoading}
               className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white"
             >
               <Zap className="w-4 h-4 mr-2" />
-              Start Mining
+              {isLoading ? 'Starting...' : 'Start Mining'}
             </Button>
           )}
           
           {canClaim && (
             <Button
               onClick={claimCoins}
+              disabled={isLoading}
               className="flex-1 bg-green-500 hover:bg-green-600 text-white"
             >
               <Coins className="w-4 h-4 mr-2" />
-              Claim {accumulatedCoins} ST
+              {isLoading ? 'Claiming...' : `Claim ${accumulatedCoins} ST`}
             </Button>
           )}
           
