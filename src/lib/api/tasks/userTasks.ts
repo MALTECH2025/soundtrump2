@@ -6,9 +6,9 @@ export const fetchUserTasks = async (userId: string) => {
     .from('user_tasks')
     .select(`
       *,
-      task:task_id(
+      task:tasks!user_tasks_task_id_fkey(
         *,
-        category:category_id(*)
+        category:task_categories!tasks_category_id_fkey(*)
       )
     `)
     .eq('user_id', userId)
@@ -44,13 +44,32 @@ export const startTask = async (taskId: string) => {
     })
     .select(`
       *,
-      task:task_id(
+      task:tasks!user_tasks_task_id_fkey(
         *,
-        category:category_id(*)
+        category:task_categories!tasks_category_id_fkey(*)
       )
     `)
     .single();
     
   if (error) throw error;
   return data;
+};
+
+export const completeTask = async (taskId: string) => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('Not authenticated');
+  
+  // Use the complete_task function from Supabase
+  const { data, error } = await supabase.rpc('complete_task', {
+    task_id: taskId
+  });
+  
+  if (error) throw error;
+  
+  return {
+    success: true,
+    message: 'Task completed successfully',
+    data
+  };
 };

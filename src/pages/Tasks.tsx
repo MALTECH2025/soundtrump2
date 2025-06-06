@@ -70,7 +70,7 @@ const Tasks = () => {
   const completeTaskMutation = useMutation({
     mutationFn: completeTask,
     onSuccess: (data, taskId) => {
-      if (typeof data === 'object' && data !== null && 'success' in data) {
+      if (data && typeof data === 'object' && 'success' in data) {
         if (data.success) {
           queryClient.invalidateQueries({ queryKey: ['userTasks'] });
           queryClient.invalidateQueries({ queryKey: ['tasks'] });

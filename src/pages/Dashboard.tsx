@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -114,7 +115,7 @@ const Dashboard = () => {
   
   useEffect(() => {
     if (profile && !isLoading) {
-      toast.success(`Welcome back, ${profile.name || 'User'}!`, {
+      toast.success(`Welcome back, ${profile.full_name || profile.username || 'User'}!`, {
         description: `You have ${tasks.filter(t => t.active).length} active tasks to complete.`,
       });
     }
@@ -219,7 +220,7 @@ const Dashboard = () => {
                   className="mb-6"
                 >
                   <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold">Welcome back, {profile?.name || 'User'}</h1>
+                    <h1 className="text-3xl font-bold">Welcome back, {profile?.full_name || profile?.username || 'User'}</h1>
                     <div className="flex gap-1.5">
                       {profile?.tier === "Premium" && (
                         <Badge className="bg-sound-light">Premium</Badge>
