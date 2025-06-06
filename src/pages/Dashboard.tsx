@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -10,6 +9,7 @@ import TaskCard from '@/components/dashboard/TaskCard';
 import RankDisplay from '@/components/dashboard/RankDisplay';
 import EarningsWidget from '@/components/dashboard/EarningsWidget';
 import ReferralWidget from '@/components/dashboard/ReferralWidget';
+import MiningWidget from '@/components/dashboard/MiningWidget';
 import { Bell, Music2, Award, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/toast';
@@ -183,6 +183,11 @@ const Dashboard = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
 
+  const handlePointsUpdate = () => {
+    // Refetch user profile to update points display
+    window.location.reload(); // Simple refresh to update all user data
+  };
+
   return (
     <AnimatedTransition>
       <div className="min-h-screen flex flex-col">
@@ -337,7 +342,9 @@ const Dashboard = () => {
                     </div>
                   </div>
                   
-                  <div className="lg:col-span-1">
+                  <div className="lg:col-span-1 space-y-6">
+                    <MiningWidget onPointsUpdate={handlePointsUpdate} />
+                    
                     <ReferralWidget 
                       totalReferrals={Array.isArray(referrals) ? referrals.length : 0}
                       influencerThreshold={500}
