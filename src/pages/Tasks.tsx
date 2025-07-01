@@ -11,12 +11,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
-import { 
-  Clock, 
-  CheckCircle2, 
-  ExternalLink, 
-  Trophy,
-} from 'lucide-react';
+import { useNotifications } from '@/hooks/useNotifications';
+import TaskFilters from '@/components/tasks/TaskFilters';
+import { Clock, CheckCircle2, ExternalLink, Trophy } from 'lucide-react';
 import { fetchTasks, fetchUserTasks, startTask, completeTask } from '@/lib/api/tasks';
 import { Task, UserTask } from '@/types';
 import TaskSubmissionModal from '@/components/tasks/TaskSubmissionModal';
@@ -27,23 +24,30 @@ const Tasks = () => {
   const [selectedUserTask, setSelectedUserTask] = useState<UserTask | null>(null);
   const [submissionModalOpen, setSubmissionModalOpen] = useState(false);
   const [processingTasks, setProcessingTasks] = useState<Set<string>>(new Set());
+  
+  // Filter states
+  const [selectedDifficulty, setSelectedDifficulty] = useState('all');
+  const [selectedPoints, setSelectedPoints] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  
   const { isAuthenticated, user: authUser } = useAuth();
+  const { addNotification } = useNotifications();
   const queryClient = useQueryClient();
   
   const { data: tasks = [], isLoading: tasksLoading } = useQuery({
     queryKey: ['tasks'],
     queryFn: fetchTasks,
     enabled: isAuthenticated,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
   
   const { data: userTasks = [], isLoading: userTasksLoading } = useQuery({
     queryKey: ['userTasks', authUser?.id],
     queryFn: () => fetchUserTasks(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const startTaskMutation = useMutation({
@@ -55,6 +59,13 @@ const Tasks = () => {
         newSet.delete(taskId);
         return newSet;
       });
+      
+      addNotification({
+        type: 'task_completed',
+        title: 'Task Started!',
+        message: 'You can now complete this task to earn ST coins.'
+      });
+      
       toast.success('Task started! Good luck!');
     },
     onError: (error: any, taskId) => {
@@ -79,6 +90,13 @@ const Tasks = () => {
             newSet.delete(taskId);
             return newSet;
           });
+          
+          addNotification({
+            type: 'task_completed',
+            title: 'Task Completed! 🎉',
+            message: `You earned ${data.points_earned || 'ST'} coins!`
+          });
+          
           toast.success(data.message || 'Task completed successfully!');
         } else {
           setProcessingTasks(prev => {
@@ -107,6 +125,42 @@ const Tasks = () => {
       toast.error(error.message || 'An error occurred');
     }
   });
+
+  // Filter functions
+  const applyFilters = (taskList: any[]) => {
+    return taskList.filter((taskData: any) => {
+      const task = taskData as Task;
+      
+      // Difficulty filter
+      if (selectedDifficulty !== 'all' && task.difficulty !== selectedDifficulty) {
+        return false;
+      }
+      
+      // Points filter
+      if (selectedPoints !== 'all') {
+        const points = task.points;
+        if (selectedPoints === 'low' && points > 50) return false;
+        if (selectedPoints === 'medium' && (points <= 50 || points > 150)) return false;
+        if (selectedPoints === 'high' && points <= 150) return false;
+      }
+      
+      // Status filter
+      if (selectedStatus !== 'all') {
+        const { status } = getTaskStatus(task);
+        if (selectedStatus === 'available' && status !== 'not_started') return false;
+        if (selectedStatus === 'in_progress' && status !== 'in_progress') return false;
+        if (selectedStatus === 'completed' && status !== 'completed') return false;
+      }
+      
+      return task.active;
+    });
+  };
+
+  const resetFilters = () => {
+    setSelectedDifficulty('all');
+    setSelectedPoints('all');
+    setSelectedStatus('all');
+  };
 
   const getUserTask = (taskId: string): UserTask | undefined => {
     return userTasks.find((ut: any) => ut.task_id === taskId) as UserTask | undefined;
@@ -238,7 +292,7 @@ const Tasks = () => {
       : null;
 
     return (
-      <Card key={task.id} className="bg-card/80">
+      <Card key={task.id} className="bg-card/80 hover:shadow-lg transition-shadow">
         {taskImageUrl && (
           <div className="aspect-video w-full overflow-hidden rounded-t-lg">
             <img 
@@ -290,7 +344,6 @@ const Tasks = () => {
             </div>
           </div>
           
-          {/* Task expiration notice */}
           {task.expires_at && (
             <div className="mb-3 p-2 bg-amber-50 rounded-lg">
               <p className="text-xs text-amber-700">
@@ -360,6 +413,8 @@ const Tasks = () => {
     );
   }
 
+  const filteredTasks = applyFilters(tasks);
+
   return (
     <AnimatedTransition>
       <div className="min-h-screen flex flex-col">
@@ -379,12 +434,23 @@ const Tasks = () => {
               <h1 className="text-3xl font-bold mb-2">Available Tasks</h1>
               <p className="text-muted-foreground">Complete tasks to earn ST rewards</p>
             </motion.div>
+
+            {/* Task Filters */}
+            <TaskFilters
+              selectedDifficulty={selectedDifficulty}
+              selectedPoints={selectedPoints}
+              selectedStatus={selectedStatus}
+              onDifficultyChange={setSelectedDifficulty}
+              onPointsChange={setSelectedPoints}
+              onStatusChange={setSelectedStatus}
+              onReset={resetFilters}
+            />
             
             <Tabs defaultValue="all" className="w-full">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">Task Categories</h2>
                 <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="all">All ({filteredTasks.length})</TabsTrigger>
                   <TabsTrigger value="music">Music</TabsTrigger>
                   <TabsTrigger value="social">Social</TabsTrigger>
                   <TabsTrigger value="daily">Daily</TabsTrigger>
@@ -400,10 +466,15 @@ const Tasks = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {tasks.length > 0 ? (
-                      tasks.filter((taskData: any) => taskData.active).map(renderTaskCard)
+                    {filteredTasks.length > 0 ? (
+                      filteredTasks.map(renderTaskCard)
                     ) : (
-                      <p>No active tasks available at the moment. Check back later!</p>
+                      <div className="col-span-full text-center py-12">
+                        <p className="text-muted-foreground mb-4">No tasks match your current filters.</p>
+                        <Button onClick={resetFilters} variant="outline">
+                          Reset Filters
+                        </Button>
+                      </div>
                     )}
                   </div>
                 )}
@@ -411,31 +482,28 @@ const Tasks = () => {
               
               <TabsContent value="music" className="m-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {tasks.filter((taskData: any) => 
-                    taskData.active && 
+                  {applyFilters(tasks.filter((taskData: any) => 
                     taskData.category && 
                     (taskData.category as any).name?.toLowerCase().includes('music')
-                  ).map(renderTaskCard)}
+                  )).map(renderTaskCard)}
                 </div>
               </TabsContent>
               
               <TabsContent value="social" className="m-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {tasks.filter((taskData: any) => 
-                    taskData.active && 
+                  {applyFilters(tasks.filter((taskData: any) => 
                     taskData.category && 
                     (taskData.category as any).name?.toLowerCase().includes('social')
-                  ).map(renderTaskCard)}
+                  )).map(renderTaskCard)}
                 </div>
               </TabsContent>
 
               <TabsContent value="daily" className="m-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {tasks.filter((taskData: any) => 
-                    taskData.active && 
+                  {applyFilters(tasks.filter((taskData: any) => 
                     taskData.category && 
                     (taskData.category as any).name?.toLowerCase().includes('daily')
-                  ).map(renderTaskCard)}
+                  )).map(renderTaskCard)}
                 </div>
               </TabsContent>
             </Tabs>

@@ -1,262 +1,179 @@
+
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuGroup,
-  DropdownMenuLabel
-} from '@/components/ui/dropdown-menu';
-import { 
-  AlignJustify, 
-  Music2, 
-  User, 
-  LogOut, 
-  Settings, 
-  Trophy, 
-  Users, 
-  Gift, 
-  LayoutDashboard,
-  Shield
-} from 'lucide-react';
-import { motion } from 'framer-motion';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/context/AuthContext';
-import { useProfile } from '@/context/ProfileContext';
-import { toast } from '@/lib/toast';
-import { ProfileDisplayData } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { Coins, Menu, X, User, Settings, LogOut, Trophy } from 'lucide-react';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
-interface NavbarProps {
-  isAuthenticated?: boolean;
-  userProfile?: ProfileDisplayData;
-}
-
-export const Navbar = ({ 
-  userProfile
-}: NavbarProps) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const location = useLocation();
+const Navbar = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
-  const { isAuthenticated, logout, isAdmin } = useAuth();
-  const { user } = useProfile();
-  
-  const navLinks = [
-    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard className="w-4 h-4 mr-2" /> },
-    { name: 'Tasks', path: '/tasks', icon: <Music2 className="w-4 h-4 mr-2" /> },
-    { name: 'Leaderboard', path: '/leaderboard', icon: <Trophy className="w-4 h-4 mr-2" /> },
-    { name: 'Referrals', path: '/referrals', icon: <Users className="w-4 h-4 mr-2" /> },
-    { name: 'Rewards', path: '/rewards', icon: <Gift className="w-4 h-4 mr-2" /> },
-  ];
 
-  const handleLogout = () => {
-    logout();
-    toast.success('Successfully logged out');
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
+  const navLinks = [
+    { href: '/dashboard', label: 'Dashboard' },
+    { href: '/tasks', label: 'Tasks' },
+    { href: '/rewards', label: 'Rewards' },
+    { href: '/referrals', label: 'Referrals' },
+    { href: '/leaderboard', label: 'Leaderboard' }
+  ];
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 backdrop-blur-lg bg-background/80 border-b border-border">
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        <Link to="/" className="flex items-center">
-          <motion.div 
-            whileHover={{ scale: 1.05 }}
-            className="flex items-center"
-          >
-            <Music2 className="w-8 h-8 text-sound-light mr-2" />
-            <span className="text-xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-sound-light to-sound-accent">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link to="/" className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-sound-light to-sound-medium rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">ST</span>
+            </div>
+            <span className="text-xl font-bold bg-gradient-to-r from-sound-dark to-sound-medium bg-clip-text text-transparent">
               SoundTrump
             </span>
-          </motion.div>
-        </Link>
+          </Link>
 
-        <nav className="hidden md:flex items-center space-x-1">
-          {navLinks.map((link) => (
-            <Link key={link.path} to={link.path}>
-              <Button 
-                variant={location.pathname === link.path ? "default" : "ghost"} 
-                size="sm"
-                className="transition-all duration-300"
-              >
-                {link.icon}
-                {link.name}
-              </Button>
-            </Link>
-          ))}
-          
-          {/* Admin button, only visible to admin users */}
-          {isAdmin && (
-            <Link to="/admin">
-              <Button 
-                variant={location.pathname.startsWith('/admin') ? "default" : "ghost"} 
-                size="sm"
-                className="transition-all duration-300"
-              >
-                <Shield className="w-4 h-4 mr-2" />
-                Admin
-              </Button>
-            </Link>
-          )}
-        </nav>
-
-        <div className="flex items-center">
-          {isAuthenticated && user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <motion.div whileHover={{ scale: 1.05 }}>
-                  <Button variant="ghost" className="rounded-full p-0 h-10 w-10">
-                    <Avatar>
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                      <AvatarFallback className="bg-sound-light text-white">
-                        {user.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </motion.div>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 mt-1 p-2 animate-fade-in">
-                <div className="flex flex-col p-2 mb-2 border-b">
-                  <p className="font-medium">{user.name}</p>
-                  <p className="text-sm text-muted-foreground">ST Member</p>
-                </div>
-                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/profile')}>
-                  <User className="w-4 h-4 mr-2" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/rewards')}>
-                  <Gift className="w-4 h-4 mr-2" />
-                  <span>My Rewards</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/settings')}>
-                  <Settings className="w-4 h-4 mr-2" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                
-                {/* Admin section, only visible to admin users */}
-                {isAdmin && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Admin</DropdownMenuLabel>
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/admin')}>
-                        <LayoutDashboard className="w-4 h-4 mr-2" />
-                        <span>Dashboard</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/admin/users')}>
-                        <Users className="w-4 h-4 mr-2" />
-                        <span>Manage Users</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/admin/tasks')}>
-                        <Music2 className="w-4 h-4 mr-2" />
-                        <span>Manage Tasks</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                  </>
-                )}
-                
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
-                  <LogOut className="w-4 h-4 mr-2" />
-                  <span>Logout</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <div className="flex space-x-2">
-              <Link to="/login">
-                <Button variant="outline" size="sm">Log in</Button>
-              </Link>
-              <Link to="/login">
-                <Button variant="default" size="sm">Sign up</Button>
-              </Link>
+          {/* Desktop Navigation */}
+          {isAuthenticated && (
+            <div className="hidden md:flex items-center space-x-6">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="text-gray-700 hover:text-sound-medium transition-colors font-medium"
+                >
+                  {link.label}
+                </Link>
+              ))}
             </div>
           )}
 
-          <div className="ml-2 md:hidden">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            >
-              <AlignJustify className="h-5 w-5" />
-            </Button>
+          {/* Right side */}
+          <div className="flex items-center space-x-4">
+            {isAuthenticated ? (
+              <>
+                {/* Points Display */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="hidden sm:flex items-center space-x-2 bg-gradient-to-r from-yellow-100 to-orange-100 px-3 py-1 rounded-full"
+                >
+                  <Coins className="w-4 h-4 text-yellow-600" />
+                  <span className="font-bold text-yellow-700">
+                    {user?.points?.toLocaleString() || '0'} ST
+                  </span>
+                </motion.div>
+
+                {/* Tier Badge */}
+                <Badge variant="outline" className="hidden sm:flex items-center gap-1">
+                  <Trophy className="w-3 h-3" />
+                  {user?.tier || 'Free'}
+                </Badge>
+
+                {/* Notifications */}
+                <NotificationBell />
+
+                {/* User Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user?.avatar_url} alt={user?.full_name || 'User'} />
+                        <AvatarFallback>{user?.initials || 'U'}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <div className="flex items-center justify-start gap-2 p-2">
+                      <div className="flex flex-col space-y-1 leading-none">
+                        <p className="font-medium">{user?.full_name || user?.username}</p>
+                        <p className="w-[200px] truncate text-sm text-muted-foreground">
+                          {user?.email}
+                        </p>
+                      </div>
+                    </div>
+                    <DropdownMenuItem onClick={() => navigate('/profile')}>
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate('/settings')}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Mobile Menu Button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="md:hidden"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                >
+                  {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </Button>
+              </>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Button variant="ghost" onClick={() => navigate('/login')}>
+                  Sign In
+                </Button>
+                <Button onClick={() => navigate('/login')}>
+                  Get Started
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {isMobileMenuOpen && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className="md:hidden py-3 px-4 bg-card border-b border-border"
-        >
-          <nav className="flex flex-col space-y-1">
-            {navLinks.map((link) => (
-              <Link 
-                key={link.path} 
-                to={link.path}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Button 
-                  variant={location.pathname === link.path ? "default" : "ghost"} 
-                  className="w-full justify-start"
+        {/* Mobile Menu */}
+        {isAuthenticated && isMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="md:hidden border-t border-gray-200 py-4"
+          >
+            <div className="flex flex-col space-y-2">
+              {/* Points Display Mobile */}
+              <div className="flex items-center justify-center space-x-2 bg-gradient-to-r from-yellow-100 to-orange-100 px-3 py-2 rounded-full mb-4">
+                <Coins className="w-4 h-4 text-yellow-600" />
+                <span className="font-bold text-yellow-700">
+                  {user?.points?.toLocaleString() || '0'} ST
+                </span>
+                <Badge variant="outline" className="ml-2">
+                  {user?.tier || 'Free'}
+                </Badge>
+              </div>
+
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="block px-3 py-2 text-gray-700 hover:text-sound-medium hover:bg-gray-50 rounded-md transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
                 >
-                  {link.icon}
-                  {link.name}
-                </Button>
-              </Link>
-            ))}
-            
-            {isAdmin && (
-              <>
-                <div className="pt-2 pb-1">
-                  <p className="px-2 text-xs font-medium text-muted-foreground">Admin Panel</p>
-                </div>
-                <Link 
-                  to="/admin"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Button 
-                    variant={location.pathname === "/admin" ? "default" : "ghost"} 
-                    className="w-full justify-start"
-                  >
-                    <LayoutDashboard className="w-4 h-4 mr-2" />
-                    Admin Dashboard
-                  </Button>
+                  {link.label}
                 </Link>
-                <Link 
-                  to="/admin/users"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Button 
-                    variant={location.pathname === "/admin/users" ? "default" : "ghost"} 
-                    className="w-full justify-start"
-                  >
-                    <Users className="w-4 h-4 mr-2" />
-                    Manage Users
-                  </Button>
-                </Link>
-                <Link 
-                  to="/admin/tasks"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Button 
-                    variant={location.pathname === "/admin/tasks" ? "default" : "ghost"} 
-                    className="w-full justify-start"
-                  >
-                    <Music2 className="w-4 h-4 mr-2" />
-                    Manage Tasks
-                  </Button>
-                </Link>
-              </>
-            )}
-          </nav>
-        </motion.div>
-      )}
-    </header>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </nav>
   );
 };
 
