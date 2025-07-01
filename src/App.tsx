@@ -1,13 +1,12 @@
 
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { AuthProvider } from '@/context/AuthContext';
 import { ProfileProvider } from '@/context/ProfileContext';
 import { Toaster } from "@/components/ui/sonner";
-import { toast } from "@/lib/toast";
-import { enableRealtimeForTable } from '@/lib/api';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 // Import pages
 import Index from '@/pages/Index';
@@ -50,6 +49,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
@@ -58,13 +58,11 @@ function App() {
   const [appReady, setAppReady] = useState(false);
 
   useEffect(() => {
+    // Simple app initialization without problematic edge function calls
     const initializeApp = async () => {
       try {
-        // Enable realtime for the tables we need
-        await enableRealtimeForTable('tasks');
-        await enableRealtimeForTable('user_tasks');
-        await enableRealtimeForTable('referred_users');
-        await enableRealtimeForTable('profiles');
+        // Add any necessary initialization here
+        console.log('SoundTrump app initializing...');
       } catch (error) {
         console.error('Error during app initialization:', error);
       }
@@ -86,49 +84,51 @@ function App() {
   }
 
   return (
-    <ThemeProvider defaultTheme="light" storageKey="soundtrump-theme">
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <AuthProvider>
-            <ProfileProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/support" element={<Support />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/dsp-trust" element={<DspTrust />} />
-                <Route path="/spotify/callback" element={<SpotifyCallback />} />
-                
-                <Route path="/legal/terms" element={<TermsOfService />} />
-                <Route path="/legal/privacy" element={<PrivacyPolicy />} />
-                <Route path="/legal/cookies" element={<CookiesPolicy />} />
-                <Route path="/legal/disclaimer" element={<Disclaimer />} />
-                <Route path="/legal/whitepaper" element={<WhitePaper />} />
-                
-                <Route element={<ProtectedRoute />}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/tasks" element={<Tasks />} />
-                  <Route path="/rewards" element={<Rewards />} />
-                  <Route path="/referrals" element={<Referrals />} />
-                  <Route path="/leaderboard" element={<Leaderboard />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/settings" element={<Settings />} />
-                </Route>
-                
-                <Route element={<AdminRoute />}>
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/users" element={<AdminUsers />} />
-                  <Route path="/admin/tasks" element={<AdminTasks />} />
-                </Route>
-                
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Toaster />
-            </ProfileProvider>
-          </AuthProvider>
-        </Router>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="light" storageKey="soundtrump-theme">
+        <QueryClientProvider client={queryClient}>
+          <Router>
+            <AuthProvider>
+              <ProfileProvider>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/support" element={<Support />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/dsp-trust" element={<DspTrust />} />
+                  <Route path="/spotify/callback" element={<SpotifyCallback />} />
+                  
+                  <Route path="/legal/terms" element={<TermsOfService />} />
+                  <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/legal/cookies" element={<CookiesPolicy />} />
+                  <Route path="/legal/disclaimer" element={<Disclaimer />} />
+                  <Route path="/legal/whitepaper" element={<WhitePaper />} />
+                  
+                  <Route element={<ProtectedRoute />}>
+                    <Route path="/dashboard" element={<Dashboard />} />
+                    <Route path="/tasks" element={<Tasks />} />
+                    <Route path="/rewards" element={<Rewards />} />
+                    <Route path="/referrals" element={<Referrals />} />
+                    <Route path="/leaderboard" element={<Leaderboard />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/settings" element={<Settings />} />
+                  </Route>
+                  
+                  <Route element={<AdminRoute />}>
+                    <Route path="/admin" element={<AdminDashboard />} />
+                    <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route path="/admin/tasks" element={<AdminTasks />} />
+                  </Route>
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <Toaster />
+              </ProfileProvider>
+            </AuthProvider>
+          </Router>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 

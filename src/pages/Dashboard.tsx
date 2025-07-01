@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -18,8 +17,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
 import { fetchTasks, fetchReferrals, fetchReferralCode } from '@/lib/api';
 import { fetchUserTasks } from '@/lib/api/tasks/userTasks';
+import { useRealtimeData } from '@/hooks/useRealtimeData';
 import { UserTask, Task } from '@/types';
-import { supabase } from '@/integrations/supabase/client';
 
 const mapCategoryToTaskType = (task: any): "spotify" | "social" | "referral" | "other" => {
   if (!task.category) return "other";
@@ -37,6 +36,9 @@ const mapCategoryToTaskType = (task: any): "spotify" | "social" | "referral" | "
 const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, user: authUser, profile } = useAuth();
+  
+  // Setup realtime subscriptions
+  useRealtimeData();
   
   const { data: tasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useQuery({
     queryKey: ['tasks'],
@@ -61,46 +63,6 @@ const Dashboard = () => {
     queryFn: () => fetchReferralCode(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
   });
-
-  useEffect(() => {
-    if (!isAuthenticated || !authUser?.id) return;
-
-    const tasksChannel = supabase
-      .channel('public:tasks')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'tasks' }, 
-        () => {
-          refetchTasks();
-        }
-      )
-      .subscribe();
-
-    const userTasksChannel = supabase
-      .channel('public:user_tasks')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'user_tasks', filter: `user_id=eq.${authUser.id}` }, 
-        () => {
-          refetchUserTasks();
-        }
-      )
-      .subscribe();
-
-    const referralsChannel = supabase
-      .channel('public:referred_users')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'referred_users', filter: `referrer_id=eq.${authUser.id}` }, 
-        () => {
-          refetchReferrals();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(tasksChannel);
-      supabase.removeChannel(userTasksChannel);
-      supabase.removeChannel(referralsChannel);
-    };
-  }, [isAuthenticated, authUser?.id, refetchTasks, refetchUserTasks, refetchReferrals]);
   
   useEffect(() => {
     if (tasksLoading || userTasksLoading) {
@@ -186,6 +148,7 @@ const Dashboard = () => {
 
   const handlePointsUpdate = () => {
     // Force refetch of user profile and related data
+    refetchUserTasks();
     window.location.reload();
   };
 
