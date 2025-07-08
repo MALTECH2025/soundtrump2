@@ -47,7 +47,6 @@ const TaskList = ({ tasks, onUpdateTask, onOpenEditDialog, onDeleteTask }: TaskL
                 <Switch
                   checked={task.active}
                   onCheckedChange={(checked) => onUpdateTask(task.id, { active: checked })}
-                  size="sm"
                 />
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
