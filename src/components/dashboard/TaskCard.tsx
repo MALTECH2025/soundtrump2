@@ -1,5 +1,6 @@
+
 import { useState } from 'react';
-import { Clock, Music2, Check, ExternalLink } from 'lucide-react';
+import { Clock, Music2, Check, ExternalLink, Users, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,7 @@ export interface TaskProps {
   title: string;
   description: string;
   reward: number;
-  category: 'spotify' | 'social' | 'referral' | 'other';
+  category: 'spotify' | 'social' | 'referral' | 'daily' | 'music' | 'other';
   expiresAt: Date;
   completed?: boolean;
   progress?: number;
@@ -22,10 +23,14 @@ const getCategoryColor = (category: TaskProps['category']) => {
   switch (category) {
     case 'spotify':
       return 'bg-[#1DB954]/10 text-[#1DB954] border-[#1DB954]/30';
+    case 'music':
+      return 'bg-[#1DB954]/10 text-[#1DB954] border-[#1DB954]/30';
     case 'social':
       return 'bg-blue-500/10 text-blue-500 border-blue-500/30';
     case 'referral':
       return 'bg-purple-500/10 text-purple-500 border-purple-500/30';
+    case 'daily':
+      return 'bg-orange-500/10 text-orange-500 border-orange-500/30';
     default:
       return 'bg-gray-500/10 text-gray-500 border-gray-500/30';
   }
@@ -34,7 +39,12 @@ const getCategoryColor = (category: TaskProps['category']) => {
 const getCategoryIcon = (category: TaskProps['category']) => {
   switch (category) {
     case 'spotify':
+    case 'music':
       return <Music2 className="w-3 h-3" />;
+    case 'referral':
+      return <Users className="w-3 h-3" />;
+    case 'daily':
+      return <Calendar className="w-3 h-3" />;
     default:
       return null;
   }
@@ -155,7 +165,7 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
             </Button>
           ) : (
             <>
-              {task.category === 'spotify' ? (
+              {task.category === 'spotify' || task.category === 'music' ? (
                 <Button 
                   variant="outline" 
                   className="w-full" 
