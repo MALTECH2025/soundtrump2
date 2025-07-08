@@ -67,9 +67,18 @@ export const completeTask = async (taskId: string) => {
   
   if (error) throw error;
   
+  // Handle the case where data might be null
+  if (!data) {
+    return {
+      success: true,
+      message: 'Task completed successfully',
+      points_earned: 0
+    };
+  }
+  
   return {
     success: true,
     message: 'Task completed successfully',
-    points_earned: data?.points_earned || 0
+    points_earned: data.points_earned || 0
   };
 };

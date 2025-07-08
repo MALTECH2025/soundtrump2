@@ -2,25 +2,40 @@
 import { supabase } from "@/integrations/supabase/client";
 import { LeaderboardUser } from "@/types";
 
-// Leaderboard
-// ===========================================
-
-export const fetchLeaderboard = async () => {
+export const fetchLeaderboard = async (limit: number = 100): Promise<LeaderboardUser[]> => {
   const { data, error } = await supabase
     .from('profiles')
     .select('id, username, full_name, avatar_url, initials, points, tier, status')
     .order('points', { ascending: false })
-    .limit(100);
-  
+    .limit(limit);
+    
   if (error) throw error;
   
-  // Add position to each user and ensure type safety
-  const leaderboard: LeaderboardUser[] = (data || []).map((user, index) => ({
+  // Add position to each user
+  return data.map((user, index) => ({
     ...user,
-    position: index + 1,
-    tier: user.tier as "Free" | "Premium", // Explicit type casting
-    status: user.status as "Normal" | "Influencer" // Explicit type casting
-  }));
+    position: index + 1
+  })) as LeaderboardUser[];
+};
+
+export const getUserRank = async (userId: string): Promise<number> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('points')
+    .eq('id', userId)
+    .single();
+    
+  if (error) throw error;
   
-  return leaderboard;
+  const userPoints = data.points;
+  
+  // Count how many users have more points
+  const { count, error: countError } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact' })
+    .gt('points', userPoints);
+    
+  if (countError) throw countError;
+  
+  return (count || 0) + 1;
 };

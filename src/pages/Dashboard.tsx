@@ -7,7 +7,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
-import { fetchUserTasks, fetchUserRewards } from '@/lib/api';
+import { fetchUserTasks, fetchUserRewards, fetchTasks } from '@/lib/api';
 import StatsOverview from '@/components/dashboard/StatsOverview';
 import QuickActions from '@/components/dashboard/QuickActions';
 import TaskCard from '@/components/dashboard/TaskCard';
@@ -33,6 +33,13 @@ const Dashboard = () => {
     enabled: isAuthenticated && !!authUser?.id,
   });
 
+  // Fetch available tasks for the dashboard
+  const { data: availableTasks = [] } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: fetchTasks,
+    enabled: isAuthenticated,
+  });
+
   // Calculate user stats
   const userStats = {
     totalPoints: profile?.points || 0,
@@ -43,39 +50,44 @@ const Dashboard = () => {
     rank: 1 // This would come from leaderboard position
   };
 
-  // Sample recent tasks for the dashboard
-  const recentTasks = [
-    {
-      id: '1',
-      title: 'Daily Check-in',
-      description: 'Complete your daily check-in',
-      reward: 25,
-      category: 'daily' as const,
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      progress: 0,
-      completed: false
-    },
-    {
-      id: '2',
-      title: 'Follow on Spotify',
-      description: 'Follow SoundTrump on Spotify',
-      reward: 50,
-      category: 'spotify' as const,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      progress: 0,
-      completed: false
-    },
-    {
-      id: '3',
-      title: 'Share on Twitter',
-      description: 'Share SoundTrump on Twitter',
-      reward: 80,
-      category: 'social' as const,
-      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      progress: 50,
-      completed: false
+  // Convert database tasks to dashboard format
+  const recentTasks = availableTasks.slice(0, 3).map((task: any) => ({
+    id: task.id,
+    title: task.title,
+    description: task.description,
+    reward: task.points,
+    category: getCategoryFromTask(task),
+    expiresAt: new Date(task.expires_at || Date.now() + 24 * 60 * 60 * 1000),
+    progress: getTaskProgress(task.id, userTasks),
+    completed: isTaskCompleted(task.id, userTasks)
+  }));
+
+  // Helper functions
+  const getCategoryFromTask = (task: any) => {
+    if (!task.category) return 'other';
+    const categoryName = task.category.name?.toLowerCase() || '';
+    if (categoryName.includes('music') || categoryName.includes('spotify')) return 'music';
+    if (categoryName.includes('social')) return 'social';
+    if (categoryName.includes('daily')) return 'daily';
+    if (categoryName.includes('referral')) return 'referral';
+    return 'other';
+  };
+
+  const getTaskProgress = (taskId: string, userTasks: any[]) => {
+    const userTask = userTasks.find((ut: any) => ut.task_id === taskId);
+    if (!userTask) return 0;
+    switch (userTask.status) {
+      case 'Pending': return 25;
+      case 'Submitted': return 75;
+      case 'Completed': return 100;
+      default: return 0;
     }
-  ];
+  };
+
+  const isTaskCompleted = (taskId: string, userTasks: any[]) => {
+    const userTask = userTasks.find((ut: any) => ut.task_id === taskId);
+    return userTask?.status === 'Completed';
+  };
 
   if (!isAuthenticated) {
     return (
@@ -132,11 +144,18 @@ const Dashboard = () => {
                     <CardTitle>Available Tasks</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {recentTasks.map((task) => (
-                        <TaskCard key={task.id} task={task} />
-                      ))}
-                    </div>
+                    {recentTasks.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {recentTasks.map((task) => (
+                          <TaskCard key={task.id} task={task} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <p className="text-muted-foreground">No tasks available at the moment.</p>
+                        <p className="text-sm text-muted-foreground mt-2">Check back later for new opportunities!</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -161,24 +180,28 @@ const Dashboard = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <div className="text-sm">
-                          <span className="font-medium">Task completed:</span> Daily Check-in
+                      {userTasks.slice(0, 3).map((userTask: any, index: number) => (
+                        <div key={userTask.id} className={`flex items-center gap-3 p-2 rounded-lg ${
+                          userTask.status === 'Completed' ? 'bg-green-50' : 
+                          userTask.status === 'Submitted' ? 'bg-blue-50' : 'bg-gray-50'
+                        }`}>
+                          <div className={`w-2 h-2 rounded-full ${
+                            userTask.status === 'Completed' ? 'bg-green-500' : 
+                            userTask.status === 'Submitted' ? 'bg-blue-500' : 'bg-gray-500'
+                          }`}></div>
+                          <div className="text-sm">
+                            <span className="font-medium">
+                              {userTask.status === 'Completed' ? 'Task completed:' : 
+                               userTask.status === 'Submitted' ? 'Task submitted:' : 'Task started:'}
+                            </span> {userTask.task?.title || 'Unknown Task'}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-2 bg-blue-50 rounded-lg">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <div className="text-sm">
-                          <span className="font-medium">Mining:</span> Earned 15 ST coins
+                      ))}
+                      {userTasks.length === 0 && (
+                        <div className="text-center py-4">
+                          <p className="text-muted-foreground text-sm">No recent activity</p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-2 bg-purple-50 rounded-lg">
-                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        <div className="text-sm">
-                          <span className="font-medium">Referral:</span> New friend joined
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

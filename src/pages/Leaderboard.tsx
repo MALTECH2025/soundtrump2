@@ -1,51 +1,81 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { Crown, Trophy, Medal, Star, Users } from 'lucide-react';
 import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Users, Trophy, Award } from 'lucide-react';
-import { fetchLeaderboard } from '@/lib/api';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
-import { useProfile } from '@/context/ProfileContext';
-import { LeaderboardUser } from '@/types';
+import { fetchLeaderboard, getUserRank } from '@/lib/api/leaderboard';
 
 const Leaderboard = () => {
-  const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, user: authUser } = useAuth();
-  const { user } = useProfile();
-  
-  const { data: leaderboardUsers = [], isLoading: leaderboardLoading } = useQuery({
-    queryKey: ['leaderboard'],
-    queryFn: fetchLeaderboard,
+  const [selectedPeriod, setSelectedPeriod] = useState('all-time');
+
+  const { data: leaderboard = [], isLoading } = useQuery({
+    queryKey: ['leaderboard', selectedPeriod],
+    queryFn: () => fetchLeaderboard(100),
     enabled: isAuthenticated,
   });
-  
-  useEffect(() => {
-    if (!leaderboardLoading) {
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
-      
-      return () => clearTimeout(timer);
+
+  const { data: userRank } = useQuery({
+    queryKey: ['userRank', authUser?.id],
+    queryFn: () => getUserRank(authUser?.id || ''),
+    enabled: isAuthenticated && !!authUser?.id,
+  });
+
+  const getRankIcon = (position: number) => {
+    switch (position) {
+      case 1:
+        return <Crown className="w-5 h-5 text-yellow-500" />;
+      case 2:
+        return <Trophy className="w-5 h-5 text-gray-400" />;
+      case 3:
+        return <Medal className="w-5 h-5 text-amber-600" />;
+      default:
+        return <span className="w-5 h-5 text-center text-sm font-bold">#{position}</span>;
     }
-  }, [leaderboardLoading]);
-  
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
   };
-  
-  const topUsers = leaderboardUsers.slice(0, 3);
-  const restUsers = leaderboardUsers.slice(3);
-  
-  const userPosition = leaderboardUsers.findIndex(lbUser => lbUser.id === authUser?.id) + 1;
-  
+
+  const getTierBadge = (tier: string) => {
+    const variant = tier === 'Premium' ? 'default' : 'secondary';
+    return <Badge variant={variant}>{tier}</Badge>;
+  };
+
+  const getStatusBadge = (status: string) => {
+    if (status === 'Influencer') {
+      return (
+        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+          <Star className="w-3 h-3 mr-1" />
+          Influencer
+        </Badge>
+      );
+    }
+    return null;
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <AnimatedTransition>
+        <div className="min-h-screen flex flex-col">
+          <Navbar />
+          <main className="flex-grow pt-24 pb-12 flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-4">Please log in to view the leaderboard</h1>
+              <p className="text-muted-foreground">Sign in to your account to see where you rank!</p>
+            </div>
+          </main>
+          <Footer />
+        </div>
+      </AnimatedTransition>
+    );
+  }
+
   return (
     <AnimatedTransition>
       <div className="min-h-screen flex flex-col">
@@ -53,182 +83,196 @@ const Leaderboard = () => {
         
         <main className="flex-grow pt-24 pb-12">
           <div className="container px-4 mx-auto">
-            {isLoading ? (
-              <div className="animate-pulse">
-                <div className="h-8 bg-muted w-1/3 mb-6 rounded"></div>
-                <div className="flex justify-center gap-6 mb-12">
-                  <div className="w-1/4 h-64 bg-muted rounded-lg"></div>
-                  <div className="w-1/4 h-72 bg-muted rounded-lg"></div>
-                  <div className="w-1/4 h-64 bg-muted rounded-lg"></div>
-                </div>
-                <div className="h-6 bg-muted w-1/4 mb-6 rounded"></div>
-                <div className="space-y-4">
-                  <div className="h-20 bg-muted rounded-lg"></div>
-                  <div className="h-20 bg-muted rounded-lg"></div>
-                  <div className="h-20 bg-muted rounded-lg"></div>
-                </div>
-              </div>
-            ) : (
-              <>
-                <motion.div
-                  variants={fadeInUp}
-                  initial="hidden"
-                  animate="visible"
-                  className="mb-6 text-center"
-                >
-                  <h1 className="text-3xl font-bold mb-2">Leaderboard</h1>
-                  <p className="text-muted-foreground max-w-lg mx-auto">See where you rank among other users. Complete more tasks to earn points and climb the leaderboard!</p>
-                </motion.div>
-                
-                {leaderboardUsers.length === 0 ? (
-                  <div className="text-center mt-12">
-                    <p className="text-xl">No leaderboard data available yet</p>
-                    <p className="text-muted-foreground mt-2">Complete tasks to be the first on the leaderboard!</p>
-                  </div>
-                ) : (
-                  <>
-                    <motion.div
-                      variants={fadeInUp}
-                      initial="hidden"
-                      animate="visible"
-                      className="flex flex-col md:flex-row justify-center items-end gap-4 md:gap-8 mt-8 mb-16"
-                    >
-                      {topUsers.length >= 3 && (
-                        <div className="relative w-full max-w-[240px] order-1 md:order-1">
-                          <Card className="border-2 p-4 text-center">
-                            <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-amber-500 rounded-full p-2">
-                              <Trophy className="h-6 w-6 text-white" />
-                            </div>
-                            <CardContent className="pt-6">
-                              <Avatar className="h-20 w-20 mx-auto mb-4 border-4 border-amber-200">
-                                {topUsers[2].avatar_url ? (
-                                  <AvatarImage src={topUsers[2].avatar_url} alt="User avatar" />
-                                ) : (
-                                  <AvatarFallback className="text-2xl">{topUsers[2].initials}</AvatarFallback>
-                                )}
-                              </Avatar>
-                              <h3 className="font-bold text-xl mb-1">{topUsers[2].full_name || topUsers[2].username || "User"}</h3>
-                              <div className="flex justify-center items-center">
-                                <Badge className="bg-amber-500">3rd Place</Badge>
-                              </div>
-                              <p className="mt-4 text-lg font-semibold">{topUsers[2].points.toLocaleString()} Points</p>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      )}
-                      
-                      {topUsers.length >= 1 && (
-                        <div className="relative w-full max-w-[280px] order-0 md:order-0 z-10">
-                          <Card className="border-2 border-yellow-400 p-4 text-center">
-                            <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-yellow-400 rounded-full p-2">
-                              <Crown className="h-8 w-8 text-white" />
-                            </div>
-                            <CardContent className="pt-8">
-                              <Avatar className="h-24 w-24 mx-auto mb-4 border-4 border-yellow-200">
-                                {topUsers[0].avatar_url ? (
-                                  <AvatarImage src={topUsers[0].avatar_url} alt="User avatar" />
-                                ) : (
-                                  <AvatarFallback className="text-3xl">{topUsers[0].initials}</AvatarFallback>
-                                )}
-                              </Avatar>
-                              <h3 className="font-bold text-2xl mb-1">{topUsers[0].full_name || topUsers[0].username || "User"}</h3>
-                              <div className="flex justify-center items-center">
-                                <Badge className="bg-yellow-400 text-black">1st Place</Badge>
-                                {topUsers[0].status === "Influencer" && (
-                                  <Badge className="ml-2 bg-purple-500">Influencer</Badge>
-                                )}
-                              </div>
-                              <p className="mt-4 text-xl font-semibold">{topUsers[0].points.toLocaleString()} Points</p>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      )}
-                      
-                      {topUsers.length >= 2 && (
-                        <div className="relative w-full max-w-[240px] order-2 md:order-2">
-                          <Card className="border-2 p-4 text-center">
-                            <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-gray-400 rounded-full p-2">
-                              <Award className="h-6 w-6 text-white" />
-                            </div>
-                            <CardContent className="pt-6">
-                              <Avatar className="h-20 w-20 mx-auto mb-4 border-4 border-gray-200">
-                                {topUsers[1].avatar_url ? (
-                                  <AvatarImage src={topUsers[1].avatar_url} alt="User avatar" />
-                                ) : (
-                                  <AvatarFallback className="text-2xl">{topUsers[1].initials}</AvatarFallback>
-                                )}
-                              </Avatar>
-                              <h3 className="font-bold text-xl mb-1">{topUsers[1].full_name || topUsers[1].username || "User"}</h3>
-                              <div className="flex justify-center items-center">
-                                <Badge className="bg-gray-400">2nd Place</Badge>
-                              </div>
-                              <p className="mt-4 text-lg font-semibold">{topUsers[1].points.toLocaleString()} Points</p>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      )}
-                    </motion.div>
-                    
-                    <motion.div
-                      variants={fadeInUp}
-                      initial="hidden"
-                      animate="visible"
-                      className="mt-10"
-                    >
-                      <h2 className="text-xl font-bold mb-4">All Users</h2>
-                      <div className="space-y-3">
-                        {leaderboardUsers.map((lbUser) => (
-                          <Card 
-                            key={lbUser.id} 
-                            className={`${lbUser.id === authUser?.id ? 'border-2 border-sound-light' : ''}`}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mb-6"
+            >
+              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+                <Trophy className="w-8 h-8 text-yellow-500" />
+                Leaderboard
+              </h1>
+              <p className="text-muted-foreground">See how you rank against other SoundTrump users</p>
+              {userRank && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Your current rank: <span className="font-semibold">#{userRank}</span>
+                </p>
+              )}
+            </motion.div>
+
+            <Tabs defaultValue="all-time" className="w-full">
+              <TabsList className="mb-6">
+                <TabsTrigger value="all-time">All Time</TabsTrigger>
+                <TabsTrigger value="monthly">This Month</TabsTrigger>
+                <TabsTrigger value="weekly">This Week</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="all-time">
+                <div className="grid gap-4">
+                  {/* Top 3 Podium */}
+                  {leaderboard.length >= 3 && (
+                    <Card className="mb-6">
+                      <CardHeader>
+                        <CardTitle className="text-center">Top Performers</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex justify-center items-end gap-8">
+                          {/* 2nd Place */}
+                          <motion.div 
+                            className="text-center"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
                           >
-                            <CardContent className="p-4 flex items-center">
-                              <div className="w-8 font-bold text-lg">{lbUser.position}</div>
-                              <Avatar className="h-10 w-10 mr-4">
-                                {lbUser.avatar_url ? (
-                                  <AvatarImage src={lbUser.avatar_url} alt="User avatar" />
-                                ) : (
-                                  <AvatarFallback>{lbUser.initials}</AvatarFallback>
-                                )}
+                            <div className="bg-gray-100 rounded-lg p-4 h-32 flex flex-col justify-end">
+                              <Avatar className="w-12 h-12 mx-auto mb-2">
+                                <AvatarImage src={leaderboard[1].avatar_url || ''} />
+                                <AvatarFallback>{leaderboard[1].initials}</AvatarFallback>
                               </Avatar>
-                              <div className="flex-1">
-                                <div className="font-medium">{lbUser.full_name || lbUser.username || "User"}</div>
-                                <div className="flex mt-1">
-                                  {lbUser.tier === "Premium" && (
-                                    <Badge variant="outline" className="text-xs mr-1">Premium</Badge>
-                                  )}
-                                  {lbUser.status === "Influencer" && (
-                                    <Badge className="bg-purple-500 text-xs">Influencer</Badge>
+                              <Trophy className="w-6 h-6 text-gray-400 mx-auto mb-1" />
+                              <p className="font-semibold text-sm">{leaderboard[1].username || leaderboard[1].full_name}</p>
+                              <p className="text-xs text-muted-foreground">{leaderboard[1].points.toLocaleString()} ST</p>
+                            </div>
+                          </motion.div>
+
+                          {/* 1st Place */}
+                          <motion.div 
+                            className="text-center"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0 }}
+                          >
+                            <div className="bg-yellow-100 rounded-lg p-4 h-40 flex flex-col justify-end">
+                              <Avatar className="w-16 h-16 mx-auto mb-2">
+                                <AvatarImage src={leaderboard[0].avatar_url || ''} />
+                                <AvatarFallback>{leaderboard[0].initials}</AvatarFallback>
+                              </Avatar>
+                              <Crown className="w-8 h-8 text-yellow-500 mx-auto mb-1" />
+                              <p className="font-bold">{leaderboard[0].username || leaderboard[0].full_name}</p>
+                              <p className="text-sm text-muted-foreground">{leaderboard[0].points.toLocaleString()} ST</p>
+                            </div>
+                          </motion.div>
+
+                          {/* 3rd Place */}
+                          <motion.div 
+                            className="text-center"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                          >
+                            <div className="bg-amber-100 rounded-lg p-4 h-28 flex flex-col justify-end">
+                              <Avatar className="w-10 h-10 mx-auto mb-2">
+                                <AvatarImage src={leaderboard[2].avatar_url || ''} />
+                                <AvatarFallback>{leaderboard[2].initials}</AvatarFallback>
+                              </Avatar>
+                              <Medal className="w-5 h-5 text-amber-600 mx-auto mb-1" />
+                              <p className="font-semibold text-xs">{leaderboard[2].username || leaderboard[2].full_name}</p>
+                              <p className="text-xs text-muted-foreground">{leaderboard[2].points.toLocaleString()} ST</p>
+                            </div>
+                          </motion.div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Full Leaderboard */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="w-5 h-5" />
+                        All Users ({leaderboard.length})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {isLoading ? (
+                        <div className="space-y-4">
+                          {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex items-center gap-4 p-4 animate-pulse">
+                              <div className="w-8 h-8 bg-gray-200 rounded"></div>
+                              <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                              <div className="flex-1 space-y-2">
+                                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                                <div className="h-3 bg-gray-200 rounded w-1/6"></div>
+                              </div>
+                              <div className="h-4 bg-gray-200 rounded w-20"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {leaderboard.map((user, index) => (
+                            <motion.div
+                              key={user.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className={`flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                                user.id === authUser?.id 
+                                  ? 'bg-blue-50 border-2 border-blue-200' 
+                                  : 'hover:bg-gray-50'
+                              }`}
+                            >
+                              <div className="flex-shrink-0 w-8">
+                                {getRankIcon(user.position)}
+                              </div>
+                              
+                              <Avatar className="w-12 h-12">
+                                <AvatarImage src={user.avatar_url || ''} />
+                                <AvatarFallback>{user.initials}</AvatarFallback>
+                              </Avatar>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-semibold truncate">
+                                    {user.username || user.full_name || `User ${user.id.slice(0, 8)}`}
+                                  </p>
+                                  {user.id === authUser?.id && (
+                                    <Badge variant="outline" className="text-xs">You</Badge>
                                   )}
                                 </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  {getTierBadge(user.tier)}
+                                  {getStatusBadge(user.status)}
+                                </div>
                               </div>
-                              <div className="font-bold">{lbUser.points.toLocaleString()} Points</div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </motion.div>
-                    
-                    {userPosition > 0 && (
-                      <motion.div
-                        variants={fadeInUp}
-                        initial="hidden"
-                        animate="visible"
-                        className="mt-8"
-                      >
-                        <Card className="border border-sound-light bg-sound-light/5">
-                          <CardContent className="p-6 flex flex-col items-center text-center">
-                            <h3 className="text-xl font-bold mb-3">Your Position</h3>
-                            <div className="font-bold text-3xl mb-2">{userPosition}{getOrdinalSuffix(userPosition)}</div>
-                            <p className="text-sm text-muted-foreground">Complete more tasks to climb the leaderboard!</p>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+                              
+                              <div className="text-right">
+                                <p className="font-bold text-lg">{user.points.toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">ST Coins</p>
+                              </div>
+                            </motion.div>
+                          ))}
+                          
+                          {leaderboard.length === 0 && (
+                            <div className="text-center py-12">
+                              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                              <p className="text-muted-foreground">No users found</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="monthly">
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">Monthly leaderboard coming soon!</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="weekly">
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">Weekly leaderboard coming soon!</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
         
@@ -237,12 +281,5 @@ const Leaderboard = () => {
     </AnimatedTransition>
   );
 };
-
-// Helper function to get ordinal suffix for numbers (1st, 2nd, 3rd, etc.)
-function getOrdinalSuffix(n: number) {
-  const s = ["th", "st", "nd", "rd"];
-  const v = n % 100;
-  return s[(v - 20) % 10] || s[v] || s[0];
-}
 
 export default Leaderboard;
