@@ -14,6 +14,7 @@ import TaskCard from '@/components/dashboard/TaskCard';
 import MiningWidget from '@/components/dashboard/MiningWidget';
 import ReferralWidget from '@/components/dashboard/ReferralWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TaskProps } from '@/types';
 
 const Dashboard = () => {
   const { isAuthenticated, user: authUser, profile } = useAuth();
@@ -51,7 +52,7 @@ const Dashboard = () => {
   };
 
   // Convert database tasks to dashboard format
-  const recentTasks = availableTasks.slice(0, 3).map((task: any) => ({
+  const recentTasks = availableTasks.slice(0, 3).map((task: any): TaskProps => ({
     id: task.id,
     title: task.title,
     description: task.description,
@@ -63,10 +64,10 @@ const Dashboard = () => {
   }));
 
   // Helper functions
-  const getCategoryFromTask = (task: any) => {
+  const getCategoryFromTask = (task: any): TaskProps['category'] => {
     if (!task.category) return 'other';
     const categoryName = task.category.name?.toLowerCase() || '';
-    if (categoryName.includes('music') || categoryName.includes('spotify')) return 'music';
+    if (categoryName.includes('music') || categoryName.includes('spotify')) return 'spotify';
     if (categoryName.includes('social')) return 'social';
     if (categoryName.includes('daily')) return 'daily';
     if (categoryName.includes('referral')) return 'referral';
