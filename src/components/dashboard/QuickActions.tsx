@@ -36,7 +36,6 @@ const QuickActions = () => {
       description: 'Mine ST coins passively',
       color: 'bg-orange-500 hover:bg-orange-600',
       onClick: () => {
-        // This would trigger mining start
         console.log('Starting mining...');
       }
     }
@@ -45,10 +44,10 @@ const QuickActions = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quick Actions</CardTitle>
+        <CardTitle className="text-lg md:text-xl">Quick Actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-2 md:gap-3">
           {actions.map((action, index) => (
             <motion.div
               key={action.label}
@@ -58,13 +57,13 @@ const QuickActions = () => {
             >
               <Button
                 variant="outline"
-                className={`h-auto p-4 flex flex-col items-center gap-2 text-white ${action.color} border-none`}
+                className={`h-auto p-3 md:p-4 flex flex-col items-center gap-2 text-white ${action.color} border-none w-full min-h-[80px] md:min-h-[100px]`}
                 onClick={action.onClick}
               >
-                <action.icon className="h-6 w-6" />
+                <action.icon className="h-4 w-4 md:h-6 md:w-6" />
                 <div className="text-center">
-                  <div className="font-medium text-sm">{action.label}</div>
-                  <div className="text-xs opacity-90">{action.description}</div>
+                  <div className="font-medium text-xs md:text-sm">{action.label}</div>
+                  <div className="text-xs opacity-90 hidden md:block">{action.description}</div>
                 </div>
               </Button>
             </motion.div>

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
 
@@ -5,11 +6,21 @@ export const fetchTasks = async () => {
   const { data, error } = await supabase
     .from('tasks')
     .select(`
-      *,
-      category:task_categories!tasks_category_id_fkey(*)
+      id,
+      title,
+      description,
+      points,
+      difficulty,
+      active,
+      expires_at,
+      image_url,
+      redirect_url,
+      category:task_categories!tasks_category_id_fkey(id, name)
     `)
-    .gt('expires_at', new Date().toISOString()) // Only fetch non-expired tasks
-    .order('created_at', { ascending: false });
+    .eq('active', true)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(50); // Limit results for better performance
     
   if (error) throw error;
   return data;
@@ -18,7 +29,7 @@ export const fetchTasks = async () => {
 export const fetchTaskCategories = async () => {
   const { data, error } = await supabase
     .from('task_categories')
-    .select('*')
+    .select('id, name')
     .order('name', { ascending: true });
     
   if (error) throw error;

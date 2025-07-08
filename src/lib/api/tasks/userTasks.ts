@@ -1,21 +1,30 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const fetchUserTasks = async (userId: string) => {
+  if (!userId) return [];
+  
   const { data, error } = await supabase
     .from('user_tasks')
     .select(`
-      *,
+      id,
+      status,
+      points_earned,
+      completed_at,
+      created_at,
       task:tasks!user_tasks_task_id_fkey(
-        *,
-        category:task_categories!tasks_category_id_fkey(*)
+        id,
+        title,
+        points,
+        difficulty,
+        category:task_categories!tasks_category_id_fkey(id, name)
       )
     `)
     .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(20); // Limit for performance
     
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const startTask = async (taskId: string) => {
