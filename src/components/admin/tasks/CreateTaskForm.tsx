@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Task, TaskCategory } from "@/types";
 import { toast } from "@/lib/toast";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Loader2 } from "lucide-react";
 
 interface CreateTaskFormProps {
   categories: TaskCategory[];
@@ -35,10 +35,12 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
   
   const [taskImage, setTaskImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Quick validation
     if (!formData.title.trim()) {
       toast.error("Title is required");
       return;
@@ -59,10 +61,37 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
       return;
     }
 
-    onCreateTask({
-      ...formData,
-      image: taskImage || undefined,
-    });
+    // Set uploading state
+    setIsUploading(true);
+    
+    try {
+      await onCreateTask({
+        ...formData,
+        image: taskImage || undefined,
+      });
+      
+      // Reset form on success
+      setFormData({
+        title: '',
+        description: '',
+        category_id: '',
+        points: 10,
+        difficulty: 'Easy',
+        active: true,
+        verification_type: 'Automatic',
+        redirect_url: '',
+        required_media: false,
+        instructions: '',
+        estimated_time: '',
+        duration: 24,
+      });
+      setTaskImage(null);
+      removeImage();
+    } catch (error) {
+      console.error('Task creation error:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,10 +126,10 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="w-full max-w-4xl mx-auto p-4 sm:p-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        {/* Basic Information - Mobile Stacked */}
+        <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-6">
           <div className="space-y-2">
             <Label htmlFor="title" className="text-sm font-medium">
               Task Title *
@@ -111,6 +140,7 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="Enter task title"
+              className="w-full"
               required
             />
           </div>
@@ -123,7 +153,7 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
               value={formData.category_id} 
               onValueChange={(value) => setFormData({ ...formData, category_id: value })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
@@ -147,6 +177,7 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             placeholder="Describe what users need to do"
             rows={3}
+            className="w-full resize-none"
             required
           />
         </div>
@@ -161,18 +192,19 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
             onChange={(e) => setFormData({ ...formData, instructions: e.target.value })}
             placeholder="Provide step-by-step instructions for completing this task"
             rows={4}
+            className="w-full resize-none"
           />
         </div>
         
-        {/* Task Image Upload */}
+        {/* Task Image Upload - Mobile Optimized */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Task Image</Label>
           {previewUrl ? (
-            <div className="relative inline-block">
+            <div className="relative inline-block w-full max-w-xs">
               <img 
                 src={previewUrl} 
                 alt="Task preview" 
-                className="w-full max-w-xs h-32 sm:h-40 object-cover rounded-lg border"
+                className="w-full h-32 sm:h-40 object-cover rounded-lg border"
               />
               <Button
                 type="button"
@@ -185,9 +217,9 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
               </Button>
             </div>
           ) : (
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6">
               <div className="text-center">
-                <Upload className="mx-auto h-8 w-8 text-gray-400" />
+                <Upload className="mx-auto h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
                 <div className="mt-2">
                   <Label htmlFor="task-image" className="cursor-pointer">
                     <span className="text-sm text-blue-600 hover:text-blue-500">
@@ -208,8 +240,8 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
           )}
         </div>
 
-        {/* Task Settings */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Task Settings - Mobile Stacked */}
+        <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
           <div className="space-y-2">
             <Label htmlFor="points" className="text-sm font-medium">
               Points Reward *
@@ -221,6 +253,7 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
               onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
               min="1"
               max="1000"
+              className="w-full"
             />
           </div>
 
@@ -235,6 +268,7 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
               onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 24 })}
               min="1"
               max="168"
+              className="w-full"
             />
           </div>
 
@@ -248,11 +282,12 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
               value={formData.estimated_time}
               onChange={(e) => setFormData({ ...formData, estimated_time: e.target.value })}
               placeholder="e.g., 30 minutes"
+              className="w-full"
             />
           </div>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-4">
           <div className="space-y-2">
             <Label htmlFor="difficulty" className="text-sm font-medium">
               Difficulty Level
@@ -261,7 +296,7 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
               value={formData.difficulty}
               onValueChange={(value) => setFormData({ ...formData, difficulty: value as "Easy" | "Medium" | "Hard" })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select difficulty" />
               </SelectTrigger>
               <SelectContent>
@@ -280,7 +315,7 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
               value={formData.verification_type}
               onValueChange={(value) => setFormData({ ...formData, verification_type: value as "Automatic" | "Manual" })}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select verification type" />
               </SelectTrigger>
               <SelectContent>
@@ -301,13 +336,14 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
             value={formData.redirect_url}
             onChange={(e) => setFormData({ ...formData, redirect_url: e.target.value })}
             placeholder="https://example.com/task-link"
+            className="w-full"
           />
         </div>
 
-        {/* Toggle Settings */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg">
-            <div className="mb-2 sm:mb-0">
+        {/* Toggle Settings - Mobile Optimized */}
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 p-3 sm:p-4 border rounded-lg">
+            <div className="space-y-1">
               <Label htmlFor="required_media" className="text-sm font-medium">
                 Require Screenshot Submission
               </Label>
@@ -320,8 +356,8 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
             />
           </div>
           
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg">
-            <div className="mb-2 sm:mb-0">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 p-3 sm:p-4 border rounded-lg">
+            <div className="space-y-1">
               <Label htmlFor="active" className="text-sm font-medium">
                 Active Task
               </Label>
@@ -335,28 +371,26 @@ const CreateTaskForm = ({ categories, onCreateTask, isCreating, onCancel }: Crea
           </div>
         </div>
 
-        {/* Form Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
+        {/* Form Actions - Mobile Optimized */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-4 sm:pt-6 border-t">
           <Button 
             type="button" 
             variant="outline" 
             onClick={onCancel}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto order-2 sm:order-1"
+            disabled={isCreating || isUploading}
           >
             Cancel
           </Button>
           <Button 
             type="submit" 
-            disabled={isCreating}
-            className="w-full sm:w-auto"
+            disabled={isCreating || isUploading}
+            className="w-full sm:w-auto order-1 sm:order-2"
           >
-            {isCreating ? (
+            {isCreating || isUploading ? (
               <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Creating Task...
+                <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                {isUploading ? 'Uploading...' : 'Creating Task...'}
               </>
             ) : (
               'Create Task'

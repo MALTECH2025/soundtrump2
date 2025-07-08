@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Task } from "@/types";
 
@@ -29,7 +28,7 @@ export const fetchTaskCategories = async () => {
 export const createTask = async (taskData: Task & { image?: File; duration?: number }) => {
   console.log('Creating task:', taskData);
 
-  // The RLS policies will now handle admin permission checking automatically
+  // Optimized task creation - upload image first if exists, then create task
   let image_url = null;
   
   // Upload task image if provided
@@ -38,13 +37,20 @@ export const createTask = async (taskData: Task & { image?: File; duration?: num
     if (!user) throw new Error('User not authenticated');
     
     const fileExt = taskData.image.name.split('.').pop();
-    const fileName = `task-${Date.now()}.${fileExt}`;
+    const fileName = `task-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
     
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('task-images')
-      .upload(fileName, taskData.image);
+      .upload(fileName, taskData.image, {
+        cacheControl: '3600',
+        upsert: false
+      });
     
-    if (uploadError) throw uploadError;
+    if (uploadError) {
+      console.error('Image upload error:', uploadError);
+      throw new Error(`Failed to upload image: ${uploadError.message}`);
+    }
+    
     image_url = uploadData.path;
   }
   
@@ -52,8 +58,10 @@ export const createTask = async (taskData: Task & { image?: File; duration?: num
   const duration = taskData.duration || 24; // Default 24 hours
   const expires_at = new Date(Date.now() + duration * 60 * 60 * 1000).toISOString();
   
+  // Remove file and duration from task data
   const { image, duration: _, ...taskWithoutFile } = taskData;
   
+  // Create task with optimized query
   const { data, error } = await supabase
     .from('tasks')
     .insert({
@@ -69,7 +77,13 @@ export const createTask = async (taskData: Task & { image?: File; duration?: num
     
   if (error) {
     console.error('Error creating task:', error);
-    throw error;
+    // If task creation fails but image was uploaded, clean up the image
+    if (image_url) {
+      await supabase.storage
+        .from('task-images')
+        .remove([image_url]);
+    }
+    throw new Error(`Failed to create task: ${error.message}`);
   }
   
   console.log('Task created successfully:', data);
