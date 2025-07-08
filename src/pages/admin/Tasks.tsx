@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,12 +15,11 @@ import CreateTaskForm from "@/components/admin/tasks/CreateTaskForm";
 import EditTaskForm from "@/components/admin/tasks/EditTaskForm";
 import TaskSubmissionsPanel from "@/components/admin/tasks/TaskSubmissionsPanel";
 import RewardsManager from "@/components/admin/rewards/RewardsManager";
-import { Trash2 } from "lucide-react";
+import { Trash2, Plus } from "lucide-react";
 
 const Tasks = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<TaskCategory[]>([]);
-  const [newTaskDialogOpen, setNewTaskDialogOpen] = useState(false);
   const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
@@ -56,7 +56,6 @@ const Tasks = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      setNewTaskDialogOpen(false);
       toast.success("Task created successfully");
     },
     onError: (error: any) => {
@@ -131,22 +130,46 @@ const Tasks = () => {
     cleanupMutation.mutate();
   };
 
-  if (isTasksLoading || isCategoriesLoading) return <div>Loading...</div>;
-  if (tasksError) return <div>Error: {(tasksError as Error).message}</div>;
-  if (categoriesError) return <div>Error: {(categoriesError as Error).message}</div>;
+  if (isTasksLoading || isCategoriesLoading) {
+    return (
+      <AdminLayout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (tasksError) return (
+    <AdminLayout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center text-red-500">Error: {(tasksError as Error).message}</div>
+      </div>
+    </AdminLayout>
+  );
+
+  if (categoriesError) return (
+    <AdminLayout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center text-red-500">Error: {(categoriesError as Error).message}</div>
+      </div>
+    </AdminLayout>
+  );
 
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <div className="container mx-auto px-4 py-4 sm:py-8 max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Tasks & Rewards Management</h1>
-              <p className="text-muted-foreground">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Tasks & Rewards Management</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">
                 Manage tasks, review submissions, and create rewards for users.
               </p>
             </div>
@@ -154,30 +177,33 @@ const Tasks = () => {
               onClick={handleCleanupExpiredTasks}
               disabled={cleanupMutation.isPending}
               variant="outline"
-              className="gap-2"
+              className="gap-2 w-full sm:w-auto"
             >
               <Trash2 className="w-4 h-4" />
-              {cleanupMutation.isPending ? "Cleaning..." : "Cleanup Expired Tasks"}
+              {cleanupMutation.isPending ? "Cleaning..." : "Cleanup Expired"}
             </Button>
           </div>
 
           <Tabs defaultValue="submissions" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="submissions">Pending Submissions</TabsTrigger>
-              <TabsTrigger value="tasks">Tasks</TabsTrigger>
-              <TabsTrigger value="rewards">Rewards</TabsTrigger>
-              <TabsTrigger value="create">Create Task</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-6">
+              <TabsTrigger value="submissions" className="text-xs sm:text-sm">Submissions</TabsTrigger>
+              <TabsTrigger value="tasks" className="text-xs sm:text-sm">Tasks</TabsTrigger>
+              <TabsTrigger value="rewards" className="text-xs sm:text-sm">Rewards</TabsTrigger>
+              <TabsTrigger value="create" className="text-xs sm:text-sm">
+                <Plus className="w-4 h-4 sm:mr-1" />
+                <span className="hidden sm:inline">Create</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="submissions" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Pending Task Submissions</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg sm:text-xl">Pending Task Submissions</CardTitle>
+                  <CardDescription className="text-sm">
                     Review and approve user task submissions that require manual verification.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 sm:px-6">
                   <TaskSubmissionsPanel />
                 </CardContent>
               </Card>
@@ -186,18 +212,20 @@ const Tasks = () => {
             <TabsContent value="tasks" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Task Management</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg sm:text-xl">Task Management</CardTitle>
+                  <CardDescription className="text-sm">
                     Manage all available tasks for users.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <TaskList
-                    tasks={tasks}
-                    onUpdateTask={handleUpdateTask}
-                    onOpenEditDialog={handleOpenEditTaskDialog}
-                    onDeleteTask={handleDeleteTask}
-                  />
+                <CardContent className="px-2 sm:px-6">
+                  <div className="overflow-x-auto">
+                    <TaskList
+                      tasks={tasks}
+                      onUpdateTask={handleUpdateTask}
+                      onOpenEditDialog={handleOpenEditTaskDialog}
+                      onDeleteTask={handleDeleteTask}
+                    />
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -205,12 +233,12 @@ const Tasks = () => {
             <TabsContent value="rewards" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Rewards Management</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg sm:text-xl">Rewards Management</CardTitle>
+                  <CardDescription className="text-sm">
                     Create and manage rewards that users can redeem with their ST.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 sm:px-6">
                   <RewardsManager />
                 </CardContent>
               </Card>
@@ -219,12 +247,12 @@ const Tasks = () => {
             <TabsContent value="create" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Create New Task</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg sm:text-xl">Create New Task</CardTitle>
+                  <CardDescription className="text-sm">
                     Add a new task for users to complete and earn ST.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="px-2 sm:px-6">
                   <CreateTaskForm
                     categories={categories}
                     onCreateTask={handleCreateTask}
@@ -239,7 +267,7 @@ const Tasks = () => {
       </div>
       
       <Dialog open={editTaskDialogOpen} onOpenChange={setEditTaskDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
             <DialogDescription>
