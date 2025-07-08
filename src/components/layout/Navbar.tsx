@@ -12,7 +12,7 @@ import NotificationBell from '@/components/notifications/NotificationBell';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, profile, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -69,14 +69,14 @@ const Navbar = () => {
                 >
                   <Coins className="w-4 h-4 text-yellow-600" />
                   <span className="font-bold text-yellow-700">
-                    {user?.points?.toLocaleString() || '0'} ST
+                    {profile?.points?.toLocaleString() || '0'} ST
                   </span>
                 </motion.div>
 
                 {/* Tier Badge */}
                 <Badge variant="outline" className="hidden sm:flex items-center gap-1">
                   <Trophy className="w-3 h-3" />
-                  {user?.tier || 'Free'}
+                  {profile?.tier || 'Free'}
                 </Badge>
 
                 {/* Notifications */}
@@ -87,15 +87,15 @@ const Navbar = () => {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.avatar_url} alt={user?.full_name || 'User'} />
-                        <AvatarFallback>{user?.initials || 'U'}</AvatarFallback>
+                        <AvatarImage src={profile?.avatar_url} alt={profile?.full_name || 'User'} />
+                        <AvatarFallback>{profile?.initials || 'U'}</AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-1 leading-none">
-                        <p className="font-medium">{user?.full_name || user?.username}</p>
+                        <p className="font-medium">{profile?.full_name || profile?.username}</p>
                         <p className="w-[200px] truncate text-sm text-muted-foreground">
                           {user?.email}
                         </p>
@@ -152,10 +152,10 @@ const Navbar = () => {
               <div className="flex items-center justify-center space-x-2 bg-gradient-to-r from-yellow-100 to-orange-100 px-3 py-2 rounded-full mb-4">
                 <Coins className="w-4 h-4 text-yellow-600" />
                 <span className="font-bold text-yellow-700">
-                  {user?.points?.toLocaleString() || '0'} ST
+                  {profile?.points?.toLocaleString() || '0'} ST
                 </span>
                 <Badge variant="outline" className="ml-2">
-                  {user?.tier || 'Free'}
+                  {profile?.tier || 'Free'}
                 </Badge>
               </div>
 

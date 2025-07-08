@@ -40,7 +40,7 @@ export const startTask = async (taskId: string) => {
     .insert({
       user_id: user.id,
       task_id: taskId,
-      status: 'In Progress'
+      status: 'Pending'
     })
     .select(`
       *,
@@ -70,6 +70,6 @@ export const completeTask = async (taskId: string) => {
   return {
     success: true,
     message: 'Task completed successfully',
-    data
+    points_earned: data?.points_earned || 0
   };
 };

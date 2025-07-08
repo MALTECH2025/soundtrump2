@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/context/AuthContext';
-import { useProfile } from '@/context/ProfileContext';
 import { fetchReferrals, fetchReferralCode, applyReferralCode } from '@/lib/api';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -21,7 +20,6 @@ const Referrals = () => {
   const [isApplying, setIsApplying] = useState(false);
   const [applyCode, setApplyCode] = useState('');
   const { isAuthenticated, user: authUser } = useAuth();
-  const { user } = useProfile();
   
   const referralRewardAmount = 10;
 
@@ -77,7 +75,7 @@ const Referrals = () => {
   return (
     <AnimatedTransition>
       <div className="min-h-screen flex flex-col">
-        <Navbar userProfile={user} />
+        <Navbar />
         
         <motion.div
           variants={fadeInUp}

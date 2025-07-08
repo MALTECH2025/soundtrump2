@@ -6,7 +6,6 @@ import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
-import { useProfile } from '@/context/ProfileContext';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
 import { fetchUserTasks, fetchUserRewards } from '@/lib/api';
 import StatsOverview from '@/components/dashboard/StatsOverview';
@@ -17,8 +16,7 @@ import ReferralWidget from '@/components/dashboard/ReferralWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Dashboard = () => {
-  const { isAuthenticated, user: authUser } = useAuth();
-  const { profile } = useProfile();
+  const { isAuthenticated, user: authUser, profile } = useAuth();
   
   // Enable realtime updates
   useRealtimeData();
@@ -54,7 +52,8 @@ const Dashboard = () => {
       reward: 25,
       category: 'daily' as const,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      progress: 0
+      progress: 0,
+      completed: false
     },
     {
       id: '2',
@@ -63,7 +62,8 @@ const Dashboard = () => {
       reward: 50,
       category: 'spotify' as const,
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      progress: 0
+      progress: 0,
+      completed: false
     },
     {
       id: '3',
@@ -72,7 +72,8 @@ const Dashboard = () => {
       reward: 80,
       category: 'social' as const,
       expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      progress: 50
+      progress: 50,
+      completed: false
     }
   ];
 
@@ -146,7 +147,12 @@ const Dashboard = () => {
                 <MiningWidget />
                 
                 {/* Referral Widget */}
-                <ReferralWidget />
+                <ReferralWidget 
+                  totalReferrals={42}
+                  influencerThreshold={500}
+                  referralCode="SOUNDFAN2024"
+                  isInfluencer={false}
+                />
 
                 {/* Activity Feed */}
                 <Card>

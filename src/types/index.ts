@@ -1,4 +1,3 @@
-
 import { User } from '@supabase/supabase-js';
 
 export interface UserProfile {
@@ -140,7 +139,7 @@ export interface TaskProps {
   title: string;
   description: string;
   reward: number;
-  category: string | "referral" | "spotify" | "social" | "other";
+  category: string | "referral" | "spotify" | "social" | "daily" | "music" | "other";
   expiresAt: Date;
   progress: number;
   completed: boolean;

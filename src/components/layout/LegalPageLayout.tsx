@@ -22,7 +22,7 @@ const LegalPageLayout: React.FC<LegalPageLayoutProps> = ({
   return (
     <AnimatedTransition>
       <div className="min-h-screen flex flex-col">
-        <Navbar isAuthenticated={false} />
+        <Navbar />
         
         <main className="flex-grow pt-24 pb-16">
           <div className="container px-6 mx-auto max-w-4xl">
