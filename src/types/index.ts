@@ -144,6 +144,7 @@ export interface TaskProps {
   expiresAt: Date;
   progress: number;
   completed: boolean;
+  redirectUrl?: string;
 }
 
 export interface LeaderboardUser {
