@@ -81,20 +81,20 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Legal */}
+          {/* Legal - Fixed routing */}
           <div className="col-span-1">
             <h3 className="text-sm font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               {[
-                { name: 'Terms of Service', icon: <FileText className="w-3.5 h-3.5 mr-1.5" /> },
-                { name: 'Privacy Policy', icon: <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> },
-                { name: 'Cookies Policy', icon: <Cookie className="w-3.5 h-3.5 mr-1.5" /> },
-                { name: 'Disclaimer', icon: <Info className="w-3.5 h-3.5 mr-1.5" /> },
-                { name: 'White Paper', icon: <FileCode className="w-3.5 h-3.5 mr-1.5" /> }
+                { name: 'Terms of Service', path: '/terms-of-service', icon: <FileText className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'Privacy Policy', path: '/privacy-policy', icon: <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'Cookies Policy', path: '/cookies-policy', icon: <Cookie className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'Disclaimer', path: '/disclaimer', icon: <Info className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'White Paper', path: '/white-paper', icon: <FileCode className="w-3.5 h-3.5 mr-1.5" /> }
               ].map((item) => (
                 <li key={item.name}>
                   <Link 
-                    to={`/${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+                    to={item.path}
                     className="text-muted-foreground hover:text-foreground text-sm transition-colors duration-200 flex items-center"
                   >
                     {item.icon}

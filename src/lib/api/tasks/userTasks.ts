@@ -80,78 +80,26 @@ export const completeTask = async (taskId: string) => {
   if (!user) throw new Error('Not authenticated');
   
   try {
-    // Get the task details first
-    const { data: task, error: taskError } = await supabase
-      .from('tasks')
-      .select('points, title')
-      .eq('id', taskId)
-      .single();
-      
-    if (taskError || !task) {
-      throw new Error('Task not found');
+    // Use the complete_task RPC function which handles everything atomically
+    const { data, error } = await supabase.rpc('complete_task', {
+      task_id: taskId
+    });
+    
+    if (error) {
+      console.error('Error completing task via RPC:', error);
+      throw error;
     }
-
-    // Check if user already completed this task
-    const { data: existingUserTask } = await supabase
-      .from('user_tasks')
-      .select('status')
-      .eq('user_id', user.id)
-      .eq('task_id', taskId)
-      .single();
-
-    if (existingUserTask?.status === 'Completed') {
-      throw new Error('Task already completed');
+    
+    // The RPC function returns a JSON response
+    if (data && data.success) {
+      return {
+        success: true,
+        message: data.message,
+        points_earned: data.points_earned
+      };
+    } else {
+      throw new Error(data?.message || 'Failed to complete task');
     }
-
-    // Use transaction-like approach: update user_tasks and profile points
-    const { data: userTaskData, error: userTaskError } = await supabase
-      .from('user_tasks')
-      .upsert({
-        user_id: user.id,
-        task_id: taskId,
-        status: 'Completed',
-        completed_at: new Date().toISOString(),
-        points_earned: task.points
-      }, {
-        onConflict: 'user_id,task_id'
-      })
-      .select()
-      .single();
-
-    if (userTaskError) {
-      console.error('Error updating user task:', userTaskError);
-      throw userTaskError;
-    }
-
-    // Call the edge function to update user points
-    const { data: updateResult, error: updateError } = await supabase.functions.invoke(
-      'increment-user-points',
-      {
-        body: { 
-          user_id: user.id, 
-          points_to_add: task.points 
-        }
-      }
-    );
-
-    if (updateError) {
-      console.error('Error updating user points via edge function:', updateError);
-      
-      // Try direct update as fallback using rpc function
-      const { error: fallbackError } = await supabase.rpc('complete_task', {
-        task_id: taskId
-      });
-        
-      if (fallbackError) {
-        console.error('Fallback update failed:', fallbackError);
-      }
-    }
-
-    return {
-      success: true,
-      message: `Task "${task.title}" completed successfully!`,
-      points_earned: task.points
-    };
     
   } catch (error: any) {
     console.error('Error completing task:', error);

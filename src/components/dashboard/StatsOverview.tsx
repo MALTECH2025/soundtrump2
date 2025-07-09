@@ -23,28 +23,28 @@ const StatsOverview = ({ userStats, isLoading = false }: StatsOverviewProps) => 
       icon: Trophy,
       label: 'Total ST Coins',
       value: userStats.totalPoints.toLocaleString(),
-      change: '+12%',
+      change: `${userStats.totalPoints} ST`,
       color: 'text-yellow-600'
     },
     {
       icon: Target,
       label: 'Tasks Completed',
       value: userStats.tasksCompleted,
-      change: '+3',
+      change: userStats.tasksCompleted > 0 ? `+${userStats.tasksCompleted}` : '0',
       color: 'text-green-600'
     },
     {
       icon: Users,
       label: 'Referrals',
       value: userStats.referrals,
-      change: '+1',
+      change: userStats.referrals > 0 ? `+${userStats.referrals}` : '0',
       color: 'text-blue-600'
     },
     {
       icon: Gift,
       label: 'Rewards Claimed',
       value: userStats.rewardsRedeemed,
-      change: 'New',
+      change: userStats.rewardsRedeemed > 0 ? `+${userStats.rewardsRedeemed}` : '0',
       color: 'text-purple-600'
     }
   ];

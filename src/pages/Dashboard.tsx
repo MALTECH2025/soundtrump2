@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -51,14 +52,14 @@ const Dashboard = () => {
     queryKey: ['userReferrals', authUser?.id],
     queryFn: () => fetchUserReferrals(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
-    refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
+    refetchInterval: 30000,
   });
 
   const { data: referredUsers = [] } = useQuery({
     queryKey: ['referredUsers', authUser?.id],
     queryFn: () => fetchReferredUsers(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
-    refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
+    refetchInterval: 30000,
   });
 
   // Helper functions
@@ -88,12 +89,12 @@ const Dashboard = () => {
     return userTask?.status === 'Completed';
   };
 
-  // Calculate user stats
+  // Calculate user stats from real database data
   const userStats = {
     totalPoints: profile?.points || 0,
     tasksCompleted: userTasks.filter((task: any) => task.status === 'Completed').length,
     referrals: referredUsers.length,
-    rewardsRedeemed: userRewards.length,
+    rewardsRedeemed: userRewards.filter((reward: any) => reward.status === 'Fulfilled').length,
     tier: profile?.tier || 'Free',
     rank: 1
   };
@@ -155,8 +156,8 @@ const Dashboard = () => {
               </p>
             </motion.div>
 
-            {/* Stats Overview */}
-            <StatsOverview userStats={userStats} />
+            {/* Stats Overview with real data */}
+            <StatsOverview userStats={userStats} isLoading={userTasksLoading || rewardsLoading} />
 
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
@@ -211,7 +212,7 @@ const Dashboard = () => {
                 {/* Mining Widget */}
                 <MiningWidget />
                 
-                {/* Referral Widget */}
+                {/* Referral Widget with real data */}
                 <ReferralWidget 
                   totalReferrals={referredUsers.length}
                   influencerThreshold={500}
@@ -219,7 +220,7 @@ const Dashboard = () => {
                   isInfluencer={profile?.status === 'Influencer'}
                 />
 
-                {/* Activity Feed */}
+                {/* Activity Feed with real data */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">Recent Activity</CardTitle>
