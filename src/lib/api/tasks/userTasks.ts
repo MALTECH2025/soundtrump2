@@ -90,15 +90,26 @@ export const completeTask = async (taskId: string) => {
       throw error;
     }
     
-    // The RPC function returns a JSON response
-    if (data && data.success) {
+    // Handle the response - data can be null or an object
+    if (data && typeof data === 'object') {
+      const result = data as { success?: boolean; message?: string; points_earned?: number };
+      
+      if (result.success) {
+        return {
+          success: true,
+          message: result.message || 'Task completed successfully',
+          points_earned: result.points_earned || 0
+        };
+      } else {
+        throw new Error(result.message || 'Failed to complete task');
+      }
+    } else {
+      // If data is null or not an object, assume success based on no error
       return {
         success: true,
-        message: data.message,
-        points_earned: data.points_earned
+        message: 'Task completed successfully',
+        points_earned: 0
       };
-    } else {
-      throw new Error(data?.message || 'Failed to complete task');
     }
     
   } catch (error: any) {
