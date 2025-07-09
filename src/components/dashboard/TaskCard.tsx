@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Clock, Music2, Check, ExternalLink, Users, Calendar } from 'lucide-react';
+import { Clock, Music2, Check, ExternalLink, Users, Calendar, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ export interface TaskProps {
   expiresAt: Date;
   completed?: boolean;
   progress?: number;
+  redirectUrl?: string;
 }
 
 const getCategoryColor = (category: TaskProps['category']) => {
@@ -66,6 +67,11 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
   const isExpiringSoon = !isExpired && hoursRemaining < 1;
   
   const handleCompleteTask = () => {
+    if (isCompleted) {
+      toast.info('Task already completed!');
+      return;
+    }
+    
     setIsCompleting(true);
     
     // Simulate API call to complete task
@@ -80,6 +86,11 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
   };
   
   const handleVerifyProgress = () => {
+    if (isCompleted) {
+      toast.info('Task already completed!');
+      return;
+    }
+    
     setIsCompleting(true);
     
     // Simulate API call to verify progress
@@ -141,6 +152,24 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
             <h3 className="font-medium text-base">{task.title}</h3>
             <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
           </div>
+
+          {/* Display task URL if available */}
+          {task.redirectUrl && (
+            <div className="mt-3 p-2 bg-gray-50 rounded-lg">
+              <div className="flex items-center text-xs text-gray-600 mb-1">
+                <Globe className="w-3 h-3 mr-1" />
+                Task URL:
+              </div>
+              <a 
+                href={task.redirectUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+              >
+                {task.redirectUrl.length > 40 ? `${task.redirectUrl.substring(0, 40)}...` : task.redirectUrl}
+              </a>
+            </div>
+          )}
           
           {progress > 0 && progress < 100 && (
             <div className="mt-4">

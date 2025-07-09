@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -13,7 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
 import { useNotifications } from '@/hooks/useNotifications';
 import TaskFilters from '@/components/tasks/TaskFilters';
-import { Clock, CheckCircle2, ExternalLink, Trophy } from 'lucide-react';
+import { Clock, CheckCircle2, ExternalLink, Trophy, Globe } from 'lucide-react';
 import { fetchTasks, fetchUserTasks, startTask, completeTask } from '@/lib/api/tasks';
 import { Task, UserTask } from '@/types';
 import TaskSubmissionModal from '@/components/tasks/TaskSubmissionModal';
@@ -54,6 +55,7 @@ const Tasks = () => {
     mutationFn: startTask,
     onSuccess: (data, taskId) => {
       queryClient.invalidateQueries({ queryKey: ['userTasks'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
       setProcessingTasks(prev => {
         const newSet = new Set(prev);
         newSet.delete(taskId);
@@ -85,6 +87,7 @@ const Tasks = () => {
         if (data.success) {
           queryClient.invalidateQueries({ queryKey: ['userTasks'] });
           queryClient.invalidateQueries({ queryKey: ['tasks'] });
+          queryClient.invalidateQueries({ queryKey: ['profile'] });
           setProcessingTasks(prev => {
             const newSet = new Set(prev);
             newSet.delete(taskId);
@@ -97,7 +100,7 @@ const Tasks = () => {
             message: `You earned ${data.points_earned || 'ST'} coins!`
           });
           
-          toast.success(data.message || 'Task completed successfully!');
+          toast.success(`Task completed! You earned ${data.points_earned || 0} ST coins!`);
         } else {
           setProcessingTasks(prev => {
             const newSet = new Set(prev);
@@ -192,6 +195,12 @@ const Tasks = () => {
   const handleTaskAction = (task: Task) => {
     const { status, userTask } = getTaskStatus(task);
     
+    // Don't allow starting a task that's already completed
+    if (status === 'completed') {
+      toast.info('Task already completed!');
+      return;
+    }
+    
     setProcessingTasks(prev => new Set(prev).add(task.id));
     
     switch (status) {
@@ -219,14 +228,6 @@ const Tasks = () => {
           return newSet;
         });
         toast.info('Task is pending admin review');
-        break;
-      case 'completed':
-        setProcessingTasks(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(task.id);
-          return newSet;
-        });
-        toast.info('Task already completed!');
         break;
       case 'rejected':
         toast.error('Task was rejected. You can try again.');
@@ -333,6 +334,7 @@ const Tasks = () => {
               <p className="text-xs text-red-600 mt-1">Rejected: {latestSubmission.admin_notes}</p>
             )}
           </div>
+          
           <div className="flex items-center justify-between text-sm mb-3">
             <div className="flex items-center">
               <Clock className="w-4 h-4 mr-2" />
@@ -343,6 +345,24 @@ const Tasks = () => {
               <span className="font-medium text-sound-light">{task.points} ST</span>
             </div>
           </div>
+
+          {/* Display task URL if available */}
+          {task.redirect_url && (
+            <div className="mb-3 p-2 bg-gray-50 rounded-lg">
+              <div className="flex items-center text-xs text-gray-600 mb-1">
+                <Globe className="w-3 h-3 mr-1" />
+                Task URL:
+              </div>
+              <a 
+                href={task.redirect_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+              >
+                {task.redirect_url}
+              </a>
+            </div>
+          )}
           
           {task.expires_at && (
             <div className="mb-3 p-2 bg-amber-50 rounded-lg">
@@ -368,7 +388,7 @@ const Tasks = () => {
         </CardContent>
         <CardFooter className="flex justify-end">
           {status === 'completed' ? (
-            <Badge variant="outline" className="gap-1.5">
+            <Badge variant="outline" className="gap-1.5 bg-green-50 text-green-700 border-green-200">
               <CheckCircle2 className="h-4 w-4" />
               Completed
             </Badge>
@@ -522,6 +542,7 @@ const Tasks = () => {
           userTask={selectedUserTask}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ['userTasks'] });
+            queryClient.invalidateQueries({ queryKey: ['profile'] });
           }}
         />
       )}

@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -83,8 +84,12 @@ const Dashboard = () => {
     rank: 1
   };
 
-  // Convert database tasks to dashboard format
-  const recentTasks = availableTasks.slice(0, 3).map((task: any): TaskProps => ({
+  // Convert database tasks to dashboard format, exclude completed tasks for the user
+  const availableTasksForUser = availableTasks.filter((task: any) => {
+    return !isTaskCompleted(task.id, userTasks);
+  });
+
+  const recentTasks = availableTasksForUser.slice(0, 3).map((task: any): TaskProps => ({
     id: task.id,
     title: task.title,
     description: task.description,
@@ -92,7 +97,8 @@ const Dashboard = () => {
     category: getCategoryFromTask(task),
     expiresAt: new Date(task.expires_at || Date.now() + 24 * 60 * 60 * 1000),
     progress: getTaskProgress(task.id, userTasks),
-    completed: isTaskCompleted(task.id, userTasks)
+    completed: isTaskCompleted(task.id, userTasks),
+    redirectUrl: task.redirect_url
   }));
 
   if (!isAuthenticated) {
@@ -144,7 +150,7 @@ const Dashboard = () => {
                 {/* Quick Actions */}
                 <QuickActions />
 
-                {/* Recent Tasks */}
+                {/* Available Tasks */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg md:text-xl">Available Tasks</CardTitle>
@@ -168,8 +174,8 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <div className="text-center py-8">
-                        <p className="text-muted-foreground">No tasks available at the moment.</p>
-                        <p className="text-sm text-muted-foreground mt-2">Check back later for new opportunities!</p>
+                        <p className="text-muted-foreground">All available tasks completed!</p>
+                        <p className="text-sm text-muted-foreground mt-2">Great job! Check back later for new opportunities.</p>
                       </div>
                     )}
                   </CardContent>
@@ -220,6 +226,11 @@ const Dashboard = () => {
                                 {userTask.status === 'Completed' ? 'Task completed:' : 
                                  userTask.status === 'Submitted' ? 'Task submitted:' : 'Task started:'}
                               </span> {userTask.task?.title || 'Unknown Task'}
+                              {userTask.status === 'Completed' && userTask.points_earned && (
+                                <span className="text-green-600 font-medium ml-2">
+                                  +{userTask.points_earned} ST
+                                </span>
+                              )}
                             </div>
                           </div>
                         ))}

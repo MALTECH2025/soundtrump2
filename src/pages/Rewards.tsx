@@ -13,9 +13,11 @@ import { Gift, Coins, CheckCircle2, ArrowRight } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchRewards, fetchUserRewards, redeemReward } from '@/lib/api/rewards';
+import { useNavigate } from 'react-router-dom';
 
 const Rewards = () => {
   const { isAuthenticated, user: authUser, profile } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   const { data: rewards = [], isLoading: rewardsLoading } = useQuery({
@@ -41,6 +43,7 @@ const Rewards = () => {
         queryClient.invalidateQueries({ queryKey: ['rewards'] });
         queryClient.invalidateQueries({ queryKey: ['userRewards'] });
         queryClient.invalidateQueries({ queryKey: ['userProfile'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
         toast.success(data.message || 'Reward redeemed successfully!');
       } else {
         toast.error(data.message || 'Failed to redeem reward');
@@ -63,6 +66,10 @@ const Rewards = () => {
     }
     
     redeemMutation.mutate(reward.id);
+  };
+
+  const handleEarnMoreST = () => {
+    navigate('/tasks');
   };
 
   const fadeInUp = {
@@ -140,7 +147,11 @@ const Rewards = () => {
                       </p>
                     </div>
                     
-                    <Button className="bg-white/20 hover:bg-white/30 text-white" size="sm">
+                    <Button 
+                      className="bg-white/20 hover:bg-white/30 text-white" 
+                      size="sm"
+                      onClick={handleEarnMoreST}
+                    >
                       <ArrowRight className="w-4 h-4 mr-1" />
                       Earn More ST
                     </Button>
