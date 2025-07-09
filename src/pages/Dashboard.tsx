@@ -9,6 +9,7 @@ import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
 import { fetchUserTasks, fetchUserRewards, fetchTasks } from '@/lib/api';
+import { fetchUserReferrals, fetchReferredUsers } from '@/lib/api/referrals';
 import StatsOverview from '@/components/dashboard/StatsOverview';
 import QuickActions from '@/components/dashboard/QuickActions';
 import TaskCard from '@/components/dashboard/TaskCard';
@@ -27,15 +28,15 @@ const Dashboard = () => {
     queryKey: ['userTasks', authUser?.id],
     queryFn: () => fetchUserTasks(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const { data: userRewards = [], isLoading: rewardsLoading } = useQuery({
     queryKey: ['userRewards', authUser?.id],
     queryFn: () => fetchUserRewards(authUser?.id || ''),
     enabled: isAuthenticated && !!authUser?.id,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -43,8 +44,22 @@ const Dashboard = () => {
     queryKey: ['tasks'],
     queryFn: fetchTasks,
     enabled: isAuthenticated,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchOnWindowFocus: false,
+    staleTime: 1 * 60 * 1000,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: referralData } = useQuery({
+    queryKey: ['userReferrals', authUser?.id],
+    queryFn: () => fetchUserReferrals(authUser?.id || ''),
+    enabled: isAuthenticated && !!authUser?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
+  });
+
+  const { data: referredUsers = [] } = useQuery({
+    queryKey: ['referredUsers', authUser?.id],
+    queryFn: () => fetchReferredUsers(authUser?.id || ''),
+    enabled: isAuthenticated && !!authUser?.id,
+    refetchInterval: 30000, // Refresh every 30 seconds for real-time updates
   });
 
   // Helper functions
@@ -78,7 +93,7 @@ const Dashboard = () => {
   const userStats = {
     totalPoints: profile?.points || 0,
     tasksCompleted: userTasks.filter((task: any) => task.status === 'Completed').length,
-    referrals: 0,
+    referrals: referredUsers.length,
     rewardsRedeemed: userRewards.length,
     tier: profile?.tier || 'Free',
     rank: 1
@@ -86,10 +101,10 @@ const Dashboard = () => {
 
   // Convert database tasks to dashboard format, exclude completed tasks for the user
   const availableTasksForUser = availableTasks.filter((task: any) => {
-    return !isTaskCompleted(task.id, userTasks);
+    return task.active && !isTaskCompleted(task.id, userTasks);
   });
 
-  const recentTasks = availableTasksForUser.slice(0, 3).map((task: any): TaskProps => ({
+  const recentTasks = availableTasksForUser.slice(0, 4).map((task: any): TaskProps => ({
     id: task.id,
     title: task.title,
     description: task.description,
@@ -98,7 +113,8 @@ const Dashboard = () => {
     expiresAt: new Date(task.expires_at || Date.now() + 24 * 60 * 60 * 1000),
     progress: getTaskProgress(task.id, userTasks),
     completed: isTaskCompleted(task.id, userTasks),
-    redirectUrl: task.redirect_url
+    redirectUrl: task.redirect_url,
+    instructions: task.instructions
   }));
 
   if (!isAuthenticated) {
@@ -136,7 +152,7 @@ const Dashboard = () => {
                 Welcome back, {profile?.full_name || profile?.username || 'User'}! 👋
               </h1>
               <p className="text-muted-foreground text-sm md:text-base">
-                Here's your SoundTrump dashboard overview for today
+                Complete tasks below to earn ST Coins. Each task shows clear instructions on how to complete it.
               </p>
             </motion.div>
 
@@ -153,16 +169,25 @@ const Dashboard = () => {
                 {/* Available Tasks */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg md:text-xl">Available Tasks</CardTitle>
+                    <CardTitle className="text-lg md:text-xl flex items-center justify-between">
+                      Available Tasks
+                      <span className="text-sm font-normal text-muted-foreground">
+                        ({availableTasksForUser.length} available)
+                      </span>
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Click "Start Task" → Follow the instructions → Click "Complete Task" to earn ST Coins
+                    </p>
                   </CardHeader>
                   <CardContent>
                     {tasksLoading ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {[1, 2, 3].map((i) => (
-                          <div key={i} className="space-y-3">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div key={i} className="space-y-3 p-4 border rounded-lg">
                             <Skeleton className="h-4 w-3/4" />
                             <Skeleton className="h-3 w-full" />
                             <Skeleton className="h-3 w-1/2" />
+                            <Skeleton className="h-8 w-full" />
                           </div>
                         ))}
                       </div>
@@ -189,10 +214,10 @@ const Dashboard = () => {
                 
                 {/* Referral Widget */}
                 <ReferralWidget 
-                  totalReferrals={42}
+                  totalReferrals={referredUsers.length}
                   influencerThreshold={500}
-                  referralCode="SOUNDFAN2024"
-                  isInfluencer={false}
+                  referralCode={referralData?.referral_code || ''}
+                  isInfluencer={profile?.status === 'Influencer'}
                 />
 
                 {/* Activity Feed */}
@@ -212,7 +237,7 @@ const Dashboard = () => {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {userTasks.slice(0, 3).map((userTask: any, index: number) => (
+                        {userTasks.slice(0, 5).map((userTask: any, index: number) => (
                           <div key={userTask.id} className={`flex items-center gap-3 p-2 rounded-lg ${
                             userTask.status === 'Completed' ? 'bg-green-50' : 
                             userTask.status === 'Submitted' ? 'bg-blue-50' : 'bg-gray-50'
@@ -237,6 +262,7 @@ const Dashboard = () => {
                         {userTasks.length === 0 && (
                           <div className="text-center py-4">
                             <p className="text-muted-foreground text-sm">No recent activity</p>
+                            <p className="text-xs text-muted-foreground mt-1">Start completing tasks to see your progress here!</p>
                           </div>
                         )}
                       </div>

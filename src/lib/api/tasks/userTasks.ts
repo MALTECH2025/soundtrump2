@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const fetchUserTasks = async (userId: string) => {
@@ -11,19 +12,25 @@ export const fetchUserTasks = async (userId: string) => {
       points_earned,
       completed_at,
       created_at,
+      task_id,
       task:tasks!user_tasks_task_id_fkey(
         id,
         title,
         points,
         difficulty,
+        redirect_url,
+        instructions,
         category:task_categories!tasks_category_id_fkey(id, name)
       )
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(20); // Limit for performance
+    .limit(50);
     
-  if (error) throw error;
+  if (error) {
+    console.error('Error fetching user tasks:', error);
+    throw error;
+  }
   return data || [];
 };
 
@@ -41,7 +48,7 @@ export const startTask = async (taskId: string) => {
     .single();
     
   if (existingTask) {
-    throw new Error('Task already started');
+    throw new Error('Task already started or completed');
   }
   
   const { data, error } = await supabase
@@ -60,7 +67,10 @@ export const startTask = async (taskId: string) => {
     `)
     .single();
     
-  if (error) throw error;
+  if (error) {
+    console.error('Error starting task:', error);
+    throw error;
+  }
   return data;
 };
 
@@ -69,27 +79,82 @@ export const completeTask = async (taskId: string) => {
   
   if (!user) throw new Error('Not authenticated');
   
-  // Use the complete_task function from Supabase
-  const { data, error } = await supabase.rpc('complete_task', {
-    task_id: taskId
-  });
-  
-  if (error) throw error;
-  
-  // Handle the case where data might be null or undefined
-  const response = data as { success?: boolean; message?: string; points_earned?: number } | null;
-  
-  if (!response) {
+  try {
+    // Get the task details first
+    const { data: task, error: taskError } = await supabase
+      .from('tasks')
+      .select('points, title')
+      .eq('id', taskId)
+      .single();
+      
+    if (taskError || !task) {
+      throw new Error('Task not found');
+    }
+
+    // Check if user already completed this task
+    const { data: existingUserTask } = await supabase
+      .from('user_tasks')
+      .select('status')
+      .eq('user_id', user.id)
+      .eq('task_id', taskId)
+      .single();
+
+    if (existingUserTask?.status === 'Completed') {
+      throw new Error('Task already completed');
+    }
+
+    // Use transaction-like approach: update user_tasks and profile points
+    const { data: userTaskData, error: userTaskError } = await supabase
+      .from('user_tasks')
+      .upsert({
+        user_id: user.id,
+        task_id: taskId,
+        status: 'Completed',
+        completed_at: new Date().toISOString(),
+        points_earned: task.points
+      }, {
+        onConflict: 'user_id,task_id'
+      })
+      .select()
+      .single();
+
+    if (userTaskError) {
+      console.error('Error updating user task:', userTaskError);
+      throw userTaskError;
+    }
+
+    // Update user profile points
+    const { data: profileData, error: profileError } = await supabase.rpc(
+      'increment_user_points', 
+      { 
+        user_id: user.id, 
+        points_to_add: task.points 
+      }
+    );
+
+    if (profileError) {
+      console.error('Error updating user points:', profileError);
+      // Try direct update as fallback
+      const { error: fallbackError } = await supabase
+        .from('profiles')
+        .update({ 
+          points: supabase.raw(`points + ${task.points}`)
+        })
+        .eq('id', user.id);
+        
+      if (fallbackError) {
+        console.error('Fallback update failed:', fallbackError);
+      }
+    }
+
     return {
       success: true,
-      message: 'Task completed successfully',
-      points_earned: 0
+      message: `Task "${task.title}" completed successfully!`,
+      points_earned: task.points
     };
+    
+  } catch (error: any) {
+    console.error('Error completing task:', error);
+    throw new Error(error.message || 'Failed to complete task');
   }
-  
-  return {
-    success: true,
-    message: 'Task completed successfully',
-    points_earned: response.points_earned || 0
-  };
 };

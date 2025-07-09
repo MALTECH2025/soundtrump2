@@ -1,10 +1,11 @@
 
 import { useState } from 'react';
-import { Clock, Music2, Check, ExternalLink, Users, Calendar, Globe } from 'lucide-react';
+import { Clock, Music2, Check, ExternalLink, Users, Calendar, Globe, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
 
@@ -18,6 +19,7 @@ export interface TaskProps {
   completed?: boolean;
   progress?: number;
   redirectUrl?: string;
+  instructions?: string;
 }
 
 const getCategoryColor = (category: TaskProps['category']) => {
@@ -66,7 +68,7 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
   const isExpired = timeRemaining <= 0;
   const isExpiringSoon = !isExpired && hoursRemaining < 1;
   
-  const handleCompleteTask = () => {
+  const handleCompleteTask = async () => {
     if (isCompleted) {
       toast.info('Task already completed!');
       return;
@@ -74,18 +76,28 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
     
     setIsCompleting(true);
     
-    // Simulate API call to complete task
-    setTimeout(() => {
+    try {
+      // Import the completeTask function
+      const { completeTask } = await import('@/lib/api/tasks/userTasks');
+      const result = await completeTask(task.id);
+      
       setIsCompleted(true);
       setProgress(100);
-      setIsCompleting(false);
-      toast.success(`Completed task: ${task.title}`, {
-        description: `You earned ${task.reward} ST Coins!`
+      toast.success(result.message, {
+        description: `You earned ${result.points_earned} ST Coins! Check your balance.`
       });
-    }, 1500);
+      
+      // Trigger a page refresh to update balance
+      setTimeout(() => window.location.reload(), 2000);
+      
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to complete task');
+    } finally {
+      setIsCompleting(false);
+    }
   };
   
-  const handleVerifyProgress = () => {
+  const handleStartTask = async () => {
     if (isCompleted) {
       toast.info('Task already completed!');
       return;
@@ -93,23 +105,20 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
     
     setIsCompleting(true);
     
-    // Simulate API call to verify progress
-    setTimeout(() => {
-      const newProgress = Math.min(progress + 25, 100);
-      setProgress(newProgress);
-      setIsCompleting(false);
+    try {
+      const { startTask } = await import('@/lib/api/tasks/userTasks');
+      await startTask(task.id);
       
-      if (newProgress === 100) {
-        setIsCompleted(true);
-        toast.success(`Completed task: ${task.title}`, {
-          description: `You earned ${task.reward} ST Coins!`
-        });
-      } else {
-        toast.info(`Progress updated: ${newProgress}%`, {
-          description: 'Keep going to complete this task!'
-        });
-      }
-    }, 1500);
+      setProgress(25);
+      toast.success('Task started successfully!', {
+        description: 'Follow the instructions below to complete it.'
+      });
+      
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to start task');
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   return (
@@ -153,21 +162,40 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
             <p className="text-sm text-muted-foreground mt-1">{task.description}</p>
           </div>
 
+          {/* Task Instructions */}
+          {task.instructions && (
+            <Alert className="mt-3">
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                <strong>How to complete:</strong> {task.instructions}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Display task URL if available */}
           {task.redirectUrl && (
-            <div className="mt-3 p-2 bg-gray-50 rounded-lg">
-              <div className="flex items-center text-xs text-gray-600 mb-1">
-                <Globe className="w-3 h-3 mr-1" />
-                Task URL:
+            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center text-sm text-blue-700 mb-2">
+                <Globe className="w-4 h-4 mr-2" />
+                <strong>Task Link:</strong>
               </div>
               <a 
                 href={task.redirectUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-xs text-blue-600 hover:text-blue-800 underline break-all"
+                className="text-sm text-blue-600 hover:text-blue-800 underline break-all block mb-2"
               >
-                {task.redirectUrl.length > 40 ? `${task.redirectUrl.substring(0, 40)}...` : task.redirectUrl}
+                {task.redirectUrl.length > 60 ? `${task.redirectUrl.substring(0, 60)}...` : task.redirectUrl}
               </a>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(task.redirectUrl, '_blank')}
+                className="w-full"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open Task Link
+              </Button>
             </div>
           )}
           
@@ -177,12 +205,17 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
                 <span>Progress</span>
                 <span className="font-medium">{progress}%</span>
               </div>
-              <Progress value={progress} className="h-1" />
+              <Progress value={progress} className="h-2" />
             </div>
           )}
           
-          <div className="mt-4 flex items-center">
-            <div className="text-sm font-medium text-sound-light">{task.reward} ST</div>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-lg font-bold text-green-600">{task.reward} ST Coins</div>
+            {isCompleted && (
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                ✓ Completed
+              </Badge>
+            )}
           </div>
         </CardContent>
         
@@ -190,46 +223,52 @@ const TaskCard = ({ task }: { task: TaskProps }) => {
           {isCompleted ? (
             <Button variant="ghost" className="w-full" disabled>
               <Check className="w-4 h-4 mr-2 text-green-500" />
-              Completed
+              Task Completed
+            </Button>
+          ) : progress === 0 ? (
+            <Button 
+              variant="default" 
+              className="w-full" 
+              disabled={isExpired || isCompleting}
+              onClick={handleStartTask}
+            >
+              {isCompleting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Starting...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Start Task
+                </>
+              )}
             </Button>
           ) : (
-            <>
-              {task.category === 'spotify' || task.category === 'music' ? (
-                <Button 
-                  variant="outline" 
-                  className="w-full" 
-                  disabled={isExpired || isCompleting}
-                  onClick={handleVerifyProgress}
-                >
-                  {isCompleting ? (
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    <Music2 className="w-4 h-4 mr-2" />
-                  )}
-                  Verify Progress
-                </Button>
+            <Button 
+              variant="default" 
+              className="w-full bg-green-600 hover:bg-green-700" 
+              disabled={isExpired || isCompleting}
+              onClick={handleCompleteTask}
+            >
+              {isCompleting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Completing...
+                </>
               ) : (
-                <Button 
-                  variant="default" 
-                  className="w-full" 
-                  disabled={isExpired || isCompleting}
-                  onClick={handleCompleteTask}
-                >
-                  {isCompleting ? (
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                  ) : (
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                  )}
+                <>
+                  <Check className="w-4 h-4 mr-2" />
                   Complete Task
-                </Button>
+                </>
               )}
-            </>
+            </Button>
           )}
         </CardFooter>
       </Card>

@@ -1,5 +1,5 @@
 
-import { Users, UserPlus, Share, Award } from 'lucide-react';
+import { Users, UserPlus, Share, Award, Copy, Check } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -15,27 +15,54 @@ interface ReferralWidgetProps {
 }
 
 const ReferralWidget = ({ 
-  totalReferrals = 42, 
+  totalReferrals = 0, 
   influencerThreshold = 500, 
-  referralCode = 'SOUNDFAN2024', 
+  referralCode = '', 
   isInfluencer = false 
 }: ReferralWidgetProps) => {
   const [isCopied, setIsCopied] = useState(false);
   
   const referralProgress = Math.min((totalReferrals / influencerThreshold) * 100, 100);
+  const referralLink = referralCode ? `${window.location.origin}/?ref=${referralCode}` : '';
   
   const handleCopyReferralCode = () => {
+    if (!referralCode) {
+      toast.error('No referral code available');
+      return;
+    }
+    
     navigator.clipboard.writeText(referralCode);
     setIsCopied(true);
     toast.success('Referral code copied to clipboard!');
     
-    // Reset the copied state after 2 seconds
     setTimeout(() => setIsCopied(false), 2000);
   };
   
+  const handleCopyReferralLink = () => {
+    if (!referralLink) {
+      toast.error('No referral link available');
+      return;
+    }
+    
+    navigator.clipboard.writeText(referralLink);
+    toast.success('Referral link copied to clipboard!');
+  };
+  
   const handleShareReferral = () => {
-    // Implementation for sharing would depend on the platforms you want to support
-    toast.success('Share dialog would open here');
+    if (!referralLink) {
+      toast.error('No referral link available');
+      return;
+    }
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Join SoundTrump!',
+        text: 'Join me on SoundTrump and earn crypto rewards by completing simple tasks!',
+        url: referralLink,
+      });
+    } else {
+      handleCopyReferralLink();
+    }
   };
 
   return (
@@ -72,50 +99,65 @@ const ReferralWidget = ({
           {!isInfluencer && (
             <div>
               <div className="text-xs text-right mb-1 text-muted-foreground">
-                {influencerThreshold - totalReferrals} until Influencer
+                {Math.max(0, influencerThreshold - totalReferrals)} until Influencer
               </div>
               <Progress value={referralProgress} className="h-1 w-24" />
             </div>
           )}
         </div>
         
-        <div className="p-3 rounded-md border border-border bg-muted/20 mb-4">
-          <div className="flex justify-between items-center">
-            <div className="text-xs text-muted-foreground">Your referral code</div>
-            <motion.div 
-              animate={{ scale: isCopied ? [1, 1.2, 1] : 1 }}
-              transition={{ duration: 0.3 }}
-            >
+        {referralCode && (
+          <>
+            <div className="p-3 rounded-md border border-border bg-muted/20 mb-4">
+              <div className="flex justify-between items-center mb-2">
+                <div className="text-xs text-muted-foreground">Your referral code</div>
+                <motion.div 
+                  animate={{ scale: isCopied ? [1, 1.2, 1] : 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-xs font-mono"
+                    onClick={handleCopyReferralCode}
+                  >
+                    {isCopied ? <Check className="w-3 h-3" /> : referralCode}
+                  </Button>
+                </motion.div>
+              </div>
+              
+              <div className="text-xs text-muted-foreground break-all">
+                Link: {referralLink}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
               <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-6 text-xs font-mono"
+                variant="outline" 
+                className="w-full text-sm h-9" 
                 onClick={handleCopyReferralCode}
               >
-                {referralCode}
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Code
               </Button>
-            </motion.div>
-          </div>
-        </div>
+              <Button 
+                variant="default" 
+                className="w-full text-sm h-9" 
+                onClick={handleShareReferral}
+              >
+                <Share className="w-4 h-4 mr-2" />
+                Share Link
+              </Button>
+            </div>
+          </>
+        )}
         
-        <div className="grid grid-cols-2 gap-3">
-          <Button 
-            variant="outline" 
-            className="w-full text-sm h-9" 
-            onClick={handleCopyReferralCode}
-          >
-            <UserPlus className="w-4 h-4 mr-2" />
-            Copy Code
-          </Button>
-          <Button 
-            variant="default" 
-            className="w-full text-sm h-9" 
-            onClick={handleShareReferral}
-          >
-            <Share className="w-4 h-4 mr-2" />
-            Share Link
-          </Button>
-        </div>
+        {!referralCode && (
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground mb-2">No referral code available</p>
+            <p className="text-xs text-muted-foreground">Your referral code will appear here once generated</p>
+          </div>
+        )}
         
         <div className="mt-4 text-xs text-muted-foreground">
           <p>Earn {isInfluencer ? '20' : '10'} ST Coins for each friend that joins using your code!</p>
