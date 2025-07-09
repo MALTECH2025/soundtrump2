@@ -145,6 +145,7 @@ export interface TaskProps {
   progress: number;
   completed: boolean;
   redirectUrl?: string;
+  instructions?: string;
 }
 
 export interface LeaderboardUser {

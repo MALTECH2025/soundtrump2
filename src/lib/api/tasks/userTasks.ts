@@ -123,27 +123,31 @@ export const completeTask = async (taskId: string) => {
       throw userTaskError;
     }
 
-    // Update user profile points
-    const { data: profileData, error: profileError } = await supabase.rpc(
-      'increment_user_points', 
-      { 
-        user_id: user.id, 
-        points_to_add: task.points 
+    // Call the edge function to update user points
+    const { data: updateResult, error: updateError } = await supabase.functions.invoke(
+      'increment-user-points',
+      {
+        body: { 
+          user_id: user.id, 
+          points_to_add: task.points 
+        }
       }
     );
 
-    if (profileError) {
-      console.error('Error updating user points:', profileError);
+    if (updateError) {
+      console.error('Error updating user points via edge function:', updateError);
+      
       // Try direct update as fallback
       const { error: fallbackError } = await supabase
         .from('profiles')
         .update({ 
-          points: supabase.raw(`points + ${task.points}`)
+          points: supabase.sql`points + ${task.points}`
         })
         .eq('id', user.id);
         
       if (fallbackError) {
         console.error('Fallback update failed:', fallbackError);
+        // Still return success since task completion was recorded
       }
     }
 
