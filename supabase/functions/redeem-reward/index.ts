@@ -71,7 +71,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, message: redeemError.message || 'Failed to redeem reward' }),
         {
-          status: 500,
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );

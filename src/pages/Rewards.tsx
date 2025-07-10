@@ -19,6 +19,7 @@ const Rewards = () => {
   const { isAuthenticated, user: authUser, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [redeeming, setRedeeming] = useState<string | null>(null);
   
   const { data: rewards = [], isLoading: rewardsLoading } = useQuery({
     queryKey: ['rewards'],
@@ -38,7 +39,11 @@ const Rewards = () => {
 
   const redeemMutation = useMutation({
     mutationFn: redeemReward,
+    onMutate: (rewardId) => {
+      setRedeeming(rewardId);
+    },
     onSuccess: (data) => {
+      setRedeeming(null);
       if (data.success) {
         queryClient.invalidateQueries({ queryKey: ['rewards'] });
         queryClient.invalidateQueries({ queryKey: ['userRewards'] });
@@ -50,11 +55,20 @@ const Rewards = () => {
       }
     },
     onError: (error: any) => {
+      setRedeeming(null);
+      console.error('Redemption error:', error);
       toast.error(error.message || 'Failed to redeem reward');
     }
   });
   
-  const handleRedeemReward = (reward: any) => {
+  const handleRedeemReward = (e: React.MouseEvent, reward: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (redeeming === reward.id) {
+      return; // Already redeeming this reward
+    }
+    
     if (!authUser) {
       toast.error("Please log in to redeem rewards");
       return;
@@ -230,12 +244,12 @@ const Rewards = () => {
                               <CardFooter className="mt-auto pt-0">
                                 <Button 
                                   className="w-full" 
-                                  onClick={() => handleRedeemReward(reward)}
+                                  onClick={(e) => handleRedeemReward(e, reward)}
                                   disabled={
                                     !authUser || 
                                     (profile?.points || 0) < reward.points_cost || 
                                     reward.quantity === 0 ||
-                                    redeemMutation.isPending
+                                    redeeming === reward.id
                                   }
                                 >
                                   {reward.quantity === 0 ? (
@@ -243,7 +257,7 @@ const Rewards = () => {
                                   ) : !authUser ? (
                                     'Login to Redeem'
                                   ) : (profile?.points || 0) >= reward.points_cost ? (
-                                    redeemMutation.isPending ? (
+                                    redeeming === reward.id ? (
                                       <>
                                         <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

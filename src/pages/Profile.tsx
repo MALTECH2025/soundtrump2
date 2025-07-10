@@ -1,41 +1,36 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
 import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/context/AuthContext';
-import { useProfile } from '@/context/ProfileContext';
 import { 
   User, 
-  Award, 
   Trophy, 
   Coins, 
-  CalendarDays, 
-  ChevronRight, 
-  Music2, 
-  Clock, 
+  Calendar,
   Star,
-  Gift
+  TrendingUp,
+  Award,
+  Gift,
+  Clock
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { toast } from '@/lib/toast';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, user: authUser } = useAuth();
-  const { user } = useProfile();
-  
-  // Fetch real user activity data
-  const { data: userTasks = [] } = useQuery({
-    queryKey: ['userTasks', authUser?.id],
+  const { isAuthenticated, user: authUser, profile } = useAuth();
+
+  // Fetch user's completed tasks with proper relationship hints
+  const { data: completedTasks = [], isLoading: tasksLoading } = useQuery({
+    queryKey: ['userCompletedTasks', authUser?.id],
     queryFn: async () => {
       if (!authUser?.id) return [];
       
@@ -43,21 +38,27 @@ const Profile = () => {
         .from('user_tasks')
         .select(`
           *,
-          task:tasks(title, points)
+          task:tasks!user_tasks_task_id_fkey(
+            id,
+            title,
+            points,
+            difficulty
+          )
         `)
         .eq('user_id', authUser.id)
-        .order('created_at', { ascending: false })
+        .eq('status', 'Completed')
+        .order('completed_at', { ascending: false })
         .limit(10);
-        
+      
       if (error) throw error;
       return data || [];
     },
-    enabled: !!authUser?.id,
+    enabled: isAuthenticated && !!authUser?.id,
   });
 
-  // Fetch user rewards
-  const { data: userRewards = [] } = useQuery({
-    queryKey: ['userRewards', authUser?.id],
+  // Fetch user's redeemed rewards
+  const { data: redeemedRewards = [], isLoading: rewardsLoading } = useQuery({
+    queryKey: ['userRedeemedRewards', authUser?.id],
     queryFn: async () => {
       if (!authUser?.id) return [];
       
@@ -65,423 +66,399 @@ const Profile = () => {
         .from('user_rewards')
         .select(`
           *,
-          reward:rewards(name, points_cost)
+          reward:rewards(*)
         `)
         .eq('user_id', authUser.id)
         .order('redeemed_at', { ascending: false })
-        .limit(5);
-        
+        .limit(10);
+      
       if (error) throw error;
       return data || [];
     },
-    enabled: !!authUser?.id,
+    enabled: isAuthenticated && !!authUser?.id,
   });
 
-  // Fetch referral data
-  const { data: referralData } = useQuery({
-    queryKey: ['referrals', authUser?.id],
+  // Fetch user's referrals
+  const { data: referrals = [], isLoading: referralsLoading } = useQuery({
+    queryKey: ['userReferrals', authUser?.id],
     queryFn: async () => {
-      if (!authUser?.id) return { count: 0 };
+      if (!authUser?.id) return [];
       
       const { data, error } = await supabase
         .from('referred_users')
-        .select('id')
-        .eq('referrer_id', authUser.id);
-        
+        .select('*')
+        .eq('referrer_id', authUser.id)
+        .order('created_at', { ascending: false });
+      
       if (error) throw error;
-      return { count: data?.length || 0 };
+      return data || [];
     },
-    enabled: !!authUser?.id,
+    enabled: isAuthenticated && !!authUser?.id,
   });
 
-  // Calculate real stats
-  const stats = {
-    totalPoints: user?.points || 0,
-    tasksCompleted: userTasks.filter(task => task.status === 'Completed').length,
-    daysActive: Math.ceil((Date.now() - new Date(authUser?.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
-    referrals: referralData?.count || 0,
-    rank: user?.tier || 'Free',
-    nextRank: user?.tier === 'Free' ? 'Premium' : 'Elite',
-    rankProgress: Math.min((user?.points || 0) / 1000 * 100, 100) // Progress to next rank based on points
-  };
-
-  // Format recent activity from real data
-  const recentActivity = [
-    ...userTasks.slice(0, 3).map(task => ({
-      id: `task-${task.id}`,
-      type: 'task',
-      description: `Completed: ${task.task?.title || 'Task'}`,
-      date: task.completed_at || task.created_at,
-      reward: task.points_earned || task.task?.points || 0
-    })),
-    ...userRewards.slice(0, 2).map(reward => ({
-      id: `reward-${reward.id}`,
-      type: 'reward',
-      description: `Redeemed: ${reward.reward?.name || 'Reward'}`,
-      date: reward.redeemed_at,
-      cost: reward.points_spent
-    }))
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
   };
-  
+
   const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.05
+        staggerChildren: 0.1
       }
     }
   };
-  
-  if (!user) {
+
+  if (!isAuthenticated || !profile) {
     return (
       <AnimatedTransition>
         <div className="min-h-screen flex flex-col">
           <Navbar />
           <main className="flex-grow pt-24 pb-12 flex items-center justify-center">
-            <Card>
-              <CardHeader>
-                <CardTitle>User Not Found</CardTitle>
-                <CardDescription>Please log in to view your profile</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link to="/login">
-                  <Button>Go to Login</Button>
-                </Link>
-              </CardContent>
-            </Card>
+            <div className="text-center">
+              <h1 className="text-2xl font-bold mb-4">Please log in to view your profile</h1>
+              <p className="text-muted-foreground">Sign in to your account to access your profile information.</p>
+            </div>
           </main>
           <Footer />
         </div>
       </AnimatedTransition>
     );
   }
-  
+
+  // Calculate user level based on points
+  const calculateLevel = (points: number) => {
+    return Math.floor(points / 100) + 1;
+  };
+
+  // Calculate progress to next level
+  const calculateLevelProgress = (points: number) => {
+    return (points % 100);
+  };
+
+  const userLevel = calculateLevel(profile.points);
+  const levelProgress = calculateLevelProgress(profile.points);
+
+  // Combine activities from tasks and rewards
+  const recentActivities = [
+    ...completedTasks.map((task: any) => ({
+      id: task.id,
+      type: 'task_completed',
+      description: `Completed "${task.task?.title || 'Unknown Task'}"`,
+      date: task.completed_at,
+      points_earned: task.points_earned || task.task?.points || 0,
+    })),
+    ...redeemedRewards.map((reward: any) => ({
+      id: reward.id,
+      type: 'reward_redeemed',
+      description: `Redeemed "${reward.reward?.name || 'Unknown Reward'}"`,
+      date: reward.redeemed_at,
+      points_spent: reward.points_spent,
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10);
+
   return (
     <AnimatedTransition>
       <div className="min-h-screen flex flex-col">
         <Navbar />
         
         <main className="flex-grow pt-24 pb-12">
-          <div className="container px-4 mx-auto max-w-5xl">
-            {isLoading ? (
-              <div className="animate-pulse">
-                <div className="flex flex-col md:flex-row gap-6 mb-8">
-                  <div className="md:w-1/3 h-64 bg-muted rounded-lg"></div>
-                  <div className="md:w-2/3 h-64 bg-muted rounded-lg"></div>
-                </div>
-                <div className="h-6 bg-muted w-1/4 mb-4 rounded"></div>
-                <div className="h-64 bg-muted rounded-lg w-full"></div>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                  <motion.div 
-                    variants={fadeInUp}
-                    initial="hidden"
-                    animate="visible"
-                    className="md:col-span-1"
-                  >
-                    <Card className="h-full">
-                      <CardHeader className="text-center pb-2">
-                        <div className="flex justify-center mb-4">
-                          <Avatar className="h-24 w-24">
-                            <AvatarImage src={user.avatar} alt={user.name} />
-                            <AvatarFallback className="text-xl bg-sound-light text-white">
-                              {user.initials}
-                            </AvatarFallback>
-                          </Avatar>
-                        </div>
-                        <CardTitle className="text-xl">{user.name}</CardTitle>
-                        <CardDescription>{user.email}</CardDescription>
-                      </CardHeader>
-                      
-                      <CardContent className="pb-6">
-                        <div className="flex flex-col items-center gap-2 mb-4">
-                          <div className="flex gap-2">
-                            <Badge className="bg-sound-light">{user.role?.tier}</Badge>
-                            <Badge variant={user.role?.status === "Influencer" ? "default" : "outline"} 
-                                  className={user.role?.status === "Influencer" ? "bg-purple-500" : ""}>
-                              {user.role?.status}
+          <div className="container px-4 mx-auto">
+            {/* Profile Header */}
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+              className="mb-8"
+            >
+              <Card className="bg-gradient-to-r from-sound-dark to-sound-medium text-white overflow-hidden">
+                <CardContent className="p-8">
+                  <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+                    <Avatar className="w-24 h-24 border-4 border-white/20">
+                      <AvatarImage src={profile.avatar_url || ''} alt={profile.full_name || 'User'} />
+                      <AvatarFallback className="text-2xl bg-white/20 text-white">
+                        {profile.initials || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    
+                    <div className="flex-grow">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                          <h1 className="text-3xl font-bold mb-2">
+                            {profile.full_name || profile.username || 'Anonymous User'}
+                          </h1>
+                          <div className="flex items-center gap-4 text-white/80">
+                            <span className="flex items-center gap-2">
+                              <User className="w-4 h-4" />
+                              @{profile.username || 'user'}
+                            </span>
+                            <Badge variant="secondary" className="bg-white/20 text-white">
+                              {profile.tier} User
+                            </Badge>
+                            <Badge variant="secondary" className="bg-white/20 text-white">
+                              Level {userLevel}
                             </Badge>
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center">
-                            <Trophy className="h-3.5 w-3.5 mr-1 text-yellow-500" />
-                            <span>{stats.rank} Rank</span>
-                          </div>
                         </div>
                         
-                        <div className="space-y-4">
-                          <div>
-                            <div className="flex justify-between text-sm mb-1">
-                              <span>Progress to {stats.nextRank}</span>
-                              <span>{Math.round(stats.rankProgress)}%</span>
-                            </div>
-                            <Progress value={stats.rankProgress} className="h-2" />
+                        <div className="text-right">
+                          <div className="flex items-center justify-end gap-2 mb-2">
+                            <Coins className="w-6 h-6 text-yellow-400" />
+                            <span className="text-2xl font-bold">{profile.points}</span>
+                            <span className="text-sm opacity-80">ST</span>
                           </div>
-                          
-                          <div className="grid grid-cols-2 gap-2 text-center">
-                            <div className="bg-muted/50 rounded-md p-2">
-                              <div className="text-2xl font-bold">{stats.totalPoints}</div>
-                              <div className="text-xs text-muted-foreground">Total ST</div>
-                            </div>
-                            <div className="bg-muted/50 rounded-md p-2">
-                              <div className="text-2xl font-bold">{stats.daysActive}</div>
-                              <div className="text-xs text-muted-foreground">Days Active</div>
-                            </div>
-                            <div className="bg-muted/50 rounded-md p-2">
-                              <div className="text-2xl font-bold">{stats.tasksCompleted}</div>
-                              <div className="text-xs text-muted-foreground">Tasks Done</div>
-                            </div>
-                            <div className="bg-muted/50 rounded-md p-2">
-                              <div className="text-2xl font-bold">{stats.referrals}</div>
-                              <div className="text-xs text-muted-foreground">Referrals</div>
-                            </div>
-                          </div>
-                          
-                          <div className="pt-4">
-                            <Link to="/settings">
-                              <Button variant="outline" className="w-full">
-                                <User className="mr-2 h-4 w-4" />
-                                Edit Profile
-                              </Button>
-                            </Link>
+                          <div className="w-32">
+                            <Progress value={levelProgress} className="h-2 bg-white/20" />
+                            <p className="text-xs text-white/60 mt-1">
+                              {levelProgress}/100 to Level {userLevel + 1}
+                            </p>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                  
-                  <motion.div 
-                    variants={fadeInUp}
-                    initial="hidden"
-                    animate="visible"
-                    className="md:col-span-2"
-                  >
-                    <Card className="h-full">
-                      <CardHeader className="pb-2">
-                        <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>Your latest actions and rewards</CardDescription>
-                      </CardHeader>
-                      
-                      <CardContent>
-                        {recentActivity.length > 0 ? (
-                          <div className="space-y-4">
-                            {recentActivity.map(activity => (
-                              <div key={activity.id} className="flex">
-                                <div className="mr-4 relative">
-                                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                    {activity.type === 'task' && <Music2 className="h-5 w-5 text-sound-light" />}
-                                    {activity.type === 'referral' && <User className="h-5 w-5 text-purple-500" />}
-                                    {activity.type === 'reward' && <Award className="h-5 w-5 text-amber-500" />}
-                                  </div>
-                                  {activity.id !== recentActivity[recentActivity.length - 1].id && (
-                                    <div className="absolute left-1/2 top-10 bottom-0 w-0.5 -ml-px bg-border h-full"></div>
-                                  )}
-                                </div>
-                                
-                                <div className="flex-1 pb-4">
-                                  <div className="flex items-center justify-between">
-                                    <p className="font-medium text-sm">{activity.description}</p>
-                                    {activity.reward && (
-                                      <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
-                                        +{activity.reward} ST
-                                      </Badge>
-                                    )}
-                                    {activity.cost && (
-                                      <Badge variant="outline" className="text-amber-500 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
-                                        -{activity.cost} ST
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                    <Clock className="w-3 h-3 mr-1" />
-                                    <span>{new Date(activity.date).toLocaleDateString()}</span>
-                                  </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Stats Cards */}
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            >
+              <motion.div variants={fadeInUp}>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Tasks Completed</p>
+                        <p className="text-2xl font-bold">{completedTasks.length}</p>
+                      </div>
+                      <Trophy className="w-8 h-8 text-sound-light" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeInUp}>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Rewards Redeemed</p>
+                        <p className="text-2xl font-bold">{redeemedRewards.length}</p>
+                      </div>
+                      <Gift className="w-8 h-8 text-sound-light" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeInUp}>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Referrals</p>
+                        <p className="text-2xl font-bold">{referrals.length}</p>
+                      </div>
+                      <TrendingUp className="w-8 h-8 text-sound-light" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeInUp}>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Current Level</p>
+                        <p className="text-2xl font-bold">{userLevel}</p>
+                      </div>
+                      <Star className="w-8 h-8 text-sound-light" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+
+            {/* Profile Content */}
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+            >
+              <Tabs defaultValue="activity" className="w-full">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold">Profile Details</h2>
+                  <TabsList>
+                    <TabsTrigger value="activity">Recent Activity</TabsTrigger>
+                    <TabsTrigger value="tasks">Completed Tasks</TabsTrigger>
+                    <TabsTrigger value="rewards">Redeemed Rewards</TabsTrigger>
+                  </TabsList>
+                </div>
+
+                <TabsContent value="activity" className="m-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Recent Activity</CardTitle>
+                      <CardDescription>Your latest actions and achievements</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {recentActivities.length > 0 ? (
+                        <div className="space-y-4">
+                          {recentActivities.map((activity) => (
+                            <div key={activity.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                {activity.type === 'task_completed' ? (
+                                  <Trophy className="w-5 h-5 text-sound-light" />
+                                ) : (
+                                  <Gift className="w-5 h-5 text-sound-light" />
+                                )}
+                                <div>
+                                  <p className="font-medium">{activity.description}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {new Date(activity.date).toLocaleDateString()}
+                                  </p>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-8">
-                            <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium mb-2">No activity yet</h3>
-                            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                              Start completing tasks and referring friends to see your activity here.
-                            </p>
-                            <Link to="/tasks">
-                              <Button>
-                                <Music2 className="mr-2 h-4 w-4" />
-                                Browse Tasks
-                              </Button>
-                            </Link>
-                          </div>
-                        )}
-                        
-                        {recentActivity.length > 0 && (
-                          <Button variant="ghost" className="w-full mt-2">
-                            <span>View All Activity</span>
-                            <ChevronRight className="h-4 w-4 ml-1" />
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </div>
-                
-                <motion.div
-                  variants={fadeInUp}
-                  initial="hidden"
-                  animate="visible"
-                >
-                  <Tabs defaultValue="achievements" className="w-full">
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="achievements">
-                        <Trophy className="w-4 h-4 mr-2" />
-                        Achievements
-                      </TabsTrigger>
-                      <TabsTrigger value="listening">
-                        <Music2 className="w-4 h-4 mr-2" />
-                        Listening Stats
-                      </TabsTrigger>
-                      <TabsTrigger value="rewards">
-                        <Award className="w-4 h-4 mr-2" />
-                        Rewards History
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="achievements" className="m-0">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Your Achievements</CardTitle>
-                          <CardDescription>Badges and milestones you've unlocked</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {[
-                              { name: 'Early Adopter', icon: Star, unlocked: true, date: new Date(authUser?.created_at || Date.now()).toISOString().split('T')[0] },
-                              { name: '5 Day Streak', icon: CalendarDays, unlocked: stats.daysActive >= 5, date: stats.daysActive >= 5 ? '2023-09-15' : null },
-                              { name: 'First Referral', icon: User, unlocked: stats.referrals > 0, date: stats.referrals > 0 ? '2023-09-20' : null },
-                              { name: 'Music Explorer', icon: Music2, unlocked: stats.tasksCompleted >= 5, date: stats.tasksCompleted >= 5 ? '2023-10-01' : null },
-                              { name: '10 Day Streak', icon: CalendarDays, unlocked: stats.daysActive >= 10 },
-                              { name: '5 Referrals', icon: User, unlocked: stats.referrals >= 5, date: stats.referrals >= 5 ? '2023-10-28' : null },
-                              { name: 'Social Butterfly', icon: User, unlocked: stats.referrals >= 10 },
-                              { name: 'Top Listener', icon: Music2, unlocked: stats.tasksCompleted >= 20 },
-                            ].map((achievement, index) => (
-                              <div 
-                                key={index} 
-                                className={`border rounded-lg p-3 flex flex-col items-center text-center ${
-                                  achievement.unlocked 
-                                    ? 'bg-muted/30' 
-                                    : 'bg-muted/10 opacity-60'
-                                }`}
-                              >
-                                <div 
-                                  className={`h-12 w-12 rounded-full flex items-center justify-center mb-2 ${
-                                    achievement.unlocked 
-                                      ? 'bg-sound-light/20 text-sound-light' 
-                                      : 'bg-muted text-muted-foreground'
-                                  }`}
-                                >
-                                  <achievement.icon className="h-6 w-6" />
-                                </div>
-                                <h3 className="text-sm font-medium">{achievement.name}</h3>
-                                {achievement.unlocked ? (
-                                  <span className="text-xs text-muted-foreground mt-1">
-                                    {achievement.date ? `Unlocked ${new Date(achievement.date).toLocaleDateString()}` : 'Unlocked'}
+                              <div className="text-right">
+                                {'points_earned' in activity && (
+                                  <span className="text-green-600 font-medium">
+                                    +{activity.points_earned} ST
                                   </span>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground mt-1">Locked</span>
+                                )}
+                                {'points_spent' in activity && (
+                                  <span className="text-red-600 font-medium">
+                                    -{activity.points_spent} ST
+                                  </span>
                                 )}
                               </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    <TabsContent value="listening" className="m-0">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Listening Statistics</CardTitle>
-                          <CardDescription>
-                            Connect your music accounts to see your listening statistics
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center py-12">
-                          <Music2 className="h-12 w-12 text-muted-foreground mb-4" />
-                          <h3 className="text-lg font-medium mb-2">No connected accounts</h3>
-                          <p className="text-muted-foreground text-center max-w-md mb-6">
-                            Connect your Spotify, Apple Music, or other music streaming accounts to see your listening habits and earn rewards.
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Clock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                          <h3 className="text-lg font-medium mb-2">No recent activity</h3>
+                          <p className="text-muted-foreground">
+                            Complete tasks and redeem rewards to see your activity here.
                           </p>
-                          <Button>Connect Music Account</Button>
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    
-                    <TabsContent value="rewards" className="m-0">
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Rewards History</CardTitle>
-                          <CardDescription>
-                            All the rewards you've redeemed
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          {userRewards.length > 0 ? (
-                            <div className="space-y-4">
-                              {userRewards.map((userReward) => (
-                                <div key={userReward.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                  <div>
-                                    <h3 className="font-medium">{userReward.reward?.name}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                      Redeemed on {new Date(userReward.redeemed_at).toLocaleDateString()}
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-sm font-medium">{userReward.points_spent} ST</div>
-                                    <Badge variant={userReward.status === 'Fulfilled' ? 'default' : 'outline'}>
-                                      {userReward.status}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="tasks" className="m-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Completed Tasks</CardTitle>
+                      <CardDescription>Tasks you've successfully completed</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {tasksLoading ? (
+                        <div className="space-y-4">
+                          {[1, 2, 3].map((i) => (
+                            <div key={i} className="h-16 bg-muted rounded-lg animate-pulse"></div>
+                          ))}
+                        </div>
+                      ) : completedTasks.length > 0 ? (
+                        <div className="space-y-4">
+                          {completedTasks.map((task: any) => (
+                            <div key={task.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                              <div>
+                                <h4 className="font-medium">{task.task?.title || 'Unknown Task'}</h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {task.task?.difficulty || 'Easy'}
+                                  </Badge>
+                                  <span className="text-sm text-muted-foreground">
+                                    Completed on {new Date(task.completed_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-green-600 font-medium">
+                                  +{task.points_earned || task.task?.points || 0} ST
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Trophy className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                          <h3 className="text-lg font-medium mb-2">No completed tasks</h3>
+                          <p className="text-muted-foreground">
+                            Complete some tasks to see them appear here.
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="rewards" className="m-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Redeemed Rewards</CardTitle>
+                      <CardDescription>Rewards you've claimed with your ST</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {rewardsLoading ? (
+                        <div className="space-y-4">
+                          {[1, 2].map((i) => (
+                            <div key={i} className="h-20 bg-muted rounded-lg animate-pulse"></div>
+                          ))}
+                        </div>
+                      ) : redeemedRewards.length > 0 ? (
+                        <div className="space-y-4">
+                          {redeemedRewards.map((reward: any) => (
+                            <div key={reward.id} className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                              <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
+                                  <Gift className="w-6 h-6 text-sound-light" />
+                                </div>
+                                <div>
+                                  <h4 className="font-medium">{reward.reward?.name || 'Unknown Reward'}</h4>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge variant={reward.status === 'Fulfilled' ? 'default' : 'outline'}>
+                                      {reward.status}
                                     </Badge>
+                                    <span className="text-sm text-muted-foreground">
+                                      Redeemed on {new Date(reward.redeemed_at).toLocaleDateString()}
+                                    </span>
                                   </div>
                                 </div>
-                              ))}
+                              </div>
+                              <div className="text-right">
+                                <span className="text-red-600 font-medium">
+                                  -{reward.points_spent} ST
+                                </span>
+                              </div>
                             </div>
-                          ) : (
-                            <div className="text-center py-8">
-                              <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                              <h3 className="text-lg font-medium mb-2">No rewards redeemed yet</h3>
-                              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                                Redeem your earned ST for exclusive rewards and benefits. Your redeemed rewards will appear here.
-                              </p>
-                              <Link to="/rewards">
-                                <Button>
-                                  <Gift className="mr-2 h-4 w-4" />
-                                  Browse Rewards
-                                </Button>
-                              </Link>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
-                </motion.div>
-              </>
-            )}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Award className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                          <h3 className="text-lg font-medium mb-2">No redeemed rewards</h3>
+                          <p className="text-muted-foreground">
+                            Redeem some rewards to see them appear here.
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </motion.div>
           </div>
         </main>
         
