@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -84,6 +85,11 @@ const Login = () => {
         <div className="w-8 h-8 border-4 border-sound-medium border-t-sound-light rounded-full animate-spin"></div>
       </div>
     );
+  }
+  
+  // Don't render login page if user is already authenticated
+  if (isAuthenticated) {
+    return null;
   }
   
   return (

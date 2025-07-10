@@ -86,11 +86,11 @@ const Footer = () => {
             <h3 className="text-sm font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               {[
-                { name: 'Terms of Service', path: '/terms-of-service', icon: <FileText className="w-3.5 h-3.5 mr-1.5" /> },
-                { name: 'Privacy Policy', path: '/privacy-policy', icon: <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> },
-                { name: 'Cookies Policy', path: '/cookies-policy', icon: <Cookie className="w-3.5 h-3.5 mr-1.5" /> },
-                { name: 'Disclaimer', path: '/disclaimer', icon: <Info className="w-3.5 h-3.5 mr-1.5" /> },
-                { name: 'White Paper', path: '/white-paper', icon: <FileCode className="w-3.5 h-3.5 mr-1.5" /> }
+                { name: 'Terms of Service', path: '/legal/terms', icon: <FileText className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'Privacy Policy', path: '/legal/privacy', icon: <ShieldCheck className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'Cookies Policy', path: '/legal/cookies', icon: <Cookie className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'Disclaimer', path: '/legal/disclaimer', icon: <Info className="w-3.5 h-3.5 mr-1.5" /> },
+                { name: 'White Paper', path: '/legal/whitepaper', icon: <FileCode className="w-3.5 h-3.5 mr-1.5" /> }
               ].map((item) => (
                 <li key={item.name}>
                   <Link 

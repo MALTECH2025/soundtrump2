@@ -71,6 +71,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } else {
         setProfile(null);
       }
+      setIsLoading(false);
     });
   }, []);
   
@@ -152,7 +153,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Add login method
+  // Add login method with redirect to dashboard
   const login = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ 
@@ -167,6 +168,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
       
       toast.success('Logged in successfully!');
+      // Redirect will be handled by the component that calls this function
       return { success: true };
     } catch (error: any) {
       console.error('Login error:', error.message);
@@ -178,10 +180,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Add register method
   const register = async (email: string, password: string, metadata?: { username?: string }) => {
     try {
+      const redirectUrl = `${window.location.origin}/dashboard`;
+      
       const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
+          emailRedirectTo: redirectUrl,
           data: metadata
         }
       });

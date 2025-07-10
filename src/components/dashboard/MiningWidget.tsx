@@ -13,36 +13,62 @@ import { useQueryClient } from '@tanstack/react-query';
 const MiningWidget = () => {
   const [miningBalance, setMiningBalance] = useState(0);
   const [isCollecting, setIsCollecting] = useState(false);
-  const [miningRate] = useState(10); // ST coins per hour
+  const [miningRate] = useState(5); // Changed to 5 ST coins per hour
   const [lastCollected, setLastCollected] = useState<Date | null>(null);
   const { user, profile } = useAuth();
   const queryClient = useQueryClient();
 
-  // Calculate mining progress
+  // Calculate mining progress based on time elapsed
   const calculateMiningProgress = () => {
-    if (!lastCollected) return 100; // Start with full mining if never collected
+    if (!lastCollected) {
+      // If never collected, start mining from current time
+      const now = new Date();
+      setLastCollected(now);
+      return 0;
+    }
     
     const now = new Date();
     const timeDiff = now.getTime() - lastCollected.getTime();
     const hoursElapsed = timeDiff / (1000 * 60 * 60);
     const earnedCoins = Math.floor(hoursElapsed * miningRate);
     
-    return Math.min(earnedCoins, 100); // Cap at 100 ST coins
+    // No cap, let it accumulate
+    return earnedCoins;
   };
 
+  // Initialize mining system
   useEffect(() => {
-    // Initialize mining balance
-    const progress = calculateMiningProgress();
-    setMiningBalance(progress);
-    
-    // Update mining balance every minute
-    const interval = setInterval(() => {
-      const newProgress = calculateMiningProgress();
-      setMiningBalance(newProgress);
-    }, 60000);
+    if (!user) return;
+
+    // Load last collected time from localStorage for persistence
+    const storedLastCollected = localStorage.getItem(`mining_last_collected_${user.id}`);
+    if (storedLastCollected) {
+      setLastCollected(new Date(storedLastCollected));
+    } else {
+      // First time user, set current time
+      const now = new Date();
+      setLastCollected(now);
+      localStorage.setItem(`mining_last_collected_${user.id}`, now.toISOString());
+    }
+  }, [user]);
+
+  // Update mining balance every minute
+  useEffect(() => {
+    if (!lastCollected) return;
+
+    const updateMiningBalance = () => {
+      const newBalance = calculateMiningProgress();
+      setMiningBalance(newBalance);
+    };
+
+    // Initial calculation
+    updateMiningBalance();
+
+    // Update every minute
+    const interval = setInterval(updateMiningBalance, 60000);
     
     return () => clearInterval(interval);
-  }, [lastCollected]);
+  }, [lastCollected, miningRate]);
 
   const handleCollectMining = async () => {
     if (!user || miningBalance === 0) return;
@@ -60,9 +86,13 @@ const MiningWidget = () => {
       
       if (error) throw error;
       
-      // Reset mining balance and update last collected time
+      // Reset mining and update last collected time
+      const now = new Date();
+      setLastCollected(now);
       setMiningBalance(0);
-      setLastCollected(new Date());
+      
+      // Store in localStorage for persistence
+      localStorage.setItem(`mining_last_collected_${user.id}`, now.toISOString());
       
       // Refresh user profile data
       queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -80,16 +110,32 @@ const MiningWidget = () => {
   };
 
   const getTimeUntilNextReward = () => {
-    if (miningBalance >= 100) return 'Ready to collect!';
+    if (miningBalance >= miningRate) return 'Ready to collect!';
     
-    const timeToNext = (100 - miningBalance) / miningRate; // hours
-    const hours = Math.floor(timeToNext);
-    const minutes = Math.floor((timeToNext - hours) * 60);
+    if (!lastCollected) return 'Initializing...';
+    
+    const now = new Date();
+    const timeDiff = now.getTime() - lastCollected.getTime();
+    const hoursElapsed = timeDiff / (1000 * 60 * 60);
+    const nextRewardHours = Math.ceil(hoursElapsed) - hoursElapsed;
+    const minutesToNext = Math.ceil(nextRewardHours * 60);
+    
+    if (minutesToNext <= 0) return 'Ready to collect!';
+    
+    const hours = Math.floor(minutesToNext / 60);
+    const minutes = minutesToNext % 60;
     
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
     return `${minutes}m`;
+  };
+
+  const getMiningProgress = () => {
+    if (miningBalance === 0) return 0;
+    // Show progress as percentage of next full hour reward
+    const partialProgress = (miningBalance % miningRate) / miningRate * 100;
+    return miningBalance >= miningRate ? 100 : partialProgress;
   };
 
   return (
@@ -112,9 +158,9 @@ const MiningWidget = () => {
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Mining Progress</span>
-            <span>{miningBalance.toFixed(0)}/100 ST</span>
+            <span>{miningBalance.toFixed(0)} ST earned</span>
           </div>
-          <Progress value={miningBalance} className="h-2" />
+          <Progress value={getMiningProgress()} className="h-2" />
         </div>
         
         <div className="grid grid-cols-2 gap-4 text-center">
@@ -157,7 +203,7 @@ const MiningWidget = () => {
         </Button>
         
         <p className="text-xs text-center text-muted-foreground">
-          Mining automatically generates ST coins over time. Collect regularly to maximize your earnings!
+          Mining automatically generates 5 ST coins per hour. Collect anytime to claim your accumulated rewards!
         </p>
       </CardContent>
     </Card>

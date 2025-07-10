@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { Music2, ArrowRight, CheckCircle, Zap, Users, Trophy, Clock } from 'lucide-react';
@@ -8,15 +8,39 @@ import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import AuthModal from '@/components/auth/AuthModal';
+import { useAuth } from '@/context/AuthContext';
 
 const Index = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authType, setAuthType] = useState<'login' | 'register'>('register');
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+  
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
   
   const openAuthModal = (type: 'login' | 'register') => {
     setAuthType(type);
     setIsAuthModalOpen(true);
   };
+
+  // Show loading while checking auth status
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-sound-medium border-t-sound-light rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Don't render the home page if user is authenticated
+  if (isAuthenticated) {
+    return null;
+  }
 
   // Staggered animation for children
   const containerVariants = {
