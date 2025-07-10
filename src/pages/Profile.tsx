@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,29 +25,103 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from '@/lib/toast';
-
-const recentActivity = [
-  { id: 1, type: 'task', description: 'Completed daily music task', date: '2023-11-10T13:42:00', reward: 10 },
-  { id: 2, type: 'referral', description: 'New referral: Emma Johnson', date: '2023-11-08T16:20:00', reward: 10 },
-  { id: 3, type: 'task', description: 'Shared content on Twitter', date: '2023-11-05T09:15:00', reward: 5 },
-  { id: 4, type: 'reward', description: 'Redeemed Concert Pre-sale Access', date: '2023-11-02T14:30:00', cost: 100 },
-  { id: 5, type: 'task', description: 'Completed weekly listening challenge', date: '2023-10-28T11:20:00', reward: 15 }
-];
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user: authUser } = useAuth();
   const { user } = useProfile();
   
+  // Fetch real user activity data
+  const { data: userTasks = [] } = useQuery({
+    queryKey: ['userTasks', authUser?.id],
+    queryFn: async () => {
+      if (!authUser?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('user_tasks')
+        .select(`
+          *,
+          task:tasks(title, points)
+        `)
+        .eq('user_id', authUser.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+        
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!authUser?.id,
+  });
+
+  // Fetch user rewards
+  const { data: userRewards = [] } = useQuery({
+    queryKey: ['userRewards', authUser?.id],
+    queryFn: async () => {
+      if (!authUser?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('user_rewards')
+        .select(`
+          *,
+          reward:rewards(name, points_cost)
+        `)
+        .eq('user_id', authUser.id)
+        .order('redeemed_at', { ascending: false })
+        .limit(5);
+        
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!authUser?.id,
+  });
+
+  // Fetch referral data
+  const { data: referralData } = useQuery({
+    queryKey: ['referrals', authUser?.id],
+    queryFn: async () => {
+      if (!authUser?.id) return { count: 0 };
+      
+      const { data, error } = await supabase
+        .from('referred_users')
+        .select('id')
+        .eq('referrer_id', authUser.id);
+        
+      if (error) throw error;
+      return { count: data?.length || 0 };
+    },
+    enabled: !!authUser?.id,
+  });
+
+  // Calculate real stats
   const stats = {
-    totalPoints: 430,
-    tasksCompleted: 24,
-    daysActive: 18,
-    referrals: 8,
-    rank: 'Silver',
-    nextRank: 'Gold',
-    rankProgress: 65
+    totalPoints: user?.points || 0,
+    tasksCompleted: userTasks.filter(task => task.status === 'Completed').length,
+    daysActive: Math.ceil((Date.now() - new Date(authUser?.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
+    referrals: referralData?.count || 0,
+    rank: user?.tier || 'Free',
+    nextRank: user?.tier === 'Free' ? 'Premium' : 'Elite',
+    rankProgress: Math.min((user?.points || 0) / 1000 * 100, 100) // Progress to next rank based on points
   };
+
+  // Format recent activity from real data
+  const recentActivity = [
+    ...userTasks.slice(0, 3).map(task => ({
+      id: `task-${task.id}`,
+      type: 'task',
+      description: `Completed: ${task.task?.title || 'Task'}`,
+      date: task.completed_at || task.created_at,
+      reward: task.points_earned || task.task?.points || 0
+    })),
+    ...userRewards.slice(0, 2).map(reward => ({
+      id: `reward-${reward.id}`,
+      type: 'reward',
+      description: `Redeemed: ${reward.reward?.name || 'Reward'}`,
+      date: reward.redeemed_at,
+      cost: reward.points_spent
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -155,7 +228,7 @@ const Profile = () => {
                           <div>
                             <div className="flex justify-between text-sm mb-1">
                               <span>Progress to {stats.nextRank}</span>
-                              <span>{stats.rankProgress}%</span>
+                              <span>{Math.round(stats.rankProgress)}%</span>
                             </div>
                             <Progress value={stats.rankProgress} className="h-2" />
                           </div>
@@ -163,7 +236,7 @@ const Profile = () => {
                           <div className="grid grid-cols-2 gap-2 text-center">
                             <div className="bg-muted/50 rounded-md p-2">
                               <div className="text-2xl font-bold">{stats.totalPoints}</div>
-                              <div className="text-xs text-muted-foreground">Total Points</div>
+                              <div className="text-xs text-muted-foreground">Total ST</div>
                             </div>
                             <div className="bg-muted/50 rounded-md p-2">
                               <div className="text-2xl font-bold">{stats.daysActive}</div>
@@ -205,47 +278,65 @@ const Profile = () => {
                       </CardHeader>
                       
                       <CardContent>
-                        <div className="space-y-4">
-                          {recentActivity.map(activity => (
-                            <div key={activity.id} className="flex">
-                              <div className="mr-4 relative">
-                                <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-                                  {activity.type === 'task' && <Music2 className="h-5 w-5 text-sound-light" />}
-                                  {activity.type === 'referral' && <User className="h-5 w-5 text-purple-500" />}
-                                  {activity.type === 'reward' && <Award className="h-5 w-5 text-amber-500" />}
-                                </div>
-                                {activity.id !== recentActivity[recentActivity.length - 1].id && (
-                                  <div className="absolute left-1/2 top-10 bottom-0 w-0.5 -ml-px bg-border h-full"></div>
-                                )}
-                              </div>
-                              
-                              <div className="flex-1 pb-4">
-                                <div className="flex items-center justify-between">
-                                  <p className="font-medium text-sm">{activity.description}</p>
-                                  {activity.reward && (
-                                    <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
-                                      +{activity.reward} points
-                                    </Badge>
-                                  )}
-                                  {activity.cost && (
-                                    <Badge variant="outline" className="text-amber-500 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
-                                      -{activity.cost} points
-                                    </Badge>
+                        {recentActivity.length > 0 ? (
+                          <div className="space-y-4">
+                            {recentActivity.map(activity => (
+                              <div key={activity.id} className="flex">
+                                <div className="mr-4 relative">
+                                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                                    {activity.type === 'task' && <Music2 className="h-5 w-5 text-sound-light" />}
+                                    {activity.type === 'referral' && <User className="h-5 w-5 text-purple-500" />}
+                                    {activity.type === 'reward' && <Award className="h-5 w-5 text-amber-500" />}
+                                  </div>
+                                  {activity.id !== recentActivity[recentActivity.length - 1].id && (
+                                    <div className="absolute left-1/2 top-10 bottom-0 w-0.5 -ml-px bg-border h-full"></div>
                                   )}
                                 </div>
-                                <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  <span>{new Date(activity.date).toLocaleDateString()}</span>
+                                
+                                <div className="flex-1 pb-4">
+                                  <div className="flex items-center justify-between">
+                                    <p className="font-medium text-sm">{activity.description}</p>
+                                    {activity.reward && (
+                                      <Badge variant="outline" className="text-green-500 border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
+                                        +{activity.reward} ST
+                                      </Badge>
+                                    )}
+                                    {activity.cost && (
+                                      <Badge variant="outline" className="text-amber-500 border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
+                                        -{activity.cost} ST
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center text-xs text-muted-foreground mt-1">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    <span>{new Date(activity.date).toLocaleDateString()}</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-medium mb-2">No activity yet</h3>
+                            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                              Start completing tasks and referring friends to see your activity here.
+                            </p>
+                            <Link to="/tasks">
+                              <Button>
+                                <Music2 className="mr-2 h-4 w-4" />
+                                Browse Tasks
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
                         
-                        <Button variant="ghost" className="w-full mt-2">
-                          <span>View All Activity</span>
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
+                        {recentActivity.length > 0 && (
+                          <Button variant="ghost" className="w-full mt-2">
+                            <span>View All Activity</span>
+                            <ChevronRight className="h-4 w-4 ml-1" />
+                          </Button>
+                        )}
                       </CardContent>
                     </Card>
                   </motion.div>
@@ -281,14 +372,14 @@ const Profile = () => {
                         <CardContent>
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {[
-                              { name: 'Early Adopter', icon: Star, unlocked: true, date: '2023-09-05' },
-                              { name: '5 Day Streak', icon: CalendarDays, unlocked: true, date: '2023-09-15' },
-                              { name: 'First Referral', icon: User, unlocked: true, date: '2023-09-20' },
-                              { name: 'Music Explorer', icon: Music2, unlocked: true, date: '2023-10-01' },
-                              { name: '10 Day Streak', icon: CalendarDays, unlocked: false },
-                              { name: '5 Referrals', icon: User, unlocked: true, date: '2023-10-28' },
-                              { name: 'Social Butterfly', icon: User, unlocked: false },
-                              { name: 'Top Listener', icon: Music2, unlocked: false },
+                              { name: 'Early Adopter', icon: Star, unlocked: true, date: new Date(authUser?.created_at || Date.now()).toISOString().split('T')[0] },
+                              { name: '5 Day Streak', icon: CalendarDays, unlocked: stats.daysActive >= 5, date: stats.daysActive >= 5 ? '2023-09-15' : null },
+                              { name: 'First Referral', icon: User, unlocked: stats.referrals > 0, date: stats.referrals > 0 ? '2023-09-20' : null },
+                              { name: 'Music Explorer', icon: Music2, unlocked: stats.tasksCompleted >= 5, date: stats.tasksCompleted >= 5 ? '2023-10-01' : null },
+                              { name: '10 Day Streak', icon: CalendarDays, unlocked: stats.daysActive >= 10 },
+                              { name: '5 Referrals', icon: User, unlocked: stats.referrals >= 5, date: stats.referrals >= 5 ? '2023-10-28' : null },
+                              { name: 'Social Butterfly', icon: User, unlocked: stats.referrals >= 10 },
+                              { name: 'Top Listener', icon: Music2, unlocked: stats.tasksCompleted >= 20 },
                             ].map((achievement, index) => (
                               <div 
                                 key={index} 
@@ -310,7 +401,7 @@ const Profile = () => {
                                 <h3 className="text-sm font-medium">{achievement.name}</h3>
                                 {achievement.unlocked ? (
                                   <span className="text-xs text-muted-foreground mt-1">
-                                    Unlocked {new Date(achievement.date).toLocaleDateString()}
+                                    {achievement.date ? `Unlocked ${new Date(achievement.date).toLocaleDateString()}` : 'Unlocked'}
                                   </span>
                                 ) : (
                                   <span className="text-xs text-muted-foreground mt-1">Locked</span>
@@ -350,19 +441,40 @@ const Profile = () => {
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
-                          <div className="text-center py-8">
-                            <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                            <h3 className="text-lg font-medium mb-2">No rewards redeemed yet</h3>
-                            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                              Redeem your earned coins for exclusive rewards and benefits. Your redeemed rewards will appear here.
-                            </p>
-                            <Link to="/rewards">
-                              <Button>
-                                <Gift className="mr-2 h-4 w-4" />
-                                Browse Rewards
-                              </Button>
-                            </Link>
-                          </div>
+                          {userRewards.length > 0 ? (
+                            <div className="space-y-4">
+                              {userRewards.map((userReward) => (
+                                <div key={userReward.id} className="flex items-center justify-between p-4 border rounded-lg">
+                                  <div>
+                                    <h3 className="font-medium">{userReward.reward?.name}</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                      Redeemed on {new Date(userReward.redeemed_at).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-sm font-medium">{userReward.points_spent} ST</div>
+                                    <Badge variant={userReward.status === 'Fulfilled' ? 'default' : 'outline'}>
+                                      {userReward.status}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                              <h3 className="text-lg font-medium mb-2">No rewards redeemed yet</h3>
+                              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                                Redeem your earned ST for exclusive rewards and benefits. Your redeemed rewards will appear here.
+                              </p>
+                              <Link to="/rewards">
+                                <Button>
+                                  <Gift className="mr-2 h-4 w-4" />
+                                  Browse Rewards
+                                </Button>
+                              </Link>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     </TabsContent>

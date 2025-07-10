@@ -12,7 +12,8 @@ import {
   Cookie,
   FileCode,
   Info,
-  ExternalLink
+  ExternalLink,
+  Send
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,14 +48,28 @@ const Footer = () => {
               Earn rewards while enjoying your favorite music streaming platforms.
             </p>
             <div className="flex space-x-3">
-              <Button size="icon" variant="ghost" className="rounded-full hover:text-sound-light">
-                <Twitter className="w-4 h-4" />
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="rounded-full hover:text-sound-light"
+                asChild
+              >
+                <a href="https://x.com/SoundTrump" target="_blank" rel="noopener noreferrer">
+                  <Twitter className="w-4 h-4" />
+                </a>
+              </Button>
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="rounded-full hover:text-sound-light"
+                asChild
+              >
+                <a href="https://t.me/soundtrump" target="_blank" rel="noopener noreferrer">
+                  <Send className="w-4 h-4" />
+                </a>
               </Button>
               <Button size="icon" variant="ghost" className="rounded-full hover:text-sound-light">
                 <Instagram className="w-4 h-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="rounded-full hover:text-sound-light">
-                <Music className="w-4 h-4" />
               </Button>
             </div>
           </div>

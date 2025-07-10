@@ -12,6 +12,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Processing reward redemption request');
+    
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
@@ -28,7 +30,10 @@ serve(async (req) => {
       error: userError,
     } = await supabaseClient.auth.getUser();
 
+    console.log('User authentication check:', { user: user?.id, error: userError });
+
     if (userError || !user) {
+      console.error('Authentication failed:', userError);
       return new Response(
         JSON.stringify({ success: false, message: 'Not authenticated' }),
         {
@@ -42,6 +47,8 @@ serve(async (req) => {
     const requestData = await req.json();
     const { reward_id } = requestData;
 
+    console.log('Request data:', { reward_id, user_id: user.id });
+
     if (!reward_id) {
       return new Response(
         JSON.stringify({ success: false, message: 'Reward ID is required' }),
@@ -52,73 +59,17 @@ serve(async (req) => {
       );
     }
 
-    // Get user profile
-    const { data: profile, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('id, points')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'User profile not found' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Get reward details
-    const { data: reward, error: rewardError } = await supabaseClient
-      .from('rewards')
-      .select('*')
-      .eq('id', reward_id)
-      .eq('active', true)
-      .single();
-
-    if (rewardError || !reward) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'Reward not found or inactive' }),
-        {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Check if user has enough points
-    if (profile.points < reward.points_cost) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'Not enough points to redeem this reward' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Check if reward is out of stock
-    if (reward.quantity !== null && reward.quantity <= 0) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'This reward is out of stock' }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    // Start a transaction
-    const { data: transaction, error: transactionError } = await supabaseClient.rpc('redeem_reward', {
-      p_user_id: user.id,
-      p_reward_id: reward_id,
-      p_points_cost: reward.points_cost
+    // Use the database function to handle the redemption
+    const { data: result, error: redeemError } = await supabaseClient.rpc('redeem_reward', {
+      reward_id: reward_id
     });
 
-    if (transactionError) {
+    console.log('Redeem reward result:', { result, error: redeemError });
+
+    if (redeemError) {
+      console.error('Redemption error:', redeemError);
       return new Response(
-        JSON.stringify({ success: false, message: transactionError.message }),
+        JSON.stringify({ success: false, message: redeemError.message || 'Failed to redeem reward' }),
         {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -126,24 +77,29 @@ serve(async (req) => {
       );
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Successfully redeemed reward: ${reward.name}`,
-        rewardName: reward.name,
-        pointsSpent: reward.points_cost,
-        remainingPoints: profile.points - reward.points_cost
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    // The RPC function returns a JSON object with success/failure info
+    if (result && result.success) {
+      return new Response(
+        JSON.stringify(result),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    } else {
+      return new Response(
+        JSON.stringify(result || { success: false, message: 'Failed to redeem reward' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
 
   } catch (error) {
-    console.error('Error in reward redemption:', error.message);
+    console.error('Error in reward redemption:', error);
     return new Response(
-      JSON.stringify({ success: false, message: error.message }),
+      JSON.stringify({ success: false, message: `Server error: ${error.message}` }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
