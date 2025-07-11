@@ -20,7 +20,7 @@ const Navbar = () => {
     { name: 'Home', href: '/', requiresAuth: false },
     { name: 'Dashboard', href: '/dashboard', requiresAuth: true },
     { name: 'Tasks', href: '/tasks', requiresAuth: true },
-    { name: 'Rewards', href: '/rewards', requiresAuth: true },
+    { name: 'Withdrawal', href: '/withdrawal', requiresAuth: true },
     { name: 'Leaderboard', href: '/leaderboard', requiresAuth: true },
     { name: 'Referrals', href: '/referrals', requiresAuth: true },
   ];

@@ -26,7 +26,7 @@ import WhitePaper from '@/pages/legal/WhitePaper';
 // Import app pages
 import Dashboard from '@/pages/Dashboard';
 import Tasks from '@/pages/Tasks';
-import Rewards from '@/pages/Rewards';
+import Withdrawal from '@/pages/Withdrawal';
 import Referrals from '@/pages/Referrals';
 import Leaderboard from '@/pages/Leaderboard';
 import Profile from '@/pages/Profile';
@@ -107,7 +107,7 @@ function App() {
                   <Route element={<ProtectedRoute />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/tasks" element={<Tasks />} />
-                    <Route path="/rewards" element={<Rewards />} />
+                    <Route path="/withdrawal" element={<Withdrawal />} />
                     <Route path="/referrals" element={<Referrals />} />
                     <Route path="/leaderboard" element={<Leaderboard />} />
                     <Route path="/profile" element={<Profile />} />
