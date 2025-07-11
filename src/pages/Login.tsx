@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -11,12 +10,14 @@ import { Music2, ArrowRight, Mail, Lock, User, UserPlus, LogIn } from 'lucide-re
 import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'register' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [resetEmail, setResetEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login, register, isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -74,6 +75,40 @@ const Login = () => {
       setIsSubmitting(false);
     }
   };
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!resetEmail) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const redirectUrl = `${window.location.origin}/reset-password`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: redirectUrl,
+      });
+      
+      if (error) {
+        console.error('Password reset error:', error.message);
+        toast.error(error.message);
+        return;
+      }
+      
+      toast.success('Password reset email sent! Check your inbox.');
+      setResetEmail('');
+      setActiveTab('login');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   const handleLoginWithGoogle = async () => {
     toast.info('Google login will be available soon!');
@@ -106,16 +141,18 @@ const Login = () => {
           <Card className="w-full max-w-md shadow-lg">
             <CardHeader className="space-y-1 text-center">
               <CardTitle className="text-2xl font-bold">
-                {activeTab === 'login' ? 'Welcome back' : 'Create an account'}
+                {activeTab === 'login' && 'Welcome back'}
+                {activeTab === 'register' && 'Create an account'}
+                {activeTab === 'reset' && 'Reset your password'}
               </CardTitle>
               <CardDescription>
-                {activeTab === 'login' 
-                  ? 'Enter your credentials to sign in to your account' 
-                  : 'Fill in the form below to create your account'}
+                {activeTab === 'login' && 'Enter your credentials to sign in to your account'}
+                {activeTab === 'register' && 'Fill in the form below to create your account'}
+                {activeTab === 'reset' && 'Enter your email to receive a password reset link'}
               </CardDescription>
             </CardHeader>
             
-            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'register')}>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'login' | 'register' | 'reset')}>
               <div className="px-6">
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="login">Login</TabsTrigger>
@@ -144,7 +181,12 @@ const Login = () => {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label htmlFor="password">Password</Label>
-                        <Button variant="link" className="px-0 h-auto text-xs">
+                        <Button 
+                          variant="link" 
+                          className="px-0 h-auto text-xs"
+                          type="button"
+                          onClick={() => setActiveTab('reset')}
+                        >
                           Forgot password?
                         </Button>
                       </div>
@@ -229,34 +271,75 @@ const Login = () => {
                     </Button>
                   </form>
                 </TabsContent>
+
+                <TabsContent value="reset" className="mt-0">
+                  <form onSubmit={handlePasswordReset} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reset-email">Email</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                        <Input 
+                          id="reset-email" 
+                          type="email" 
+                          placeholder="your@email.com" 
+                          className="pl-10"
+                          value={resetEmail}
+                          onChange={(e) => setResetEmail(e.target.value)} 
+                        />
+                      </div>
+                    </div>
+                    
+                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      ) : (
+                        <Mail className="w-4 h-4 mr-2" />
+                      )}
+                      Send Reset Link
+                    </Button>
+
+                    <Button 
+                      variant="ghost" 
+                      className="w-full" 
+                      type="button"
+                      onClick={() => setActiveTab('login')}
+                    >
+                      Back to Login
+                    </Button>
+                  </form>
+                </TabsContent>
                 
-                <div className="mt-4 relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                      Or continue with
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="mt-4">
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    onClick={handleLoginWithGoogle}
-                    type="button"
-                  >
-                    <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
-                      />
-                    </svg>
-                    Google
-                  </Button>
-                </div>
+                {(activeTab === 'login' || activeTab === 'register') && (
+                  <>
+                    <div className="mt-4 relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <Separator className="w-full" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">
+                          Or continue with
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        onClick={handleLoginWithGoogle}
+                        type="button"
+                      >
+                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                          <path
+                            fill="currentColor"
+                            d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"
+                          />
+                        </svg>
+                        Google
+                      </Button>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Tabs>
             

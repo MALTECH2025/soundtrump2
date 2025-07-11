@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -11,12 +10,11 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 // Import pages
 import Index from '@/pages/Index';
 import Login from '@/pages/Login';
+import ResetPassword from '@/pages/ResetPassword';
 import Support from '@/pages/Support';
 import Contact from '@/pages/Contact';
 import DspTrust from '@/pages/DspTrust';
 import NotFound from '@/pages/NotFound';
-
-// Import legal pages
 import TermsOfService from '@/pages/legal/TermsOfService';
 import PrivacyPolicy from '@/pages/legal/PrivacyPolicy';
 import CookiesPolicy from '@/pages/legal/CookiesPolicy';
@@ -93,6 +91,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/support" element={<Support />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/dsp-trust" element={<DspTrust />} />
