@@ -2,9 +2,18 @@
 import { supabase } from "@/integrations/supabase/client";
 
 // Get task image URL
-export const getTaskImageUrl = (imagePath: string) => {
+export const getTaskImageUrl = (imagePath: string | null) => {
   if (!imagePath) return null;
-  const { data } = supabase.storage.from('task-images').getPublicUrl(imagePath);
+  
+  // If it's already a full URL, return as is
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+  
+  // Remove leading slash if present
+  const cleanPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
+  
+  const { data } = supabase.storage.from('task-images').getPublicUrl(cleanPath);
   return data.publicUrl;
 };
 

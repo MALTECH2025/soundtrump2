@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -285,7 +284,7 @@ const Tasks = () => {
     const { status, progress, userTask } = getTaskStatus(task);
     const isPremium = task.difficulty === 'Hard';
     const isProcessing = processingTasks.has(task.id);
-    const taskImageUrl = task.image_url ? getTaskImageUrl(task.image_url) : null;
+    const taskImageUrl = getTaskImageUrl(task.image_url);
 
     // Get the latest submission for status messages
     const latestSubmission = userTask?.submission && userTask.submission.length > 0 
@@ -300,6 +299,10 @@ const Tasks = () => {
               src={taskImageUrl} 
               alt={task.title}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                console.error('Error loading task image:', taskImageUrl);
+                e.currentTarget.style.display = 'none';
+              }}
             />
           </div>
         )}
