@@ -109,7 +109,11 @@ const HowItWorks = () => {
   ];
 
   return (
-    <LegalPageLayout>
+    <LegalPageLayout 
+      title="How SoundTrump Works"
+      description="Discover how you can earn ST coins while enjoying your favorite music across all streaming platforms"
+      icon={<Music className="h-6 w-6 text-sound-light" />}
+    >
       <div className="max-w-4xl mx-auto space-y-12">
         {/* Header */}
         <div className="text-center space-y-4">
