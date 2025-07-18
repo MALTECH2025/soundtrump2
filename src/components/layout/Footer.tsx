@@ -13,7 +13,8 @@ import {
   FileCode,
   Info,
   ExternalLink,
-  Send
+  Send,
+  HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,7 +40,11 @@ const Footer = () => {
           {/* Brand */}
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex items-center mb-4">
-              <Music className="w-6 h-6 text-sound-light mr-2" />
+              <img 
+                src="/lovable-uploads/d171e28f-9cf9-4701-a3d8-bd8c580e00d9.png" 
+                alt="SoundTrump" 
+                className="w-6 h-6 mr-2"
+              />
               <span className="text-lg font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-sound-light to-sound-accent">
                 SoundTrump
               </span>
@@ -78,18 +83,30 @@ const Footer = () => {
           <div className="col-span-1">
             <h3 className="text-sm font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              {['Dashboard', 'Tasks', 'Leaderboard', 'Referrals', 'DSP Trust'].map((item) => (
-                <li key={item}>
+              {[
+                { name: 'Dashboard', path: '/dashboard' },
+                { name: 'Tasks', path: '/tasks' },
+                { name: 'Leaderboard', path: '/leaderboard' },
+                { name: 'Referrals', path: '/referrals' },
+                { name: 'DSP Trust', path: '/dsp-trust' },
+                { name: 'How It Works', path: '/how-it-works' }
+              ].map((item) => (
+                <li key={item.name}>
                   <Link 
-                    to={`/${item.toLowerCase().replace(/\s+/g, '-')}`} 
+                    to={item.path} 
                     className="text-muted-foreground hover:text-foreground text-sm transition-colors duration-200 flex items-center"
                   >
-                    {item === 'DSP Trust' ? (
+                    {item.name === 'DSP Trust' ? (
                       <>
                         <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
-                        {item}
+                        {item.name}
                       </>
-                    ) : item}
+                    ) : item.name === 'How It Works' ? (
+                      <>
+                        <HelpCircle className="w-3.5 h-3.5 mr-1.5" />
+                        {item.name}
+                      </>
+                    ) : item.name}
                   </Link>
                 </li>
               ))}

@@ -60,10 +60,12 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-r from-sound-light to-sound-medium rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">ST</span>
-            </div>
-            <span className="font-bold text-xl text-gray-900">SoundTrump</span>
+            <img 
+              src="/lovable-uploads/d171e28f-9cf9-4701-a3d8-bd8c580e00d9.png" 
+              alt="SoundTrump" 
+              className="w-8 h-8"
+            />
+            <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-sound-light to-sound-accent">SoundTrump</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -103,8 +105,8 @@ const Navbar = () => {
               <>
                 {/* Points Display */}
                 {profile && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-sound-light/10 to-sound-medium/10 rounded-full">
-                    <div className="w-2 h-2 bg-sound-light rounded-full"></div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-sound-light/10 to-sound-accent/20 rounded-full">
+                    <div className="w-2 h-2 bg-sound-accent rounded-full"></div>
                     <span className="text-sm font-medium text-sound-dark">
                       {profile.points?.toLocaleString() || 0} ST
                     </span>

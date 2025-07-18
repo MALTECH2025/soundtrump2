@@ -63,13 +63,13 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// SoundTrump custom colors
+				// SoundTrump custom colors - updated to match logo
 				sound: {
-					dark: '#0A1A2F',
-					medium: '#1E3A5F',
-					light: '#3498db',
-					accent: '#64B5F6',
-					muted: '#8ECAFF',
+					dark: 'hsl(262, 83%, 8%)',
+					medium: 'hsl(262, 83%, 25%)',
+					light: 'hsl(262, 83%, 58%)',
+					accent: 'hsl(60, 100%, 75%)',
+					muted: 'hsl(262, 83%, 45%)',
 				}
 			},
 			borderRadius: {

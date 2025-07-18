@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ import ResetPassword from '@/pages/ResetPassword';
 import Support from '@/pages/Support';
 import Contact from '@/pages/Contact';
 import DspTrust from '@/pages/DspTrust';
+import HowItWorks from '@/pages/HowItWorks';
 import NotFound from '@/pages/NotFound';
 import TermsOfService from '@/pages/legal/TermsOfService';
 import PrivacyPolicy from '@/pages/legal/PrivacyPolicy';
@@ -95,6 +97,7 @@ function App() {
                   <Route path="/support" element={<Support />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/dsp-trust" element={<DspTrust />} />
+                  <Route path="/how-it-works" element={<HowItWorks />} />
                   <Route path="/spotify/callback" element={<SpotifyCallback />} />
                   
                   <Route path="/legal/terms" element={<TermsOfService />} />
