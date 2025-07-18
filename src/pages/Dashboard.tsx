@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -136,7 +135,7 @@ const Dashboard = () => {
 
   return (
     <AnimatedTransition>
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="min-h-screen flex flex-col bg-gradient-crypto">
         <Navbar />
         
         <main className="flex-grow pt-20 pb-12">
@@ -148,7 +147,7 @@ const Dashboard = () => {
               transition={{ duration: 0.3 }}
               className="mb-6"
             >
-              <h1 className="text-2xl md:text-3xl font-bold mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold mb-2 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Welcome back, {profile?.full_name || profile?.username || 'User'}! 👋
               </h1>
               <p className="text-muted-foreground text-sm md:text-base">
@@ -167,10 +166,12 @@ const Dashboard = () => {
                 <QuickActions />
 
                 {/* Available Tasks */}
-                <Card>
+                <Card className="glass crypto-glow">
                   <CardHeader>
                     <CardTitle className="text-lg md:text-xl flex items-center justify-between">
-                      Available Tasks
+                      <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                        Available Tasks
+                      </span>
                       <span className="text-sm font-normal text-muted-foreground">
                         ({availableTasksForUser.length} available)
                       </span>
@@ -183,7 +184,7 @@ const Dashboard = () => {
                     {tasksLoading ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {[1, 2, 3, 4].map((i) => (
-                          <div key={i} className="space-y-3 p-4 border rounded-lg">
+                          <div key={i} className="space-y-3 p-4 border rounded-lg glass">
                             <Skeleton className="h-4 w-3/4" />
                             <Skeleton className="h-3 w-full" />
                             <Skeleton className="h-3 w-1/2" />
@@ -221,9 +222,11 @@ const Dashboard = () => {
                 />
 
                 {/* Activity Feed with real data */}
-                <Card>
+                <Card className="glass">
                   <CardHeader>
-                    <CardTitle className="text-lg">Recent Activity</CardTitle>
+                    <CardTitle className="text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                      Recent Activity
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {userTasksLoading ? (
@@ -239,12 +242,12 @@ const Dashboard = () => {
                       <div className="space-y-3">
                         {userTasks.slice(0, 5).map((userTask: any, index: number) => (
                           <div key={userTask.id} className={`flex items-center gap-3 p-2 rounded-lg ${
-                            userTask.status === 'Completed' ? 'bg-green-50' : 
-                            userTask.status === 'Submitted' ? 'bg-blue-50' : 'bg-gray-50'
+                            userTask.status === 'Completed' ? 'bg-primary/10 border border-primary/20' : 
+                            userTask.status === 'Submitted' ? 'bg-accent/10 border border-accent/20' : 'bg-muted/10 border border-muted/20'
                           }`}>
                             <div className={`w-2 h-2 rounded-full ${
-                              userTask.status === 'Completed' ? 'bg-green-500' : 
-                              userTask.status === 'Submitted' ? 'bg-blue-500' : 'bg-gray-500'
+                              userTask.status === 'Completed' ? 'bg-primary crypto-glow' : 
+                              userTask.status === 'Submitted' ? 'bg-accent' : 'bg-muted-foreground'
                             }`}></div>
                             <div className="text-sm">
                               <span className="font-medium">
@@ -252,7 +255,7 @@ const Dashboard = () => {
                                  userTask.status === 'Submitted' ? 'Task submitted:' : 'Task started:'}
                               </span> {userTask.task?.title || 'Unknown Task'}
                               {userTask.status === 'Completed' && userTask.points_earned && (
-                                <span className="text-green-600 font-medium ml-2">
+                                <span className="text-primary font-medium ml-2">
                                   +{userTask.points_earned} ST
                                 </span>
                               )}

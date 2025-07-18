@@ -63,13 +63,14 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// SoundTrump custom colors - updated to match logo
-				sound: {
-					dark: 'hsl(262, 83%, 8%)',
-					medium: 'hsl(262, 83%, 25%)',
-					light: 'hsl(262, 83%, 58%)',
-					accent: 'hsl(60, 100%, 75%)',
-					muted: 'hsl(262, 83%, 45%)',
+				// Crypto-themed colors matching the logo
+				crypto: {
+					dark: 'hsl(240, 20%, 7%)',
+					medium: 'hsl(262, 83%, 15%)',
+					primary: 'hsl(262, 83%, 58%)',
+					accent: 'hsl(60, 100%, 65%)',
+					muted: 'hsl(240, 20%, 15%)',
+					gold: 'hsl(45, 100%, 60%)',
 				}
 			},
 			borderRadius: {
@@ -105,6 +106,22 @@ export default {
 				'pulse-subtle': {
 					'0%, 100%': { opacity: '1' },
 					'50%': { opacity: '0.8' }
+				},
+				'crypto-glow': {
+					'0%, 100%': { 
+						boxShadow: '0 0 20px hsl(262 83% 58% / 0.3), 0 0 40px hsl(262 83% 58% / 0.1)' 
+					},
+					'50%': { 
+						boxShadow: '0 0 30px hsl(262 83% 58% / 0.5), 0 0 60px hsl(262 83% 58% / 0.2)' 
+					}
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0px)' },
+					'50%': { transform: 'translateY(-10px)' }
+				},
+				'shimmer': {
+					'0%': { backgroundPosition: '-200% 0' },
+					'100%': { backgroundPosition: '200% 0' }
 				}
 			},
 			animation: {
@@ -114,15 +131,22 @@ export default {
 				'fade-out': 'fade-out 0.3s ease-out',
 				'slide-up': 'slide-up 0.4s ease-out',
 				'slide-down': 'slide-down 0.4s ease-out',
-				'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite'
+				'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
+				'crypto-glow': 'crypto-glow 3s ease-in-out infinite',
+				'float': 'float 6s ease-in-out infinite',
+				'shimmer': 'shimmer 2s infinite'
 			},
 			fontFamily: {
 				'sans': ['Inter', 'sans-serif'],
-				'display': ['SF Pro Display', 'Inter', 'sans-serif']
+				'display': ['Inter', 'sans-serif']
 			},
 			backdropFilter: {
 				'none': 'none',
 				'blur': 'blur(10px)'
+			},
+			backgroundImage: {
+				'gradient-crypto': 'linear-gradient(135deg, hsl(240 20% 7%) 0%, hsl(262 83% 8%) 50%, hsl(240 20% 10%) 100%)',
+				'gradient-crypto-card': 'linear-gradient(135deg, hsl(240 20% 10% / 0.6) 0%, hsl(262 83% 15% / 0.4) 100%)',
 			}
 		}
 	},
