@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Music2, ArrowRight, CheckCircle, Zap, Users, Trophy, Clock } from 'lucide-react';
+import { ArrowRight, CheckCircle, Zap, Users, Trophy, Clock } from 'lucide-react';
 import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -149,7 +149,7 @@ const Index = () => {
             >
               {[
                 {
-                  icon: <Music2 className="h-10 w-10 text-sound-light" />,
+                  icon: <img src="/lovable-uploads/d171e28f-9cf9-4701-a3d8-bd8c580e00d9.png" alt="SoundTrump" className="h-10 w-10" />,
                   title: 'Stream and Earn',
                   description: 'Connect your Spotify account and earn ST Coins by streaming music and completing curated playlists.'
                 },

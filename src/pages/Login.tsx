@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Music2, ArrowRight, Mail, Lock, User, UserPlus, LogIn } from 'lucide-react';
+import { ArrowRight, Mail, Lock, User, UserPlus, LogIn } from 'lucide-react';
 import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
@@ -132,7 +133,11 @@ const Login = () => {
       <div className="flex min-h-screen flex-col bg-gradient-to-b from-background to-muted/50">
         <div className="flex-1 flex flex-col justify-center items-center px-4 py-12">
           <Link to="/" className="flex items-center mb-8">
-            <Music2 className="w-10 h-10 text-sound-light mr-2" />
+            <img 
+              src="/lovable-uploads/d171e28f-9cf9-4701-a3d8-bd8c580e00d9.png" 
+              alt="SoundTrump" 
+              className="w-10 h-10 mr-2"
+            />
             <span className="text-2xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-sound-light to-sound-accent">
               SoundTrump
             </span>
