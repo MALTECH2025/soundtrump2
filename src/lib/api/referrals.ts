@@ -28,6 +28,17 @@ export const fetchReferredUsers = async (userId: string) => {
 };
 
 export const createReferralCode = async (userId: string) => {
+  // Check if user already has a referral code
+  const { data: existingReferral } = await supabase
+    .from('referrals')
+    .select('referral_code')
+    .eq('referrer_id', userId)
+    .single();
+    
+  if (existingReferral?.referral_code) {
+    return existingReferral;
+  }
+  
   // Generate a unique referral code
   const referralCode = 'ST' + Math.random().toString(36).substring(2, 10).toUpperCase();
   
@@ -45,8 +56,8 @@ export const createReferralCode = async (userId: string) => {
 };
 
 export const applyReferralCode = async (referralCode: string) => {
-  const { data, error } = await supabase.rpc('apply_referral_code', {
-    referral_code: referralCode
+  const { data, error } = await supabase.functions.invoke('apply-referral-code', {
+    body: { referral_code: referralCode }
   });
   
   if (error) throw error;
@@ -63,7 +74,52 @@ export const getReferralStats = async (userId: string) => {
   
   return {
     totalReferrals: data.length,
-    pointsEarned: data.filter(r => r.points_awarded).length * 100, // Assuming 100 points per referral
+    pointsEarned: data.filter(r => r.points_awarded).length * 10, // 10 points per referral
     pendingReferrals: data.filter(r => !r.points_awarded).length
   };
+};
+
+// Check if referral code is in URL and apply it
+export const checkAndApplyReferralFromUrl = async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const referralCode = urlParams.get('ref');
+  
+  if (referralCode) {
+    // Store in localStorage for later application after login
+    localStorage.setItem('pendingReferralCode', referralCode);
+    
+    // If user is already logged in, apply immediately
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      try {
+        const result = await applyReferralCode(referralCode);
+        localStorage.removeItem('pendingReferralCode');
+        return result;
+      } catch (error) {
+        console.error('Error applying referral code:', error);
+        return null;
+      }
+    }
+  }
+  
+  return null;
+};
+
+// Apply pending referral code after login
+export const applyPendingReferralCode = async () => {
+  const pendingCode = localStorage.getItem('pendingReferralCode');
+  
+  if (pendingCode) {
+    try {
+      const result = await applyReferralCode(pendingCode);
+      localStorage.removeItem('pendingReferralCode');
+      return result;
+    } catch (error) {
+      console.error('Error applying pending referral code:', error);
+      localStorage.removeItem('pendingReferralCode');
+      return null;
+    }
+  }
+  
+  return null;
 };

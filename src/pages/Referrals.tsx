@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Users, Share2, Gift, Copy, Check, Crown, Star } from 'lucide-react';
+import { Users, Share2, Gift, Copy, Check, Crown, Star, Plus } from 'lucide-react';
 import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -13,11 +13,18 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
-import { fetchUserReferrals, fetchReferredUsers, createReferralCode, getReferralStats } from '@/lib/api/referrals';
+import { 
+  fetchUserReferrals, 
+  fetchReferredUsers, 
+  createReferralCode, 
+  getReferralStats,
+  applyReferralCode
+} from '@/lib/api/referrals';
 
 const Referrals = () => {
   const [copied, setCopied] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState('');
+  const [isApplyingCode, setIsApplyingCode] = useState(false);
   const { isAuthenticated, user: authUser } = useAuth();
   const queryClient = useQueryClient();
 
@@ -49,6 +56,37 @@ const Referrals = () => {
       toast.error(error.message || 'Failed to create referral code');
     }
   });
+
+  const applyReferralMutation = useMutation({
+    mutationFn: (code: string) => applyReferralCode(code),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success(result.message);
+        setReferralCodeInput('');
+        // Refresh all data
+        queryClient.invalidateQueries({ queryKey: ['userReferrals'] });
+        queryClient.invalidateQueries({ queryKey: ['referredUsers'] });
+        queryClient.invalidateQueries({ queryKey: ['referralStats'] });
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+      } else {
+        toast.error(result.message || 'Failed to apply referral code');
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to apply referral code');
+    }
+  });
+
+  const handleApplyReferralCode = () => {
+    if (!referralCodeInput.trim()) {
+      toast.error('Please enter a referral code');
+      return;
+    }
+    
+    setIsApplyingCode(true);
+    applyReferralMutation.mutate(referralCodeInput.trim().toUpperCase());
+    setIsApplyingCode(false);
+  };
 
   const referralCode = referralData?.referral_code || '';
   const referralLink = `${window.location.origin}/?ref=${referralCode}`;
@@ -112,6 +150,35 @@ const Referrals = () => {
               </h1>
               <p className="text-muted-foreground">Invite friends and earn rewards together!</p>
             </motion.div>
+
+            {/* Apply Referral Code Section */}
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="w-5 h-5" />
+                  Have a Referral Code?
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter referral code (e.g., ST12345678)"
+                    value={referralCodeInput}
+                    onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={handleApplyReferralCode}
+                    disabled={isApplyingCode || applyReferralMutation.isPending}
+                  >
+                    {isApplyingCode || applyReferralMutation.isPending ? 'Applying...' : 'Apply Code'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Apply a friend's referral code to earn bonus points for both of you!
+                </p>
+              </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               {/* Stats Cards */}
@@ -204,12 +271,12 @@ const Referrals = () => {
                         Share Referral Link
                       </Button>
 
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-blue-900 mb-2">How it works:</h3>
-                        <ul className="text-sm text-blue-800 space-y-1">
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-purple-900 mb-2">How it works:</h3>
+                        <ul className="text-sm text-purple-800 space-y-1">
                           <li>• Share your referral link with friends</li>
                           <li>• They sign up using your link</li>
-                          <li>• You both earn 100 ST Coins!</li>
+                          <li>• You both earn 10 ST Coins!</li>
                           <li>• No limit on referrals</li>
                         </ul>
                       </div>

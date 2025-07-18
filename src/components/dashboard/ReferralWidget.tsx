@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { toast } from '@/lib/toast';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { createReferralCode } from '@/lib/api/referrals';
 
 interface ReferralWidgetProps {
   totalReferrals: number;
@@ -21,17 +23,35 @@ const ReferralWidget = ({
   isInfluencer = false 
 }: ReferralWidgetProps) => {
   const [isCopied, setIsCopied] = useState(false);
+  const [currentReferralCode, setCurrentReferralCode] = useState(referralCode);
+  const [isCreating, setIsCreating] = useState(false);
+  const { user } = useAuth();
   
   const referralProgress = Math.min((totalReferrals / influencerThreshold) * 100, 100);
-  const referralLink = referralCode ? `${window.location.origin}/?ref=${referralCode}` : '';
+  const referralLink = currentReferralCode ? `${window.location.origin}/?ref=${currentReferralCode}` : '';
+  
+  const handleCreateReferralCode = async () => {
+    if (!user?.id) return;
+    
+    setIsCreating(true);
+    try {
+      const result = await createReferralCode(user.id);
+      setCurrentReferralCode(result.referral_code);
+      toast.success('Referral code created successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create referral code');
+    } finally {
+      setIsCreating(false);
+    }
+  };
   
   const handleCopyReferralCode = () => {
-    if (!referralCode) {
+    if (!currentReferralCode) {
       toast.error('No referral code available');
       return;
     }
     
-    navigator.clipboard.writeText(referralCode);
+    navigator.clipboard.writeText(currentReferralCode);
     setIsCopied(true);
     toast.success('Referral code copied to clipboard!');
     
@@ -64,6 +84,11 @@ const ReferralWidget = ({
       handleCopyReferralLink();
     }
   };
+
+  // Update local state when prop changes
+  useEffect(() => {
+    setCurrentReferralCode(referralCode);
+  }, [referralCode]);
 
   return (
     <Card className="border overflow-hidden">
@@ -106,7 +131,7 @@ const ReferralWidget = ({
           )}
         </div>
         
-        {referralCode && (
+        {currentReferralCode ? (
           <>
             <div className="p-3 rounded-md border border-border bg-muted/20 mb-4">
               <div className="flex justify-between items-center mb-2">
@@ -121,7 +146,7 @@ const ReferralWidget = ({
                     className="h-6 text-xs font-mono"
                     onClick={handleCopyReferralCode}
                   >
-                    {isCopied ? <Check className="w-3 h-3" /> : referralCode}
+                    {isCopied ? <Check className="w-3 h-3" /> : currentReferralCode}
                   </Button>
                 </motion.div>
               </div>
@@ -150,12 +175,16 @@ const ReferralWidget = ({
               </Button>
             </div>
           </>
-        )}
-        
-        {!referralCode && (
+        ) : (
           <div className="text-center py-4">
             <p className="text-sm text-muted-foreground mb-2">No referral code available</p>
-            <p className="text-xs text-muted-foreground">Your referral code will appear here once generated</p>
+            <Button 
+              onClick={handleCreateReferralCode}
+              disabled={isCreating || !user?.id}
+              className="w-full"
+            >
+              {isCreating ? 'Creating...' : 'Create Referral Code'}
+            </Button>
           </div>
         )}
         

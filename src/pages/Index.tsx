@@ -1,256 +1,231 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, CheckCircle, Zap, Users, Trophy, Clock } from 'lucide-react';
-import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
+import { ArrowRight, Users, Trophy, Coins, Music, Star, Gift, Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { checkAndApplyReferralFromUrl } from '@/lib/api/referrals';
+import { toast } from '@/lib/toast';
 
 const Index = () => {
-  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
-  const features = [
-    {
-      icon: <Zap className="h-8 w-8 text-accent" />,
-      title: 'Instant Rewards',
-      description: 'Earn ST Coins instantly for every completed task. No waiting, no delays.',
-    },
-    {
-      icon: <Users className="h-8 w-8 text-primary" />,
-      title: 'Community Driven',
-      description: 'Join thousands of users earning together. Refer friends and earn bonus rewards.',
-    },
-    {
-      icon: <Trophy className="h-8 w-8 text-accent" />,
-      title: 'Leaderboards',
-      description: 'Compete with others and climb the ranks. Top performers get exclusive rewards.',
-    },
-    {
-      icon: <Clock className="h-8 w-8 text-primary" />,
-      title: '24/7 Mining',
-      description: 'Passive income through our mining system. Earn ST Coins even while you sleep.',
-    },
-  ];
+  useEffect(() => {
+    // Check for referral code in URL and show notification
+    const urlParams = new URLSearchParams(window.location.search);
+    const referralCode = urlParams.get('ref');
+    
+    if (referralCode) {
+      if (isAuthenticated) {
+        // If already logged in, apply immediately
+        checkAndApplyReferralFromUrl().then((result) => {
+          if (result?.success) {
+            toast.success(result.message);
+          } else if (result?.message) {
+            toast.error(result.message);
+          }
+        });
+      } else {
+        // Show message to sign up
+        toast.success('Referral code detected! Sign up to earn bonus rewards!');
+      }
+    }
+  }, [isAuthenticated]);
 
-  const steps = [
-    {
-      number: '01',
-      title: 'Sign Up',
-      description: 'Create your free account in seconds and get instant access to earning opportunities.',
-    },
-    {
-      number: '02', 
-      title: 'Complete Tasks',
-      description: 'Choose from music streaming, social engagement, and daily challenges.',
-    },
-    {
-      number: '03',
-      title: 'Earn Rewards',
-      description: 'Get ST Coins instantly and redeem them for real rewards and crypto.',
-    },
-  ];
-
-  const stats = [
-    { label: 'Active Users', value: '50K+' },
-    { label: 'Tasks Completed', value: '2M+' },
-    { label: 'ST Coins Earned', value: '10M+' },
-    { label: 'Rewards Claimed', value: '25K+' },
-  ];
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
 
   return (
     <AnimatedTransition>
-      <div className="min-h-screen bg-gradient-crypto">
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-sound-dark via-sound-dark to-purple-900/20">
         <Navbar />
         
         {/* Hero Section */}
-        <section className="relative pt-20 pb-16 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-accent/10 opacity-50" />
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="text-center max-w-4xl mx-auto">
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8 }}
-                className="mb-8"
-              >
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
-                  <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent crypto-pulse">
-                    Earn Crypto
-                  </span>
-                  <br />
-                  <span className="text-foreground">By Completing</span>
-                  <br />
-                  <span className="bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent">
-                    Simple Tasks
-                  </span>
-                </h1>
-                <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-                  Join the decentralized economy. Stream music, engage socially, and complete daily challenges to earn ST Coins.
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
-              >
+        <section className="flex-grow pt-24 pb-12 px-4">
+          <div className="container mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-8"
+            >
+              <Badge variant="secondary" className="mb-4 bg-gradient-to-r from-purple-500 to-yellow-500 text-white border-0">
+                <Star className="w-4 h-4 mr-2" />
+                Earn Crypto Rewards
+              </Badge>
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-purple-200 to-yellow-300 bg-clip-text text-transparent">
+                Turn Your Music 
+                <br />
+                Into <span className="text-yellow-400">Money</span>
+              </h1>
+              <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+                Complete simple music tasks, refer friends, and earn ST Coins. 
+                Your gateway to the future of music rewards.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
                   size="lg" 
-                  className="bg-gradient-to-r from-primary to-accent hover:from-primary/80 hover:to-accent/80 text-white font-semibold px-8 py-4 rounded-full crypto-glow"
-                  onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}
+                  onClick={handleGetStarted}
+                  className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 py-3 rounded-full"
                 >
                   {isAuthenticated ? 'Go to Dashboard' : 'Start Earning Now'}
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="border-primary/30 text-primary hover:bg-primary/10 px-8 py-4 rounded-full"
                   onClick={() => navigate('/how-it-works')}
+                  className="border-purple-500 text-purple-300 hover:bg-purple-500/10 px-8 py-3 rounded-full"
                 >
-                  Learn How It Works
+                  Learn More
                 </Button>
-              </motion.div>
-
-              {/* Stats */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-2xl mx-auto"
-              >
-                {stats.map((stat, index) => (
-                  <div key={index} className="text-center">
-                    <div className="text-2xl md:text-3xl font-bold text-primary crypto-glow">{stat.value}</div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
-                  </div>
-                ))}
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
-        {/* How It Works Section */}
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                How SoundTrump Works
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Three simple steps to start earning cryptocurrency today
-              </p>
+              </div>
             </motion.div>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {[
-                {
-                  icon: <img src="/lovable-uploads/d171e28f-9cf9-4701-a3d8-bd8c580e00d9.png" alt="SoundTrump" className="h-10 w-10 crypto-float" />,
-                  title: 'Stream and Earn',
-                  description: 'Connect your Spotify account and earn ST Coins by streaming music and completing curated playlists.'
-                },
-                {
-                  icon: <Users className="h-10 w-10 text-primary crypto-float" />,
-                  title: 'Social Tasks',
-                  description: 'Engage with social media content, follow accounts, and share posts to earn additional ST Coins.'
-                },
-                {
-                  icon: <Trophy className="h-10 w-10 text-accent crypto-float" />,
-                  title: 'Claim Rewards',
-                  description: 'Redeem your ST Coins for cryptocurrency, gift cards, exclusive merchandise, and more rewards.'
-                }
-              ].map((step, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="text-center group"
-                >
-                  <div className="glass p-8 rounded-2xl crypto-glow-accent hover:scale-105 transition-all duration-300">
-                    <div className="mb-6 flex justify-center">
-                      {step.icon}
-                    </div>
-                    <h3 className="text-xl font-semibold mb-4 text-foreground">{step.title}</h3>
-                    <p className="text-muted-foreground">{step.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            {/* Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16"
+            >
+              <div className="text-center">
+                <div className="text-3xl font-bold text-yellow-400 mb-2">10,000+</div>
+                <div className="text-gray-400">Active Users</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-400 mb-2">$50K+</div>
+                <div className="text-gray-400">Rewards Paid</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-yellow-400 mb-2">500+</div>
+                <div className="text-gray-400">Daily Tasks</div>
+              </div>
+            </motion.div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section className="py-20">
-          <div className="container mx-auto px-4">
+        <section className="py-20 px-4 bg-black/20">
+          <div className="container mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Why Choose SoundTrump?
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+                How You <span className="text-yellow-400">Earn</span>
               </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                The most rewarding platform for crypto enthusiasts and music lovers
+              <p className="text-gray-400 max-w-2xl mx-auto">
+                Multiple ways to earn ST Coins and build your crypto portfolio
               </p>
             </motion.div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {features.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  viewport={{ once: true }}
-                  className="glass p-6 rounded-xl hover:scale-105 transition-all duration-300 crypto-glow"
-                >
-                  <div className="mb-4">{feature.icon}</div>
-                  <h3 className="text-xl font-semibold mb-2 text-foreground">{feature.title}</h3>
-                  <p className="text-muted-foreground text-sm">{feature.description}</p>
-                </motion.div>
-              ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+              >
+                <Card className="bg-gradient-to-br from-purple-900/50 to-black/50 border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+                  <CardHeader>
+                    <Music className="w-8 h-8 text-purple-400 mb-2" />
+                    <CardTitle className="text-white">Music Tasks</CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Complete simple music-related tasks and earn ST Coins
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <Card className="bg-gradient-to-br from-yellow-900/50 to-black/50 border-yellow-500/20 hover:border-yellow-400/40 transition-all duration-300">
+                  <CardHeader>
+                    <Users className="w-8 h-8 text-yellow-400 mb-2" />
+                    <CardTitle className="text-white">Referral Program</CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Invite friends and earn 10 ST Coins for each referral
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+              >
+                <Card className="bg-gradient-to-br from-purple-900/50 to-black/50 border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+                  <CardHeader>
+                    <Trophy className="w-8 h-8 text-purple-400 mb-2" />
+                    <CardTitle className="text-white">Leaderboard</CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Compete with others and earn bonus rewards
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                <Card className="bg-gradient-to-br from-yellow-900/50 to-black/50 border-yellow-500/20 hover:border-yellow-400/40 transition-all duration-300">
+                  <CardHeader>
+                    <Gift className="w-8 h-8 text-yellow-400 mb-2" />
+                    <CardTitle className="text-white">Redeem Rewards</CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Exchange your ST Coins for real crypto and prizes
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </motion.div>
             </div>
           </div>
         </section>
 
         {/* CTA Section */}
-        <section className="py-20">
-          <div className="container mx-auto px-4">
+        <section className="py-20 px-4">
+          <div className="container mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="glass p-12 rounded-2xl text-center max-w-4xl mx-auto crypto-glow"
+              className="bg-gradient-to-r from-purple-900/50 to-yellow-900/50 rounded-2xl p-8 border border-purple-500/20"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Ready to Start Earning?
+              <Zap className="w-16 h-16 text-yellow-400 mx-auto mb-6" />
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+                Ready to Start <span className="text-yellow-400">Earning?</span>
               </h2>
-              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Join thousands of users who are already earning cryptocurrency through SoundTrump's innovative task-based rewards system.
+              <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
+                Join thousands of users who are already earning crypto rewards through music. 
+                It's free to start and takes less than 2 minutes to sign up.
               </p>
               <Button 
-                size="lg"
-                className="bg-gradient-to-r from-primary to-accent hover:from-primary/80 hover:to-accent/80 text-white font-semibold px-8 py-4 rounded-full crypto-glow"
-                onClick={() => navigate(isAuthenticated ? '/dashboard' : '/login')}
+                size="lg" 
+                onClick={handleGetStarted}
+                className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 py-3 rounded-full"
               >
-                {isAuthenticated ? 'Go to Dashboard' : 'Get Started Today'}
-                <ArrowRight className="ml-2 h-5 w-5" />
+                {isAuthenticated ? 'Go to Dashboard' : 'Join SoundTrump Now'}
+                <Coins className="ml-2 w-5 h-5" />
               </Button>
             </motion.div>
           </div>
