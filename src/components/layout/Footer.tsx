@@ -23,7 +23,7 @@ import { toast } from '@/lib/toast';
 const Footer = () => {
   const handleSubscribe = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const form = e.target as HTMLFormForm;
+    const form = e.target as HTMLFormElement;
     const email = (form.elements.namedItem('email') as HTMLInputElement).value;
     
     // Here we would normally send this to an API
@@ -41,11 +41,11 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex items-center mb-4">
               <img 
-                src="/lovable-uploads/2340f734-47be-4f0a-b602-be147fe90165.png" 
+                src="/lovable-uploads/d171e28f-9cf9-4701-a3d8-bd8c580e00d9.png" 
                 alt="SoundTrump" 
                 className="w-6 h-6 mr-2"
               />
-              <span className="text-lg font-display font-bold text-foreground">
+              <span className="text-lg font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-sound-light to-sound-accent">
                 SoundTrump
               </span>
             </Link>
@@ -56,7 +56,7 @@ const Footer = () => {
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="rounded-full hover:text-primary"
+                className="rounded-full hover:text-sound-light"
                 asChild
               >
                 <a href="https://x.com/SoundTrump" target="_blank" rel="noopener noreferrer">
@@ -66,14 +66,14 @@ const Footer = () => {
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="rounded-full hover:text-primary"
+                className="rounded-full hover:text-sound-light"
                 asChild
               >
                 <a href="https://t.me/soundtrump" target="_blank" rel="noopener noreferrer">
                   <Send className="w-4 h-4" />
                 </a>
               </Button>
-              <Button size="icon" variant="ghost" className="rounded-full hover:text-primary">
+              <Button size="icon" variant="ghost" className="rounded-full hover:text-sound-light">
                 <Instagram className="w-4 h-4" />
               </Button>
             </div>
@@ -81,7 +81,7 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div className="col-span-1">
-            <h3 className="text-sm font-semibold mb-4 text-foreground">Quick Links</h3>
+            <h3 className="text-sm font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               {[
                 { name: 'Dashboard', path: '/dashboard' },
@@ -115,7 +115,7 @@ const Footer = () => {
 
           {/* Legal - Fixed routing */}
           <div className="col-span-1">
-            <h3 className="text-sm font-semibold mb-4 text-foreground">Legal</h3>
+            <h3 className="text-sm font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               {[
                 { name: 'Terms of Service', path: '/legal/terms', icon: <FileText className="w-3.5 h-3.5 mr-1.5" /> },
@@ -139,7 +139,7 @@ const Footer = () => {
 
           {/* Newsletter */}
           <div className="col-span-1">
-            <h3 className="text-sm font-semibold mb-4 text-foreground">Newsletter</h3>
+            <h3 className="text-sm font-semibold mb-4">Newsletter</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Subscribe to our newsletter for the latest updates and rewards.
             </p>
