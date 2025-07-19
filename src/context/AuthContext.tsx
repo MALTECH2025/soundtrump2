@@ -13,6 +13,11 @@ interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAdmin: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  register: (email: string, password: string, metadata?: { username?: string }) => Promise<{ success: boolean; message?: string }>;
+  logout: () => Promise<void>;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refetchProfile: () => Promise<void>;
 }
 
@@ -22,6 +27,11 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   isAuthenticated: false,
   isLoading: true,
+  isAdmin: false,
+  login: async () => ({ success: false }),
+  register: async () => ({ success: false }),
+  logout: async () => {},
+  updateUserProfile: async () => {},
   refetchProfile: async () => {},
 });
 
@@ -43,11 +53,94 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return { success: false, message: error.message };
+      }
+
+      toast.success('Logged in successfully!');
+      return { success: true };
+    } catch (error: any) {
+      toast.error('An unexpected error occurred');
+      return { success: false, message: 'An unexpected error occurred' };
+    }
+  };
+
+  const register = async (email: string, password: string, metadata?: { username?: string }) => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: metadata,
+        },
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return { success: false, message: error.message };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      toast.error('An unexpected error occurred');
+      return { success: false, message: 'An unexpected error occurred' };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Logged out successfully!');
+      }
+    } catch (error: any) {
+      toast.error('An unexpected error occurred');
+    }
+  };
+
+  const updateUserProfile = async (updates: Partial<UserProfile>) => {
+    if (!user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (error) throw error;
+      
+      await refetchProfile();
+      toast.success('Profile updated successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
+    }
+  };
+
   const refetchProfile = async () => {
     if (user?.id) {
       try {
         const profileData = await fetchUserProfile(user.id);
-        setProfile(profileData);
+        // Ensure the profile data matches UserProfile type
+        const typedProfile: UserProfile = {
+          ...profileData,
+          tier: (profileData.tier === 'Premium' ? 'Premium' : 'Free') as "Free" | "Premium",
+          status: (profileData.status === 'Influencer' ? 'Influencer' : 'Normal') as "Normal" | "Influencer",
+          role: (profileData.role || 'user') as "user" | "admin"
+        };
+        setProfile(typedProfile);
       } catch (error) {
         console.error('Error fetching profile:', error);
       }
@@ -69,7 +162,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (session?.user) {
         fetchUserProfile(session.user.id)
-          .then(setProfile)
+          .then((profileData) => {
+            // Ensure the profile data matches UserProfile type
+            const typedProfile: UserProfile = {
+              ...profileData,
+              tier: (profileData.tier === 'Premium' ? 'Premium' : 'Free') as "Free" | "Premium",
+              status: (profileData.status === 'Influencer' ? 'Influencer' : 'Normal') as "Normal" | "Influencer",
+              role: (profileData.role || 'user') as "user" | "admin"
+            };
+            setProfile(typedProfile);
+          })
           .catch(console.error)
           .finally(() => setIsLoading(false));
       } else {
@@ -86,7 +188,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (session?.user) {
           try {
             const profileData = await fetchUserProfile(session.user.id);
-            setProfile(profileData);
+            // Ensure the profile data matches UserProfile type
+            const typedProfile: UserProfile = {
+              ...profileData,
+              tier: (profileData.tier === 'Premium' ? 'Premium' : 'Free') as "Free" | "Premium",
+              status: (profileData.status === 'Influencer' ? 'Influencer' : 'Normal') as "Normal" | "Influencer",
+              role: (profileData.role || 'user') as "user" | "admin"
+            };
+            setProfile(typedProfile);
             
             // Apply pending referral code after login
             if (event === 'SIGNED_IN') {
@@ -94,8 +203,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               if (referralResult?.success) {
                 toast.success(referralResult.message);
                 // Refresh profile to show updated points
-                const updatedProfile = await fetchUserProfile(session.user.id);
-                setProfile(updatedProfile);
+                const updatedProfileData = await fetchUserProfile(session.user.id);
+                const updatedTypedProfile: UserProfile = {
+                  ...updatedProfileData,
+                  tier: (updatedProfileData.tier === 'Premium' ? 'Premium' : 'Free') as "Free" | "Premium",
+                  status: (updatedProfileData.status === 'Influencer' ? 'Influencer' : 'Normal') as "Normal" | "Influencer",
+                  role: (updatedProfileData.role || 'user') as "user" | "admin"
+                };
+                setProfile(updatedTypedProfile);
               }
             }
           } catch (error) {
@@ -118,6 +233,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     session,
     isAuthenticated: !!user,
     isLoading,
+    isAdmin: profile?.role === 'admin',
+    login,
+    register,
+    logout,
+    updateUserProfile,
     refetchProfile,
   };
 

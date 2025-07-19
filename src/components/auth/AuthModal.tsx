@@ -18,7 +18,7 @@ interface AuthModalProps {
 
 const AuthModal = ({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>(defaultTab);
-  const { login, register, signOut } = useAuth();
+  const { login, register } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   const loginForm = useForm({

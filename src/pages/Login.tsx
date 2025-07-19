@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -42,7 +41,6 @@ const Login = () => {
     try {
       const result = await login(email, password);
       if (result.success) {
-        toast.success('Logged in successfully!');
         navigate('/dashboard');
       }
     } catch (error) {
