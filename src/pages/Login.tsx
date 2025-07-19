@@ -115,8 +115,8 @@ const Login = () => {
   
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-sound-medium border-t-sound-light rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -132,18 +132,18 @@ const Login = () => {
         <div className="flex-1 flex flex-col justify-center items-center px-4 py-12">
           <Link to="/" className="flex items-center mb-8">
             <img 
-              src="/lovable-uploads/d171e28f-9cf9-4701-a3d8-bd8c580e00d9.png" 
+              src="/lovable-uploads/2340f734-47be-4f0a-b602-be147fe90165.png" 
               alt="SoundTrump" 
               className="w-10 h-10 mr-2"
             />
-            <span className="text-2xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-sound-light to-sound-accent">
+            <span className="text-2xl font-display font-bold text-foreground">
               SoundTrump
             </span>
           </Link>
           
           <Card className="w-full max-w-md shadow-lg">
             <CardHeader className="space-y-1 text-center">
-              <CardTitle className="text-2xl font-bold">
+              <CardTitle className="text-2xl font-bold text-foreground">
                 {activeTab === 'login' && 'Welcome back'}
                 {activeTab === 'register' && 'Create an account'}
                 {activeTab === 'reset' && 'Reset your password'}
