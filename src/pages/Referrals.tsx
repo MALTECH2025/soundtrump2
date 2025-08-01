@@ -24,7 +24,6 @@ import {
 const Referrals = () => {
   const [copied, setCopied] = useState(false);
   const [referralCodeInput, setReferralCodeInput] = useState('');
-  const [isApplyingCode, setIsApplyingCode] = useState(false);
   const { isAuthenticated, user: authUser } = useAuth();
   const queryClient = useQueryClient();
 
@@ -53,6 +52,7 @@ const Referrals = () => {
       toast.success('Referral code created successfully!');
     },
     onError: (error: any) => {
+      console.error('Create referral error:', error);
       toast.error(error.message || 'Failed to create referral code');
     }
   });
@@ -60,32 +60,32 @@ const Referrals = () => {
   const applyReferralMutation = useMutation({
     mutationFn: (code: string) => applyReferralCode(code),
     onSuccess: (result) => {
-      if (result.success) {
-        toast.success(result.message);
-        setReferralCodeInput('');
-        // Refresh all data
-        queryClient.invalidateQueries({ queryKey: ['userReferrals'] });
-        queryClient.invalidateQueries({ queryKey: ['referredUsers'] });
-        queryClient.invalidateQueries({ queryKey: ['referralStats'] });
-        queryClient.invalidateQueries({ queryKey: ['profile'] });
-      } else {
-        toast.error(result.message || 'Failed to apply referral code');
-      }
+      console.log('Apply referral success:', result);
+      toast.success(result.message || 'Referral code applied successfully!', {
+        description: `You earned ${result.points_earned || 10} ST Coins!`
+      });
+      setReferralCodeInput('');
+      
+      // Refresh all data
+      queryClient.invalidateQueries({ queryKey: ['userReferrals'] });
+      queryClient.invalidateQueries({ queryKey: ['referredUsers'] });
+      queryClient.invalidateQueries({ queryKey: ['referralStats'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
     },
     onError: (error: any) => {
+      console.error('Apply referral error:', error);
       toast.error(error.message || 'Failed to apply referral code');
     }
   });
 
   const handleApplyReferralCode = () => {
-    if (!referralCodeInput.trim()) {
+    const trimmedCode = referralCodeInput.trim().toUpperCase();
+    if (!trimmedCode) {
       toast.error('Please enter a referral code');
       return;
     }
     
-    setIsApplyingCode(true);
-    applyReferralMutation.mutate(referralCodeInput.trim().toUpperCase());
-    setIsApplyingCode(false);
+    applyReferralMutation.mutate(trimmedCode);
   };
 
   const referralCode = referralData?.referral_code || '';
@@ -103,7 +103,7 @@ const Referrals = () => {
   };
 
   const shareReferralLink = () => {
-    if (navigator.share) {
+    if (navigator.share && referralLink) {
       navigator.share({
         title: 'Join SoundTrump!',
         text: 'Join me on SoundTrump and earn crypto rewards by completing simple tasks!',
@@ -121,7 +121,7 @@ const Referrals = () => {
           <Navbar />
           <main className="flex-grow pt-24 pb-12 flex items-center justify-center">
             <div className="text-center">
-              <h1 className="text-2xl font-bold mb-4">Please log in to access referrals</h1>
+              <h1 className="text-2xl font-bold mb-4 text-foreground">Please log in to access referrals</h1>
               <p className="text-muted-foreground">Sign in to your account to start earning referral rewards.</p>
             </div>
           </main>
@@ -133,7 +133,7 @@ const Referrals = () => {
 
   return (
     <AnimatedTransition>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
         
         <main className="flex-grow pt-24 pb-12">
@@ -144,17 +144,17 @@ const Referrals = () => {
               transition={{ duration: 0.3 }}
               className="mb-6"
             >
-              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                <Users className="w-8 h-8 text-purple-500" />
+              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
+                <Users className="w-8 h-8 text-primary" />
                 Referral Program
               </h1>
               <p className="text-muted-foreground">Invite friends and earn rewards together!</p>
             </motion.div>
 
             {/* Apply Referral Code Section */}
-            <Card className="mb-6">
+            <Card className="mb-6 bg-card border-border">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-card-foreground">
                   <Plus className="w-5 h-5" />
                   Have a Referral Code?
                 </CardTitle>
@@ -165,13 +165,13 @@ const Referrals = () => {
                     placeholder="Enter referral code (e.g., ST12345678)"
                     value={referralCodeInput}
                     onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
-                    className="flex-1"
+                    className="flex-1 bg-background border-input text-foreground"
                   />
                   <Button 
                     onClick={handleApplyReferralCode}
-                    disabled={isApplyingCode || applyReferralMutation.isPending}
+                    disabled={applyReferralMutation.isPending}
                   >
-                    {isApplyingCode || applyReferralMutation.isPending ? 'Applying...' : 'Apply Code'}
+                    {applyReferralMutation.isPending ? 'Applying...' : 'Apply Code'}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -182,35 +182,35 @@ const Referrals = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               {/* Stats Cards */}
-              <Card>
+              <Card className="bg-card border-border">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Referrals</CardTitle>
+                  <CardTitle className="text-sm font-medium text-card-foreground">Total Referrals</CardTitle>
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{referralStats?.totalReferrals || 0}</div>
+                  <div className="text-2xl font-bold text-foreground">{referralStats?.totalReferrals || 0}</div>
                   <p className="text-xs text-muted-foreground">Friends joined</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-card border-border">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Points Earned</CardTitle>
+                  <CardTitle className="text-sm font-medium text-card-foreground">Points Earned</CardTitle>
                   <Gift className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{referralStats?.pointsEarned || 0}</div>
+                  <div className="text-2xl font-bold text-foreground">{referralStats?.pointsEarned || 0}</div>
                   <p className="text-xs text-muted-foreground">ST Coins from referrals</p>
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-card border-border">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                  <CardTitle className="text-sm font-medium text-card-foreground">Pending</CardTitle>
                   <Star className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{referralStats?.pendingReferrals || 0}</div>
+                  <div className="text-2xl font-bold text-foreground">{referralStats?.pendingReferrals || 0}</div>
                   <p className="text-xs text-muted-foreground">Awaiting completion</p>
                 </CardContent>
               </Card>
@@ -218,9 +218,9 @@ const Referrals = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Referral Link Section */}
-              <Card>
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-card-foreground">
                     <Share2 className="w-5 h-5" />
                     Your Referral Link
                   </CardTitle>
@@ -239,9 +239,9 @@ const Referrals = () => {
                   ) : (
                     <>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Referral Code</label>
+                        <label className="text-sm font-medium text-foreground">Referral Code</label>
                         <div className="flex gap-2">
-                          <Input value={referralCode} readOnly />
+                          <Input value={referralCode} readOnly className="bg-background border-input text-foreground" />
                           <Button
                             variant="outline"
                             size="sm"
@@ -253,9 +253,9 @@ const Referrals = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Referral Link</label>
+                        <label className="text-sm font-medium text-foreground">Referral Link</label>
                         <div className="flex gap-2">
-                          <Input value={referralLink} readOnly className="text-xs" />
+                          <Input value={referralLink} readOnly className="text-xs bg-background border-input text-foreground" />
                           <Button
                             variant="outline"
                             size="sm"
@@ -271,9 +271,9 @@ const Referrals = () => {
                         Share Referral Link
                       </Button>
 
-                      <div className="bg-purple-50 p-4 rounded-lg">
-                        <h3 className="font-semibold text-purple-900 mb-2">How it works:</h3>
-                        <ul className="text-sm text-purple-800 space-y-1">
+                      <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
+                        <h3 className="font-semibold text-primary mb-2">How it works:</h3>
+                        <ul className="text-sm text-foreground space-y-1">
                           <li>• Share your referral link with friends</li>
                           <li>• They sign up using your link</li>
                           <li>• You both earn 10 ST Coins!</li>
@@ -286,9 +286,9 @@ const Referrals = () => {
               </Card>
 
               {/* Referred Users */}
-              <Card>
+              <Card className="bg-card border-border">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-card-foreground">
                     <Crown className="w-5 h-5" />
                     Your Referrals ({referredUsers.length})
                   </CardTitle>
@@ -296,21 +296,23 @@ const Referrals = () => {
                 <CardContent>
                   {referredUsers.length === 0 ? (
                     <div className="text-center py-8">
-                      <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">No referrals yet</p>
                       <p className="text-sm text-muted-foreground">Start sharing your link to see referrals here!</p>
                     </div>
                   ) : (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {referredUsers.map((referral: any) => (
-                        <div key={referral.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div key={referral.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border">
                           <div className="flex items-center gap-3">
                             <Avatar className="w-10 h-10">
                               <AvatarImage src={referral.referred_user?.avatar_url || ''} />
-                              <AvatarFallback>{referral.referred_user?.initials || '??'}</AvatarFallback>
+                              <AvatarFallback className="bg-primary/10 text-primary">
+                                {referral.referred_user?.initials || '??'}
+                              </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">
+                              <p className="font-medium text-foreground">
                                 {referral.referred_user?.username || 
                                  referral.referred_user?.full_name || 
                                  `User ${referral.referred_user_id.slice(0, 8)}`}

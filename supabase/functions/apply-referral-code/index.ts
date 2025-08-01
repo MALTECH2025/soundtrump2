@@ -73,7 +73,7 @@ serve(async (req) => {
     }
 
     // Check if the user has already been referred
-    const { data: existingReferral, error: existingReferralError } = await supabase
+    const { data: existingReferral } = await supabase
       .from("referred_users")
       .select("*")
       .eq("referred_user_id", user.id)
@@ -104,20 +104,43 @@ serve(async (req) => {
       );
     }
 
-    // Award points to the referrer
-    const { error: referrerPointsError } = await supabase
+    // Get referrer's current points and update
+    const { data: referrerProfile, error: referrerGetError } = await supabase
       .from("profiles")
-      .update({ points: supabase.rpc("increment", { x: referralPoints }) })
-      .eq("id", referralData.referrer_id);
+      .select("points")
+      .eq("id", referralData.referrer_id)
+      .single();
 
-    if (referrerPointsError) {
-      console.error("Error updating referrer points:", referrerPointsError);
+    if (referrerGetError) {
+      console.error("Error getting referrer profile:", referrerGetError);
+    } else {
+      // Update referrer points
+      const { error: referrerPointsError } = await supabase
+        .from("profiles")
+        .update({ points: (referrerProfile.points || 0) + referralPoints })
+        .eq("id", referralData.referrer_id);
+
+      if (referrerPointsError) {
+        console.error("Error updating referrer points:", referrerPointsError);
+      }
     }
 
-    // Award points to the referred user
-    const { data: userProfile, error: userPointsError } = await supabase
+    // Get user's current points and update
+    const { data: userProfile, error: userGetError } = await supabase
       .from("profiles")
-      .update({ points: supabase.rpc("increment", { x: referralPoints }) })
+      .select("points")
+      .eq("id", user.id)
+      .single();
+
+    let newUserPoints = referralPoints;
+    if (!userGetError && userProfile) {
+      newUserPoints = (userProfile.points || 0) + referralPoints;
+    }
+
+    // Update user points
+    const { data: updatedUserProfile, error: userPointsError } = await supabase
+      .from("profiles")
+      .update({ points: newUserPoints })
       .eq("id", user.id)
       .select("points")
       .single();
@@ -131,11 +154,12 @@ serve(async (req) => {
         success: true,
         message: `Referral code applied successfully! You've earned ${referralPoints} points.`,
         points_earned: referralPoints,
-        total_points: userProfile?.points || 0,
+        total_points: updatedUserProfile?.points || newUserPoints,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error("Edge function error:", error);
     return new Response(
       JSON.stringify({ success: false, message: error.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }

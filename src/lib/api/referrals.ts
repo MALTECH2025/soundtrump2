@@ -24,7 +24,7 @@ export const fetchReferredUsers = async (userId: string) => {
     .order('created_at', { ascending: false });
     
   if (error) throw error;
-  return data;
+  return data || [];
 };
 
 export const createReferralCode = async (userId: string) => {
@@ -56,12 +56,37 @@ export const createReferralCode = async (userId: string) => {
 };
 
 export const applyReferralCode = async (referralCode: string) => {
-  const { data, error } = await supabase.functions.invoke('apply-referral-code', {
-    body: { referral_code: referralCode }
-  });
-  
-  if (error) throw error;
-  return data;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      throw new Error('Authentication required');
+    }
+
+    const { data, error } = await supabase.functions.invoke('apply-referral-code', {
+      body: { referral_code: referralCode },
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      }
+    });
+    
+    if (error) {
+      console.error('Edge function error:', error);
+      throw new Error(error.message || 'Failed to apply referral code');
+    }
+
+    // Handle both direct response and wrapped response formats
+    const result = data?.success !== undefined ? data : data?.data || data;
+    
+    if (!result?.success) {
+      throw new Error(result?.message || 'Failed to apply referral code');
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Apply referral code error:', error);
+    throw error;
+  }
 };
 
 export const getReferralStats = async (userId: string) => {
@@ -72,10 +97,12 @@ export const getReferralStats = async (userId: string) => {
     
   if (error) throw error;
   
+  const referralData = data || [];
+  
   return {
-    totalReferrals: data.length,
-    pointsEarned: data.filter(r => r.points_awarded).length * 10, // 10 points per referral
-    pendingReferrals: data.filter(r => !r.points_awarded).length
+    totalReferrals: referralData.length,
+    pointsEarned: referralData.filter(r => r.points_awarded).length * 10, // 10 points per referral
+    pendingReferrals: referralData.filter(r => !r.points_awarded).length
   };
 };
 
