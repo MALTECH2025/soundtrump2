@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { 
   Twitter, 
@@ -40,11 +41,11 @@ const Footer = () => {
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex items-center mb-4">
               <img 
-                src="/lovable-uploads/d171e28f-9cf9-4701-a3d8-bd8c580e00d9.png" 
+                src="/lovable-uploads/ecfb5b09-9f0f-45d8-b463-4f39dd2ca81e.png" 
                 alt="SoundTrump" 
                 className="w-6 h-6 mr-2"
               />
-              <span className="text-lg font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-sound-light to-sound-accent">
+              <span className="text-lg font-display font-bold text-foreground">
                 SoundTrump
               </span>
             </Link>
@@ -55,7 +56,7 @@ const Footer = () => {
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="rounded-full hover:text-sound-light"
+                className="rounded-full hover:text-primary hover:bg-muted"
                 asChild
               >
                 <a href="https://x.com/SoundTrump" target="_blank" rel="noopener noreferrer">
@@ -65,14 +66,18 @@ const Footer = () => {
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="rounded-full hover:text-sound-light"
+                className="rounded-full hover:text-primary hover:bg-muted"
                 asChild
               >
                 <a href="https://t.me/soundtrump" target="_blank" rel="noopener noreferrer">
                   <Send className="w-4 h-4" />
                 </a>
               </Button>
-              <Button size="icon" variant="ghost" className="rounded-full hover:text-sound-light">
+              <Button 
+                size="icon" 
+                variant="ghost" 
+                className="rounded-full hover:text-primary hover:bg-muted"
+              >
                 <Instagram className="w-4 h-4" />
               </Button>
             </div>
@@ -80,7 +85,7 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div className="col-span-1">
-            <h3 className="text-sm font-semibold mb-4">Quick Links</h3>
+            <h3 className="text-sm font-semibold mb-4 text-foreground">Quick Links</h3>
             <ul className="space-y-2">
               {[
                 { name: 'Dashboard', path: '/dashboard' },
@@ -112,9 +117,9 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Legal - Fixed routing */}
+          {/* Legal */}
           <div className="col-span-1">
-            <h3 className="text-sm font-semibold mb-4">Legal</h3>
+            <h3 className="text-sm font-semibold mb-4 text-foreground">Legal</h3>
             <ul className="space-y-2">
               {[
                 { name: 'Terms of Service', path: '/legal/terms', icon: <FileText className="w-3.5 h-3.5 mr-1.5" /> },
@@ -138,7 +143,7 @@ const Footer = () => {
 
           {/* Newsletter */}
           <div className="col-span-1">
-            <h3 className="text-sm font-semibold mb-4">Newsletter</h3>
+            <h3 className="text-sm font-semibold mb-4 text-foreground">Newsletter</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Subscribe to our newsletter for the latest updates and rewards.
             </p>

@@ -49,7 +49,7 @@ const Index = () => {
 
   return (
     <AnimatedTransition>
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-sound-dark via-sound-dark to-purple-900/20">
+      <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
         
         {/* Hero Section */}
@@ -61,16 +61,16 @@ const Index = () => {
               transition={{ duration: 0.6 }}
               className="mb-8"
             >
-              <Badge variant="secondary" className="mb-4 bg-gradient-to-r from-purple-500 to-yellow-500 text-white border-0">
+              <Badge variant="secondary" className="mb-4 bg-primary text-primary-foreground border-0">
                 <Star className="w-4 h-4 mr-2" />
                 Earn Crypto Rewards
               </Badge>
-              <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-purple-200 to-yellow-300 bg-clip-text text-transparent">
+              <h1 className="text-4xl md:text-6xl font-bold mb-6 text-foreground">
                 Turn Your Music 
                 <br />
-                Into <span className="text-yellow-400">Money</span>
+                Into <span className="text-accent">Money</span>
               </h1>
-              <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
                 Complete simple music tasks, refer friends, and earn ST Coins. 
                 Your gateway to the future of music rewards.
               </p>
@@ -78,7 +78,7 @@ const Index = () => {
                 <Button 
                   size="lg" 
                   onClick={handleGetStarted}
-                  className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 py-3 rounded-full"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-3 rounded-full"
                 >
                   {isAuthenticated ? 'Go to Dashboard' : 'Start Earning Now'}
                   <ArrowRight className="ml-2 w-5 h-5" />
@@ -87,7 +87,7 @@ const Index = () => {
                   variant="outline" 
                   size="lg"
                   onClick={() => navigate('/how-it-works')}
-                  className="border-purple-500 text-purple-300 hover:bg-purple-500/10 px-8 py-3 rounded-full"
+                  className="border-border text-foreground hover:bg-muted px-8 py-3 rounded-full"
                 >
                   Learn More
                 </Button>
@@ -102,23 +102,23 @@ const Index = () => {
               className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16"
             >
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400 mb-2">10,000+</div>
-                <div className="text-gray-400">Active Users</div>
+                <div className="text-3xl font-bold text-accent mb-2">10,000+</div>
+                <div className="text-muted-foreground">Active Users</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-purple-400 mb-2">$50K+</div>
-                <div className="text-gray-400">Rewards Paid</div>
+                <div className="text-3xl font-bold text-primary mb-2">$50K+</div>
+                <div className="text-muted-foreground">Rewards Paid</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-yellow-400 mb-2">500+</div>
-                <div className="text-gray-400">Daily Tasks</div>
+                <div className="text-3xl font-bold text-accent mb-2">500+</div>
+                <div className="text-muted-foreground">Daily Tasks</div>
               </div>
             </motion.div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section className="py-20 px-4 bg-black/20">
+        <section className="py-20 px-4 bg-muted/30">
           <div className="container mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -126,10 +126,10 @@ const Index = () => {
               transition={{ duration: 0.6 }}
               className="text-center mb-16"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
-                How You <span className="text-yellow-400">Earn</span>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+                How You <span className="text-accent">Earn</span>
               </h2>
-              <p className="text-gray-400 max-w-2xl mx-auto">
+              <p className="text-muted-foreground max-w-2xl mx-auto">
                 Multiple ways to earn ST Coins and build your crypto portfolio
               </p>
             </motion.div>
@@ -140,11 +140,11 @@ const Index = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
               >
-                <Card className="bg-gradient-to-br from-purple-900/50 to-black/50 border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+                <Card className="bg-card border-border hover:border-primary/40 transition-all duration-300">
                   <CardHeader>
-                    <Music className="w-8 h-8 text-purple-400 mb-2" />
-                    <CardTitle className="text-white">Music Tasks</CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <Music className="w-8 h-8 text-primary mb-2" />
+                    <CardTitle className="text-foreground">Music Tasks</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Complete simple music-related tasks and earn ST Coins
                     </CardDescription>
                   </CardHeader>
@@ -156,11 +156,11 @@ const Index = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                <Card className="bg-gradient-to-br from-yellow-900/50 to-black/50 border-yellow-500/20 hover:border-yellow-400/40 transition-all duration-300">
+                <Card className="bg-card border-border hover:border-accent/40 transition-all duration-300">
                   <CardHeader>
-                    <Users className="w-8 h-8 text-yellow-400 mb-2" />
-                    <CardTitle className="text-white">Referral Program</CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <Users className="w-8 h-8 text-accent mb-2" />
+                    <CardTitle className="text-foreground">Referral Program</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Invite friends and earn 10 ST Coins for each referral
                     </CardDescription>
                   </CardHeader>
@@ -172,11 +172,11 @@ const Index = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
               >
-                <Card className="bg-gradient-to-br from-purple-900/50 to-black/50 border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+                <Card className="bg-card border-border hover:border-primary/40 transition-all duration-300">
                   <CardHeader>
-                    <Trophy className="w-8 h-8 text-purple-400 mb-2" />
-                    <CardTitle className="text-white">Leaderboard</CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <Trophy className="w-8 h-8 text-primary mb-2" />
+                    <CardTitle className="text-foreground">Leaderboard</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Compete with others and earn bonus rewards
                     </CardDescription>
                   </CardHeader>
@@ -188,11 +188,11 @@ const Index = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
-                <Card className="bg-gradient-to-br from-yellow-900/50 to-black/50 border-yellow-500/20 hover:border-yellow-400/40 transition-all duration-300">
+                <Card className="bg-card border-border hover:border-accent/40 transition-all duration-300">
                   <CardHeader>
-                    <Gift className="w-8 h-8 text-yellow-400 mb-2" />
-                    <CardTitle className="text-white">Redeem Rewards</CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <Gift className="w-8 h-8 text-accent mb-2" />
+                    <CardTitle className="text-foreground">Redeem Rewards</CardTitle>
+                    <CardDescription className="text-muted-foreground">
                       Exchange your ST Coins for real crypto and prizes
                     </CardDescription>
                   </CardHeader>
@@ -209,20 +209,20 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="bg-gradient-to-r from-purple-900/50 to-yellow-900/50 rounded-2xl p-8 border border-purple-500/20"
+              className="bg-card rounded-2xl p-8 border border-border"
             >
-              <Zap className="w-16 h-16 text-yellow-400 mx-auto mb-6" />
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
-                Ready to Start <span className="text-yellow-400">Earning?</span>
+              <Zap className="w-16 h-16 text-accent mx-auto mb-6" />
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+                Ready to Start <span className="text-accent">Earning?</span>
               </h2>
-              <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
+              <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
                 Join thousands of users who are already earning crypto rewards through music. 
                 It's free to start and takes less than 2 minutes to sign up.
               </p>
               <Button 
                 size="lg" 
                 onClick={handleGetStarted}
-                className="bg-gradient-to-r from-purple-500 to-yellow-500 hover:from-purple-600 hover:to-yellow-600 text-white font-semibold px-8 py-3 rounded-full"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-3 rounded-full"
               >
                 {isAuthenticated ? 'Go to Dashboard' : 'Join SoundTrump Now'}
                 <Coins className="ml-2 w-5 h-5" />

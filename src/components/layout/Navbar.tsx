@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut, User, Settings, Crown } from 'lucide-react';
@@ -54,17 +55,17 @@ const Navbar = () => {
   );
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <img 
-              src="/lovable-uploads/d171e28f-9cf9-4701-a3d8-bd8c580e00d9.png" 
+              src="/lovable-uploads/ecfb5b09-9f0f-45d8-b463-4f39dd2ca81e.png" 
               alt="SoundTrump" 
               className="w-8 h-8"
             />
-            <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-sound-light to-sound-accent">SoundTrump</span>
+            <span className="font-bold text-xl text-foreground">SoundTrump</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -75,8 +76,8 @@ const Navbar = () => {
                 to={link.href}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   isActive(link.href)
-                    ? 'bg-sound-light text-white'
-                    : 'text-gray-700 hover:text-sound-medium hover:bg-gray-100'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-foreground hover:text-primary hover:bg-muted'
                 }`}
               >
                 {link.name}
@@ -88,8 +89,8 @@ const Navbar = () => {
                 to={link.href}
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
                   isActive(link.href)
-                    ? 'bg-purple-600 text-white'
-                    : 'text-purple-700 hover:text-purple-800 hover:bg-purple-50'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-foreground hover:text-primary hover:bg-muted'
                 }`}
               >
                 <Crown className="w-4 h-4" />
@@ -104,9 +105,9 @@ const Navbar = () => {
               <>
                 {/* Points Display */}
                 {profile && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-sound-light/10 to-sound-accent/20 rounded-full">
-                    <div className="w-2 h-2 bg-sound-accent rounded-full"></div>
-                    <span className="text-sm font-medium text-sound-dark">
+                  <div className="flex items-center gap-2 px-3 py-1 bg-muted rounded-full">
+                    <div className="w-2 h-2 bg-accent rounded-full"></div>
+                    <span className="text-sm font-medium text-foreground">
                       {profile.points?.toLocaleString() || 0} ST
                     </span>
                   </div>
@@ -121,7 +122,7 @@ const Navbar = () => {
                     <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                       <Avatar className="h-10 w-10">
                         <AvatarImage src={profile?.avatar_url || ''} alt={profile?.username || 'User'} />
-                        <AvatarFallback className="bg-sound-light text-white">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
                           {profile?.initials || profile?.username?.charAt(0)?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
@@ -135,7 +136,7 @@ const Navbar = () => {
                   <DropdownMenuContent className="w-56" align="end" forceMount>
                     <div className="flex items-center justify-start gap-2 p-2">
                       <div className="flex flex-col space-y-1 leading-none">
-                        <p className="font-medium">{profile?.full_name || profile?.username || 'User'}</p>
+                        <p className="font-medium text-foreground">{profile?.full_name || profile?.username || 'User'}</p>
                         <p className="text-xs text-muted-foreground">
                           {profile?.points?.toLocaleString() || 0} ST Coins
                         </p>
@@ -198,7 +199,7 @@ const Navbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-gray-200"
+              className="md:hidden border-t border-border"
             >
               <div className="px-2 pt-2 pb-3 space-y-1">
                 {visibleLinks.map((link) => (
@@ -207,8 +208,8 @@ const Navbar = () => {
                     to={link.href}
                     className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                       isActive(link.href)
-                        ? 'bg-sound-light text-white'
-                        : 'text-gray-700 hover:text-sound-medium hover:bg-gray-100'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-foreground hover:text-primary hover:bg-muted'
                     }`}
                     onClick={() => setIsOpen(false)}
                   >
@@ -221,8 +222,8 @@ const Navbar = () => {
                     to={link.href}
                     className={`block px-3 py-2 rounded-md text-base font-medium transition-colors flex items-center gap-2 ${
                       isActive(link.href)
-                        ? 'bg-purple-600 text-white'
-                        : 'text-purple-700 hover:text-purple-800 hover:bg-purple-50'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-foreground hover:text-primary hover:bg-muted'
                     }`}
                     onClick={() => setIsOpen(false)}
                   >
@@ -233,19 +234,19 @@ const Navbar = () => {
               </div>
               
               {isAuthenticated && (
-                <div className="pt-4 pb-3 border-t border-gray-200">
+                <div className="pt-4 pb-3 border-t border-border">
                   <div className="flex items-center px-4">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={profile?.avatar_url || ''} alt={profile?.username || 'User'} />
-                      <AvatarFallback className="bg-sound-light text-white">
+                      <AvatarFallback className="bg-primary text-primary-foreground">
                         {profile?.initials || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="ml-3">
-                      <div className="text-base font-medium text-gray-800">
+                      <div className="text-base font-medium text-foreground">
                         {profile?.full_name || profile?.username || 'User'}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground">
                         {profile?.points?.toLocaleString() || 0} ST Coins
                       </div>
                     </div>
@@ -253,14 +254,14 @@ const Navbar = () => {
                   <div className="mt-3 space-y-1 px-2">
                     <Link
                       to="/profile"
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary hover:bg-muted"
                       onClick={() => setIsOpen(false)}
                     >
                       Profile
                     </Link>
                     <Link
                       to="/settings"
-                      className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                      className="block px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary hover:bg-muted"
                       onClick={() => setIsOpen(false)}
                     >
                       Settings
@@ -270,7 +271,7 @@ const Navbar = () => {
                         handleLogout();
                         setIsOpen(false);
                       }}
-                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                      className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-foreground hover:text-primary hover:bg-muted"
                     >
                       Sign out
                     </button>
@@ -279,7 +280,7 @@ const Navbar = () => {
               )}
               
               {!isAuthenticated && (
-                <div className="pt-4 pb-3 border-t border-gray-200">
+                <div className="pt-4 pb-3 border-t border-border">
                   <div className="px-2">
                     <Button asChild className="w-full">
                       <Link to="/login" onClick={() => setIsOpen(false)}>

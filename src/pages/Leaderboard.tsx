@@ -32,11 +32,11 @@ const Leaderboard = () => {
   const getRankIcon = (position: number) => {
     switch (position) {
       case 1:
-        return <Crown className="w-5 h-5 text-yellow-400" />;
+        return <Crown className="w-5 h-5 text-accent" />;
       case 2:
-        return <Trophy className="w-5 h-5 text-slate-300" />;
+        return <Trophy className="w-5 h-5 text-muted-foreground" />;
       case 3:
-        return <Medal className="w-5 h-5 text-amber-500" />;
+        return <Medal className="w-5 h-5 text-accent" />;
       default:
         return <span className="w-5 h-5 text-center text-sm font-bold text-foreground">#{position}</span>;
     }
@@ -50,7 +50,7 @@ const Leaderboard = () => {
   const getStatusBadge = (status: string) => {
     if (status === 'Influencer') {
       return (
-        <Badge variant="outline" className="bg-purple-500/10 text-purple-300 border-purple-500/30 text-xs">
+        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-xs">
           <Star className="w-3 h-3 mr-1" />
           Influencer
         </Badge>
@@ -90,7 +90,7 @@ const Leaderboard = () => {
               className="mb-6"
             >
               <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
-                <Trophy className="w-8 h-8 text-yellow-400" />
+                <Trophy className="w-8 h-8 text-accent" />
                 Leaderboard
               </h1>
               <p className="text-muted-foreground">See how you rank against other SoundTrump users</p>
@@ -130,7 +130,7 @@ const Leaderboard = () => {
                                 <AvatarImage src={leaderboard[1].avatar_url || ''} />
                                 <AvatarFallback className="bg-secondary text-secondary-foreground">{leaderboard[1].initials}</AvatarFallback>
                               </Avatar>
-                              <Trophy className="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                              <Trophy className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
                               <p className="font-semibold text-sm text-foreground">{leaderboard[1].username || leaderboard[1].full_name}</p>
                               <p className="text-xs text-muted-foreground">{leaderboard[1].points.toLocaleString()} ST</p>
                             </div>
@@ -143,12 +143,12 @@ const Leaderboard = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0 }}
                           >
-                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 h-40 flex flex-col justify-end">
+                            <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 h-40 flex flex-col justify-end">
                               <Avatar className="w-16 h-16 mx-auto mb-2">
                                 <AvatarImage src={leaderboard[0].avatar_url || ''} />
                                 <AvatarFallback className="bg-secondary text-secondary-foreground">{leaderboard[0].initials}</AvatarFallback>
                               </Avatar>
-                              <Crown className="w-8 h-8 text-yellow-400 mx-auto mb-1" />
+                              <Crown className="w-8 h-8 text-accent mx-auto mb-1" />
                               <p className="font-bold text-foreground">{leaderboard[0].username || leaderboard[0].full_name}</p>
                               <p className="text-sm text-muted-foreground">{leaderboard[0].points.toLocaleString()} ST</p>
                             </div>
@@ -161,12 +161,12 @@ const Leaderboard = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
                           >
-                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 h-28 flex flex-col justify-end">
+                            <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 h-28 flex flex-col justify-end">
                               <Avatar className="w-10 h-10 mx-auto mb-2">
                                 <AvatarImage src={leaderboard[2].avatar_url || ''} />
                                 <AvatarFallback className="bg-secondary text-secondary-foreground">{leaderboard[2].initials}</AvatarFallback>
                               </Avatar>
-                              <Medal className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                              <Medal className="w-5 h-5 text-accent mx-auto mb-1" />
                               <p className="font-semibold text-xs text-foreground">{leaderboard[2].username || leaderboard[2].full_name}</p>
                               <p className="text-xs text-muted-foreground">{leaderboard[2].points.toLocaleString()} ST</p>
                             </div>
