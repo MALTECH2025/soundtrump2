@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Referral, ReferredUser } from "@/types";
 
@@ -57,32 +56,42 @@ export const createReferralCode = async (userId: string) => {
 
 export const applyReferralCode = async (referralCode: string) => {
   try {
+    console.log('Applying referral code:', referralCode);
+    
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      throw new Error('Authentication required');
+      throw new Error('You must be logged in to apply a referral code');
     }
 
+    console.log('User session found, calling edge function...');
+
     const { data, error } = await supabase.functions.invoke('apply-referral-code', {
-      body: { referral_code: referralCode },
+      body: { referral_code: referralCode.trim().toUpperCase() },
       headers: {
         Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
       }
     });
     
+    console.log('Edge function response:', { data, error });
+
     if (error) {
-      console.error('Edge function error:', error);
+      console.error('Edge function invocation error:', error);
       throw new Error(error.message || 'Failed to apply referral code');
     }
 
-    // Handle both direct response and wrapped response formats
-    const result = data?.success !== undefined ? data : data?.data || data;
-    
-    if (!result?.success) {
-      throw new Error(result?.message || 'Failed to apply referral code');
+    // The data should already be the parsed response from the edge function
+    if (!data) {
+      throw new Error('No response received from server');
     }
 
-    return result;
+    if (!data.success) {
+      throw new Error(data.message || 'Failed to apply referral code');
+    }
+
+    console.log('Referral code applied successfully:', data);
+    return data;
   } catch (error) {
     console.error('Apply referral code error:', error);
     throw error;
@@ -112,6 +121,8 @@ export const checkAndApplyReferralFromUrl = async () => {
   const referralCode = urlParams.get('ref');
   
   if (referralCode) {
+    console.log('Referral code found in URL:', referralCode);
+    
     // Store in localStorage for later application after login
     localStorage.setItem('pendingReferralCode', referralCode);
     
@@ -123,8 +134,9 @@ export const checkAndApplyReferralFromUrl = async () => {
         localStorage.removeItem('pendingReferralCode');
         return result;
       } catch (error) {
-        console.error('Error applying referral code:', error);
-        return null;
+        console.error('Error applying referral code from URL:', error);
+        // Keep the code in localStorage for retry after login
+        return { success: false, message: error.message };
       }
     }
   }
@@ -137,14 +149,18 @@ export const applyPendingReferralCode = async () => {
   const pendingCode = localStorage.getItem('pendingReferralCode');
   
   if (pendingCode) {
+    console.log('Applying pending referral code:', pendingCode);
     try {
       const result = await applyReferralCode(pendingCode);
       localStorage.removeItem('pendingReferralCode');
       return result;
     } catch (error) {
       console.error('Error applying pending referral code:', error);
-      localStorage.removeItem('pendingReferralCode');
-      return null;
+      // Remove invalid codes but keep valid ones for retry
+      if (error.message?.includes('Invalid referral code') || error.message?.includes('already used')) {
+        localStorage.removeItem('pendingReferralCode');
+      }
+      return { success: false, message: error.message };
     }
   }
   

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Users, Share2, Gift, Copy, Check, Crown, Star, Plus } from 'lucide-react';
+import { Users, Share2, Gift, Copy, Check, Crown, Star, Plus, AlertCircle } from 'lucide-react';
 import { AnimatedTransition } from '@/components/ui/AnimatedTransition';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/lib/toast';
 import { 
@@ -85,11 +86,16 @@ const Referrals = () => {
       return;
     }
     
+    if (!trimmedCode.startsWith('ST') || trimmedCode.length < 4) {
+      toast.error('Invalid referral code format. Code should start with "ST"');
+      return;
+    }
+    
     applyReferralMutation.mutate(trimmedCode);
   };
 
   const referralCode = referralData?.referral_code || '';
-  const referralLink = `${window.location.origin}/?ref=${referralCode}`;
+  const referralLink = referralCode ? `${window.location.origin}/?ref=${referralCode}` : '';
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -117,7 +123,7 @@ const Referrals = () => {
   if (!isAuthenticated) {
     return (
       <AnimatedTransition>
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-background">
           <Navbar />
           <main className="flex-grow pt-24 pb-12 flex items-center justify-center">
             <div className="text-center">
@@ -160,23 +166,31 @@ const Referrals = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter referral code (e.g., ST12345678)"
-                    value={referralCodeInput}
-                    onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
-                    className="flex-1 bg-background border-input text-foreground"
-                  />
-                  <Button 
-                    onClick={handleApplyReferralCode}
-                    disabled={applyReferralMutation.isPending}
-                  >
-                    {applyReferralMutation.isPending ? 'Applying...' : 'Apply Code'}
-                  </Button>
+                <div className="space-y-4">
+                  <Alert className="border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-foreground">
+                      Enter a friend's referral code to earn bonus points for both of you!
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter referral code (e.g., ST12345678)"
+                      value={referralCodeInput}
+                      onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
+                      className="flex-1 bg-background border-input text-foreground"
+                      maxLength={20}
+                    />
+                    <Button 
+                      onClick={handleApplyReferralCode}
+                      disabled={applyReferralMutation.isPending || !referralCodeInput.trim()}
+                      className="min-w-[100px]"
+                    >
+                      {applyReferralMutation.isPending ? 'Applying...' : 'Apply Code'}
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Apply a friend's referral code to earn bonus points for both of you!
-                </p>
               </CardContent>
             </Card>
 
@@ -241,7 +255,7 @@ const Referrals = () => {
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-foreground">Referral Code</label>
                         <div className="flex gap-2">
-                          <Input value={referralCode} readOnly className="bg-background border-input text-foreground" />
+                          <Input value={referralCode} readOnly className="bg-background border-input text-foreground font-mono" />
                           <Button
                             variant="outline"
                             size="sm"
