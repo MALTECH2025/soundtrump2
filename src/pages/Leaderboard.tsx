@@ -32,25 +32,25 @@ const Leaderboard = () => {
   const getRankIcon = (position: number) => {
     switch (position) {
       case 1:
-        return <Crown className="w-5 h-5 text-yellow-500" />;
+        return <Crown className="w-5 h-5 text-yellow-400" />;
       case 2:
-        return <Trophy className="w-5 h-5 text-gray-400" />;
+        return <Trophy className="w-5 h-5 text-slate-300" />;
       case 3:
-        return <Medal className="w-5 h-5 text-amber-600" />;
+        return <Medal className="w-5 h-5 text-amber-500" />;
       default:
-        return <span className="w-5 h-5 text-center text-sm font-bold">#{position}</span>;
+        return <span className="w-5 h-5 text-center text-sm font-bold text-foreground">#{position}</span>;
     }
   };
 
   const getTierBadge = (tier: string) => {
     const variant = tier === 'Premium' ? 'default' : 'secondary';
-    return <Badge variant={variant}>{tier}</Badge>;
+    return <Badge variant={variant} className="text-xs font-medium">{tier}</Badge>;
   };
 
   const getStatusBadge = (status: string) => {
     if (status === 'Influencer') {
       return (
-        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+        <Badge variant="outline" className="bg-purple-500/10 text-purple-300 border-purple-500/30 text-xs">
           <Star className="w-3 h-3 mr-1" />
           Influencer
         </Badge>
@@ -62,11 +62,11 @@ const Leaderboard = () => {
   if (!isAuthenticated) {
     return (
       <AnimatedTransition>
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col bg-background">
           <Navbar />
           <main className="flex-grow pt-24 pb-12 flex items-center justify-center">
             <div className="text-center">
-              <h1 className="text-2xl font-bold mb-4">Please log in to view the leaderboard</h1>
+              <h1 className="text-2xl font-bold mb-4 text-foreground">Please log in to view the leaderboard</h1>
               <p className="text-muted-foreground">Sign in to your account to see where you rank!</p>
             </div>
           </main>
@@ -78,7 +78,7 @@ const Leaderboard = () => {
 
   return (
     <AnimatedTransition>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
         
         <main className="flex-grow pt-24 pb-12">
@@ -89,32 +89,32 @@ const Leaderboard = () => {
               transition={{ duration: 0.3 }}
               className="mb-6"
             >
-              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                <Trophy className="w-8 h-8 text-yellow-500" />
+              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2 text-foreground">
+                <Trophy className="w-8 h-8 text-yellow-400" />
                 Leaderboard
               </h1>
               <p className="text-muted-foreground">See how you rank against other SoundTrump users</p>
               {userRank && (
                 <p className="text-sm text-muted-foreground mt-2">
-                  Your current rank: <span className="font-semibold">#{userRank}</span>
+                  Your current rank: <span className="font-semibold text-foreground">#{userRank}</span>
                 </p>
               )}
             </motion.div>
 
             <Tabs defaultValue="all-time" className="w-full">
-              <TabsList className="mb-6">
-                <TabsTrigger value="all-time">All Time</TabsTrigger>
-                <TabsTrigger value="monthly">This Month</TabsTrigger>
-                <TabsTrigger value="weekly">This Week</TabsTrigger>
+              <TabsList className="mb-6 bg-card border border-border">
+                <TabsTrigger value="all-time" className="text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">All Time</TabsTrigger>
+                <TabsTrigger value="monthly" className="text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">This Month</TabsTrigger>
+                <TabsTrigger value="weekly" className="text-foreground data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">This Week</TabsTrigger>
               </TabsList>
 
               <TabsContent value="all-time">
                 <div className="grid gap-4">
                   {/* Top 3 Podium */}
                   {leaderboard.length >= 3 && (
-                    <Card className="mb-6">
+                    <Card className="mb-6 bg-card border-border">
                       <CardHeader>
-                        <CardTitle className="text-center">Top Performers</CardTitle>
+                        <CardTitle className="text-center text-foreground">Top Performers</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="flex justify-center items-end gap-8">
@@ -125,13 +125,13 @@ const Leaderboard = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
                           >
-                            <div className="bg-gray-100 rounded-lg p-4 h-32 flex flex-col justify-end">
+                            <div className="bg-muted/50 border border-border rounded-lg p-4 h-32 flex flex-col justify-end">
                               <Avatar className="w-12 h-12 mx-auto mb-2">
                                 <AvatarImage src={leaderboard[1].avatar_url || ''} />
-                                <AvatarFallback>{leaderboard[1].initials}</AvatarFallback>
+                                <AvatarFallback className="bg-secondary text-secondary-foreground">{leaderboard[1].initials}</AvatarFallback>
                               </Avatar>
-                              <Trophy className="w-6 h-6 text-gray-400 mx-auto mb-1" />
-                              <p className="font-semibold text-sm">{leaderboard[1].username || leaderboard[1].full_name}</p>
+                              <Trophy className="w-6 h-6 text-slate-300 mx-auto mb-1" />
+                              <p className="font-semibold text-sm text-foreground">{leaderboard[1].username || leaderboard[1].full_name}</p>
                               <p className="text-xs text-muted-foreground">{leaderboard[1].points.toLocaleString()} ST</p>
                             </div>
                           </motion.div>
@@ -143,13 +143,13 @@ const Leaderboard = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0 }}
                           >
-                            <div className="bg-yellow-100 rounded-lg p-4 h-40 flex flex-col justify-end">
+                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 h-40 flex flex-col justify-end">
                               <Avatar className="w-16 h-16 mx-auto mb-2">
                                 <AvatarImage src={leaderboard[0].avatar_url || ''} />
-                                <AvatarFallback>{leaderboard[0].initials}</AvatarFallback>
+                                <AvatarFallback className="bg-secondary text-secondary-foreground">{leaderboard[0].initials}</AvatarFallback>
                               </Avatar>
-                              <Crown className="w-8 h-8 text-yellow-500 mx-auto mb-1" />
-                              <p className="font-bold">{leaderboard[0].username || leaderboard[0].full_name}</p>
+                              <Crown className="w-8 h-8 text-yellow-400 mx-auto mb-1" />
+                              <p className="font-bold text-foreground">{leaderboard[0].username || leaderboard[0].full_name}</p>
                               <p className="text-sm text-muted-foreground">{leaderboard[0].points.toLocaleString()} ST</p>
                             </div>
                           </motion.div>
@@ -161,13 +161,13 @@ const Leaderboard = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
                           >
-                            <div className="bg-amber-100 rounded-lg p-4 h-28 flex flex-col justify-end">
+                            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 h-28 flex flex-col justify-end">
                               <Avatar className="w-10 h-10 mx-auto mb-2">
                                 <AvatarImage src={leaderboard[2].avatar_url || ''} />
-                                <AvatarFallback>{leaderboard[2].initials}</AvatarFallback>
+                                <AvatarFallback className="bg-secondary text-secondary-foreground">{leaderboard[2].initials}</AvatarFallback>
                               </Avatar>
-                              <Medal className="w-5 h-5 text-amber-600 mx-auto mb-1" />
-                              <p className="font-semibold text-xs">{leaderboard[2].username || leaderboard[2].full_name}</p>
+                              <Medal className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                              <p className="font-semibold text-xs text-foreground">{leaderboard[2].username || leaderboard[2].full_name}</p>
                               <p className="text-xs text-muted-foreground">{leaderboard[2].points.toLocaleString()} ST</p>
                             </div>
                           </motion.div>
@@ -177,9 +177,9 @@ const Leaderboard = () => {
                   )}
 
                   {/* Full Leaderboard */}
-                  <Card>
+                  <Card className="bg-card border-border">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 text-foreground">
                         <Users className="w-5 h-5" />
                         All Users ({leaderboard.length})
                       </CardTitle>
@@ -189,13 +189,13 @@ const Leaderboard = () => {
                         <div className="space-y-4">
                           {[1, 2, 3, 4, 5].map((i) => (
                             <div key={i} className="flex items-center gap-4 p-4 animate-pulse">
-                              <div className="w-8 h-8 bg-gray-200 rounded"></div>
-                              <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+                              <div className="w-8 h-8 bg-muted rounded"></div>
+                              <div className="w-12 h-12 bg-muted rounded-full"></div>
                               <div className="flex-1 space-y-2">
-                                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                                <div className="h-3 bg-gray-200 rounded w-1/6"></div>
+                                <div className="h-4 bg-muted rounded w-1/4"></div>
+                                <div className="h-3 bg-muted rounded w-1/6"></div>
                               </div>
-                              <div className="h-4 bg-gray-200 rounded w-20"></div>
+                              <div className="h-4 bg-muted rounded w-20"></div>
                             </div>
                           ))}
                         </div>
@@ -207,10 +207,10 @@ const Leaderboard = () => {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: index * 0.05 }}
-                              className={`flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                              className={`flex items-center gap-4 p-4 rounded-lg transition-colors border ${
                                 user.id === authUser?.id 
-                                  ? 'bg-blue-50 border-2 border-blue-200' 
-                                  : 'hover:bg-gray-50'
+                                  ? 'bg-primary/10 border-primary/30' 
+                                  : 'hover:bg-muted/30 border-transparent'
                               }`}
                             >
                               <div className="flex-shrink-0 w-8">
@@ -219,16 +219,16 @@ const Leaderboard = () => {
                               
                               <Avatar className="w-12 h-12">
                                 <AvatarImage src={user.avatar_url || ''} />
-                                <AvatarFallback>{user.initials}</AvatarFallback>
+                                <AvatarFallback className="bg-secondary text-secondary-foreground">{user.initials}</AvatarFallback>
                               </Avatar>
                               
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <p className="font-semibold truncate">
+                                  <p className="font-semibold truncate text-foreground">
                                     {user.username || user.full_name || `User ${user.id.slice(0, 8)}`}
                                   </p>
                                   {user.id === authUser?.id && (
-                                    <Badge variant="outline" className="text-xs">You</Badge>
+                                    <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">You</Badge>
                                   )}
                                 </div>
                                 <div className="flex items-center gap-2 mt-1">
@@ -238,7 +238,7 @@ const Leaderboard = () => {
                               </div>
                               
                               <div className="text-right">
-                                <p className="font-bold text-lg">{user.points.toLocaleString()}</p>
+                                <p className="font-bold text-lg text-foreground">{user.points.toLocaleString()}</p>
                                 <p className="text-xs text-muted-foreground">ST Coins</p>
                               </div>
                             </motion.div>
@@ -246,7 +246,7 @@ const Leaderboard = () => {
                           
                           {leaderboard.length === 0 && (
                             <div className="text-center py-12">
-                              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                               <p className="text-muted-foreground">No users found</p>
                             </div>
                           )}
@@ -258,7 +258,7 @@ const Leaderboard = () => {
               </TabsContent>
 
               <TabsContent value="monthly">
-                <Card>
+                <Card className="bg-card border-border">
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">Monthly leaderboard coming soon!</p>
                   </CardContent>
@@ -266,7 +266,7 @@ const Leaderboard = () => {
               </TabsContent>
 
               <TabsContent value="weekly">
-                <Card>
+                <Card className="bg-card border-border">
                   <CardContent className="py-12 text-center">
                     <p className="text-muted-foreground">Weekly leaderboard coming soon!</p>
                   </CardContent>
