@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut, User, Settings, Crown } from 'lucide-react';
@@ -7,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
-import { NotificationSystem } from '@/components/notifications/NotificationSystem';
+import NotificationBell from '@/components/notifications/NotificationBell';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
@@ -114,7 +113,7 @@ const Navbar = () => {
                 )}
 
                 {/* Notifications */}
-                <NotificationSystem />
+                <NotificationBell />
 
                 {/* User Avatar Menu */}
                 <DropdownMenu>
